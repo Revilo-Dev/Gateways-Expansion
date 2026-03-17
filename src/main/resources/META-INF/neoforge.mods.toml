@@ -47,6 +47,13 @@ versionRange="[1.21.1]" # match the exact Minecraft version
 ordering="NONE"
 side="BOTH"
 
+[[dependencies.${mod_id}]]
+modId="levelup"
+mandatory=true
+versionRange="[1.0.0,)"
+ordering="AFTER"
+side="BOTH"
+
 # Features are specific properties of the game environment that your mod requires
 #[features.${mod_id}]
 #openGLVersion="[3.2,)"

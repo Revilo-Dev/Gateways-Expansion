@@ -10,6 +10,7 @@ public final class SkillsEvents {
         REGISTERED = true;
 
         net.revilodev.codex.skills.logic.SkillSyncEvents.register();
+        net.revilodev.codex.skills.logic.LevelUpSkillIntegrationEvents.register();
         net.revilodev.codex.skills.logic.SkillEvents.register();
     }
 }

@@ -1,5 +1,6 @@
 package net.revilodev.codex.client.skills;
 
+import com.revilo.levelup.api.LevelUpApi;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -19,6 +20,7 @@ import net.revilodev.codex.skills.SkillBalance;
 import net.revilodev.codex.skills.SkillDefinition;
 import net.revilodev.codex.skills.SkillsAttachments;
 import net.revilodev.codex.skills.SkillsNetwork;
+import net.revilodev.codex.skills.logic.SkillLogic;
 
 @OnlyIn(Dist.CLIENT)
 public final class SkillDetailsPanel extends AbstractWidget {
@@ -116,6 +118,8 @@ public final class SkillDetailsPanel extends AbstractWidget {
         PlayerSkills ps = mc.player.getData(SkillsAttachments.PLAYER_SKILLS.get());
         int lvl = ps.level(skill.id());
         int pts = ps.points();
+        int playerLevel = LevelUpApi.getLevel(mc.player);
+        int reqLevel = SkillLogic.requiredLevelForNextRank(skill.id(), lvl);
 
         int contentTop = y + HEADER_HEIGHT;
         int contentBottom = upgrade.getY() - 6;
@@ -164,7 +168,10 @@ public final class SkillDetailsPanel extends AbstractWidget {
 
         gg.disableScissor();
 
-        boolean canUp = pts > 0 && lvl < skill.maxLevel();
+        boolean canUp = pts > 0
+                && lvl < skill.maxLevel()
+                && playerLevel >= reqLevel
+                && LevelUpApi.meetsLevelRequirement(mc.player, reqLevel);
         boolean canDown = lvl > 0;
 
         upgrade.active = canUp;

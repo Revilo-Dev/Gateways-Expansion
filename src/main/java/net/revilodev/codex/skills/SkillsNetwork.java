@@ -52,7 +52,7 @@ public final class SkillsNetwork {
             if (ctx.player() == null) return;
 
             PlayerSkills skills = ctx.player().getData(SkillsAttachments.PLAYER_SKILLS.get());
-            int beforeEarned = skills.earnedPoints();
+            int beforePoints = skills.points();
 
             CompoundTag tag = payload.data();
             if (tag == null) tag = new CompoundTag();
@@ -60,7 +60,7 @@ public final class SkillsNetwork {
             skills.deserializeNBT(ctx.player().level().registryAccess(), tag);
 
             if (ctx.player().level().isClientSide()) {
-                ClientOnly.maybeShowSkillPointToasts(skills, beforeEarned);
+                ClientOnly.maybeShowSkillPointToasts(skills, beforePoints);
             }
         });
     }
@@ -85,7 +85,7 @@ public final class SkillsNetwork {
 
             PlayerSkills skills = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
             boolean changed = payload.upgrade()
-                    ? SkillLogic.tryUpgrade(skills, id)
+                    ? SkillLogic.tryUpgrade(sp, skills, id)
                     : SkillLogic.tryDowngrade(skills, id);
 
             if (!changed) return;
@@ -149,7 +149,7 @@ public final class SkillsNetwork {
         private static boolean syncedOnce = false;
         private static net.minecraft.client.multiplayer.ClientLevel lastLevel;
 
-        private static void maybeShowSkillPointToasts(PlayerSkills skills, int beforeEarned) {
+        private static void maybeShowSkillPointToasts(PlayerSkills skills, int beforePoints) {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
             if (mc.level != lastLevel) {
                 lastLevel = mc.level;
@@ -160,9 +160,9 @@ public final class SkillsNetwork {
                 return;
             }
 
-            int afterEarned = skills.earnedPoints();
-            int delta = afterEarned - beforeEarned;
-            if (delta > 0) SkillPointToast.showGlobal(delta, afterEarned);
+            int afterPoints = skills.points();
+            int delta = afterPoints - beforePoints;
+            if (delta > 0) SkillPointToast.showGlobal(delta, afterPoints);
         }
     }
 }

@@ -1,5 +1,6 @@
 package net.revilodev.codex.client.skills;
 
+import com.revilo.levelup.api.LevelUpApi;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,6 +17,7 @@ import net.revilodev.codex.CodexMod;
 import net.revilodev.codex.skills.PlayerSkills;
 import net.revilodev.codex.skills.SkillDefinition;
 import net.revilodev.codex.skills.SkillsAttachments;
+import net.revilodev.codex.skills.logic.SkillLogic;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -121,6 +123,7 @@ public final class SkillListWidget extends AbstractWidget {
         int xOff = x - Mth.floor(scrollX);
 
         PlayerSkills ps = mc.player.getData(SkillsAttachments.PLAYER_SKILLS.get());
+        int playerLevel = LevelUpApi.getLevel(mc.player);
 
         for (int i = 0; i < skills.size(); i++) {
             SkillDefinition d = skills.get(i);
@@ -138,7 +141,11 @@ public final class SkillListWidget extends AbstractWidget {
             boolean hover = mouseX >= cellX && mouseX < cellX + CELL_SIZE && mouseY >= top && mouseY < top + CELL_SIZE;
 
             int lvl = ps.level(d.id());
-            boolean canUp = pts > 0 && lvl < d.maxLevel();
+            int reqLevel = SkillLogic.requiredLevelForNextRank(d.id(), lvl);
+            boolean canUp = pts > 0
+                    && lvl < d.maxLevel()
+                    && playerLevel >= reqLevel
+                    && LevelUpApi.meetsLevelRequirement(mc.player, reqLevel);
 
             ResourceLocation tex = (!canUp && lvl == 0) ? ROW_TEX_DISABLED : ROW_TEX;
             drawScaledTile(gg, tex, cellX, top);

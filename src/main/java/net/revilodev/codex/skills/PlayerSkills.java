@@ -8,14 +8,8 @@ import java.util.EnumMap;
 
 public final class PlayerSkills implements INBTSerializable<CompoundTag> {
     private static final int START_POINTS = 0;
-    private static final int BASE_TASKS_PER_POINT = 10;
-    private static final double TASK_MULTIPLIER = 1.5D;
-    private static final int MAX_STEP_INCREASE = 15;
-    private static final int STEP_ROUND_TO = 5;
 
     private int points = START_POINTS;
-    private int progress = 0;
-    private int earned = START_POINTS;
     private final EnumMap<SkillId, Integer> levels = new EnumMap<>(SkillId.class);
     private boolean modifiersDirty = true;
 
@@ -31,40 +25,6 @@ public final class PlayerSkills implements INBTSerializable<CompoundTag> {
         return points;
     }
 
-    public int progress() {
-        return progress;
-    }
-
-    public int progress(SkillCategory c) {
-        return progress;
-    }
-
-    public int earnedPoints() {
-        return earned;
-    }
-
-    public int earnedPoints(SkillCategory c) {
-        return earned;
-    }
-
-    public int requiredForNextPoint() {
-        return requiredXpFor(earnedPoints());
-    }
-
-    public int requiredForNextPoint(SkillCategory c) {
-        return requiredForNextPoint();
-    }
-
-    public float progressPct() {
-        int req = requiredForNextPoint();
-        if (req <= 0) return 0.0F;
-        return Math.min(1.0F, Math.max(0.0F, progress / (float) req));
-    }
-
-    public float progressPct(SkillCategory c) {
-        return progressPct();
-    }
-
     public int level(SkillId id) {
         return levels.getOrDefault(id, 0);
     }
@@ -75,35 +35,6 @@ public final class PlayerSkills implements INBTSerializable<CompoundTag> {
             if (id.category() == c) sum += level(id);
         }
         return sum;
-    }
-
-    public boolean addProgress(SkillCategory c, int xp) {
-        return addProgress(xp);
-    }
-
-    public boolean addProgress(int xp) {
-        if (xp <= 0) return false;
-
-        int curXp = progress;
-        int add = xp;
-        if (add > Integer.MAX_VALUE - curXp) add = Integer.MAX_VALUE - curXp;
-
-        int newXp = curXp + add;
-        int earnedPts = earned;
-
-        while (true) {
-            int req = requiredXpFor(earnedPts);
-            if (req <= 0) req = 1;
-            if (newXp < req) break;
-
-            newXp -= req;
-            points = Math.max(0, points + 1);
-            earnedPts++;
-        }
-
-        progress = Math.max(0, newXp);
-        earned = Math.max(0, earnedPts);
-        return true;
     }
 
     public boolean tryUpgrade(SkillId id) {
@@ -147,8 +78,6 @@ public final class PlayerSkills implements INBTSerializable<CompoundTag> {
 
     public void adminResetPoints() {
         points = START_POINTS;
-        progress = 0;
-        earned = START_POINTS;
     }
 
     public int adminAddLevel(SkillId id, int amt) {
@@ -188,24 +117,14 @@ public final class PlayerSkills implements INBTSerializable<CompoundTag> {
         CompoundTag root = new CompoundTag();
 
         root.putInt("gp", points);
-        root.putInt("gx", progress);
-        root.putInt("ge", earned);
 
         CompoundTag p = new CompoundTag();
         for (SkillCategory c : SkillCategory.values()) p.putInt(c.name(), points);
-
-        CompoundTag x = new CompoundTag();
-        for (SkillCategory c : SkillCategory.values()) x.putInt(c.name(), progress);
-
-        CompoundTag e = new CompoundTag();
-        for (SkillCategory c : SkillCategory.values()) e.putInt(c.name(), earned);
 
         CompoundTag l = new CompoundTag();
         for (SkillId id : SkillId.values()) l.putInt(id.name(), level(id));
 
         root.put("p", p);
-        root.put("x", x);
-        root.put("e", e);
         root.put("l", l);
         return root;
     }
@@ -233,58 +152,11 @@ public final class PlayerSkills implements INBTSerializable<CompoundTag> {
             }
         }
 
-        if (nbt.contains("gx")) {
-            progress = Math.max(0, nbt.getInt("gx"));
-        } else if (nbt.contains("x")) {
-            CompoundTag x = nbt.getCompound("x");
-            int total = 0;
-            for (SkillCategory c : SkillCategory.values()) {
-                if (x.contains(c.name())) total += Math.max(0, x.getInt(c.name()));
-            }
-            progress = Math.max(0, total);
-        }
-
-        if (nbt.contains("ge")) {
-            earned = Math.max(0, nbt.getInt("ge"));
-        } else if (nbt.contains("e")) {
-            CompoundTag e = nbt.getCompound("e");
-            int total = 0;
-            for (SkillCategory c : SkillCategory.values()) {
-                if (e.contains(c.name())) total += Math.max(0, e.getInt(c.name()));
-            }
-            earned = Math.max(0, total);
-        } else {
-            int spent = 0;
-            for (SkillCategory c : SkillCategory.values()) spent += spentIn(c);
-            earned = Math.max(0, points + spent);
-        }
-
         modifiersDirty = true;
-    }
-
-    private static int requiredXpFor(int earnedPoints) {
-        int e = Math.max(0, earnedPoints);
-        int req = BASE_TASKS_PER_POINT;
-
-        for (int i = 0; i < e; i++) {
-            int projected = (int) Math.floor(req * TASK_MULTIPLIER);
-            int increase = projected - req;
-            if (increase > MAX_STEP_INCREASE) increase = MAX_STEP_INCREASE;
-            req = roundDown(req + increase, STEP_ROUND_TO);
-        }
-
-        return Math.max(1, req);
-    }
-
-    private static int roundDown(int value, int step) {
-        if (step <= 1) return value;
-        return (value / step) * step;
     }
 
     private void initDefaults() {
         points = START_POINTS;
-        progress = 0;
-        earned = START_POINTS;
         for (SkillId id : SkillId.values()) levels.put(id, 0);
         modifiersDirty = true;
     }

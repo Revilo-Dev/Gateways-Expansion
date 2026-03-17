@@ -45,10 +45,7 @@ public final class SkillEvents {
         if (!(src.getEntity() instanceof ServerPlayer sp)) return;
         if (sp.isCreative() || sp.isSpectator()) return;
 
-        PlayerSkills data = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
-        // Uses the existing PlayerSkills progression system (progress -> earned points).
-        boolean changed = SkillLogic.awardCombatKill(sp, data, mob);
-        if (changed) SkillSyncEvents.markDirty(sp);
+        SkillLogic.awardCombatKill(sp, mob);
     }
 
     private static void onBlockBreak(BlockEvent.BreakEvent event) {
@@ -57,9 +54,7 @@ public final class SkillEvents {
         if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
         if (sp.isCreative() || sp.isSpectator()) return;
 
-        PlayerSkills data = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
-        boolean changed = SkillLogic.awardUtilityBlock(sp, data, event.getState(), event.getLevel(), event.getPos());
-        if (changed) SkillSyncEvents.markDirty(sp);
+        SkillLogic.awardUtilityBlock(sp, event.getState(), event.getLevel(), event.getPos());
     }
 
     private static void onIncomingDamage(LivingIncomingDamageEvent event) {
@@ -116,9 +111,7 @@ public final class SkillEvents {
         float preventedBySkills = s.raw - s.afterSkill;
         if (preventedBySkills <= 0.0F) return;
 
-        PlayerSkills data = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
-        boolean changed = SkillLogic.awardSurvivalPrevented(data, preventedBySkills);
-        if (changed) SkillSyncEvents.markDirty(sp);
+        SkillLogic.awardSurvivalPrevented(sp, preventedBySkills);
     }
 
     private static void onKnockback(LivingKnockBackEvent event) {

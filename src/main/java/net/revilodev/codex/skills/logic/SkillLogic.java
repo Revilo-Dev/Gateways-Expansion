@@ -1,5 +1,7 @@
 package net.revilodev.codex.skills.logic;
 
+import com.revilo.levelup.api.LevelUpApi;
+import com.revilo.levelup.api.LevelUpSources;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,7 +18,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.revilodev.codex.CodexMod;
 import net.revilodev.codex.skills.PlayerSkills;
 import net.revilodev.codex.skills.SkillBalance;
+import net.revilodev.codex.skills.SkillDefinition;
 import net.revilodev.codex.skills.SkillId;
+import net.revilodev.codex.skills.SkillRegistry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +34,7 @@ public final class SkillLogic {
     private static final ResourceLocation MOD_SPEED = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_speed");
     private static final ResourceLocation MOD_KB_RES = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_knockback_res");
     private static final ResourceLocation MOD_LUCK = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_luck");
+    private static final ResourceLocation SOURCE_SURVIVAL_PREVENTED = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "survival_prevented");
 
     private static final Map<UUID, Streak> COMBAT_STREAK = new HashMap<>();
     private static final Map<UUID, Streak> UTILITY_STREAK = new HashMap<>();
@@ -37,7 +42,17 @@ public final class SkillLogic {
     private static final int COMBAT_WINDOW_TICKS = 200;
     private static final int UTILITY_WINDOW_TICKS = 160;
 
-    public static boolean tryUpgrade(PlayerSkills skills, SkillId id) {
+    public static boolean tryUpgrade(ServerPlayer player, PlayerSkills skills, SkillId id) {
+        if (player == null) return false;
+        SkillDefinition def = SkillRegistry.def(id);
+        if (def == null) return false;
+
+        int cur = skills.level(id);
+        if (cur >= def.maxLevel()) return false;
+
+        int requiredLevel = requiredLevelForNextRank(id, cur);
+        if (!LevelUpApi.meetsLevelRequirement(player, requiredLevel)) return false;
+
         return skills.tryUpgrade(id);
     }
 
@@ -51,20 +66,36 @@ public final class SkillLogic {
         UTILITY_STREAK.remove(id);
     }
 
-    public static boolean awardCombatKill(ServerPlayer killer, PlayerSkills skills, LivingEntity victim) {
+    public static boolean awardCombatKill(ServerPlayer killer, LivingEntity victim) {
         if (killer == null || victim == null) return false;
         int xp = combatKillXp(victim);
         float mult = streakMultiplier(COMBAT_STREAK, killer.getUUID(), killer.tickCount, COMBAT_WINDOW_TICKS, 0.06F, 1.6F);
         int out = clampInt(Math.round(xp * mult), 1, 120);
-        return skills.addProgress(out);
+        LevelUpApi.awardXp(killer, out, LevelUpSources.MOB_KILL);
+        return true;
     }
 
-    public static boolean awardUtilityBlock(ServerPlayer player, PlayerSkills skills, BlockState state, LevelAccessor level, BlockPos pos) {
-        return false;
+    public static boolean awardUtilityBlock(ServerPlayer player, BlockState state, LevelAccessor level, BlockPos pos) {
+        if (player == null) return false;
+        int xp = utilityBlockXp(state, level, pos);
+        if (xp <= 0) return false;
+        float mult = streakMultiplier(UTILITY_STREAK, player.getUUID(), player.tickCount, UTILITY_WINDOW_TICKS, 0.03F, 1.35F);
+        int out = clampInt(Math.round(xp * mult), 1, 64);
+        LevelUpApi.awardXp(player, out, LevelUpSources.OBJECTIVE_COMPLETE);
+        return true;
     }
 
-    public static boolean awardSurvivalPrevented(PlayerSkills skills, float preventedBySkills) {
-        return false;
+    public static boolean awardSurvivalPrevented(ServerPlayer player, float preventedBySkills) {
+        if (player == null) return false;
+        int xp = survivalPreventedXp(preventedBySkills);
+        if (xp <= 0) return false;
+        LevelUpApi.awardXp(player, xp, SOURCE_SURVIVAL_PREVENTED);
+        return true;
+    }
+
+    public static int requiredLevelForNextRank(SkillId id, int currentSkillLevel) {
+        int nextRank = Math.max(1, currentSkillLevel + 1);
+        return nextRank;
     }
 
     public static int combatKillXp(LivingEntity victim) {

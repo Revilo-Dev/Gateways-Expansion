@@ -130,7 +130,7 @@ public final class SkillsCommands {
                                     data.adminResetCategoryPoints(c);
                                     SkillsNetwork.syncTo(sp);
 
-                                    ctx.getSource().sendSuccess(() -> Component.literal("Reset points/progress for " + c.name()), true);
+                                    ctx.getSource().sendSuccess(() -> Component.literal("Reset skill points for " + c.name()), true);
                                     return 1;
                                 }))));
 
@@ -186,7 +186,7 @@ public final class SkillsCommands {
                             PlayerSkills data = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
                             data.adminResetPoints();
                             SkillsNetwork.syncTo(sp);
-                            ctx.getSource().sendSuccess(() -> Component.literal("Reset skill points and progress."), true);
+                            ctx.getSource().sendSuccess(() -> Component.literal("Reset skill points."), true);
                             return 1;
                         })));
 
@@ -198,7 +198,7 @@ public final class SkillsCommands {
                             data.adminResetAll();
                             SkillLogic.applyAllEffects(sp, data);
                             SkillsNetwork.syncTo(sp);
-                            ctx.getSource().sendSuccess(() -> Component.literal("Reset all skills, points, and progress."), true);
+                            ctx.getSource().sendSuccess(() -> Component.literal("Reset all skills and points."), true);
                             return 1;
                         })));
 
