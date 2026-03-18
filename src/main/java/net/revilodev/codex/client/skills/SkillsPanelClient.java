@@ -349,10 +349,10 @@ public final class SkillsPanelClient {
         int listY = innerTop;
         int listH = SkillListWidget.preferredHeight();
 
-        int detailsX = innerLeft;
-        int detailsY = listY + listH + SECTION_GAP;
-        int detailsW = innerRight - innerLeft;
-        int detailsH = Math.max(20, innerBottom - detailsY);
+        int detailsH = PANEL_H / 3;
+        int detailsW = Math.max(20, (innerRight - innerLeft) - 5);
+        int detailsX = innerLeft + 2;
+        int detailsY = bgy + PANEL_H - detailsH + 3;
 
         if (st.bg != null) st.bg.setBounds(bgx, bgy, PANEL_W, PANEL_H);
         if (st.list != null) st.list.setBounds(listX, listY, listW, listH);

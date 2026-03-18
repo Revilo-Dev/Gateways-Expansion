@@ -24,9 +24,11 @@ import java.util.Locale;
 
 @OnlyIn(Dist.CLIENT)
 public final class SkillDetailsPanel extends AbstractWidget {
-    private static final float SMALL_TEXT_SCALE = 0.72F;
+    private static final float SMALL_TEXT_SCALE = 0.62F;
+    private static final float HEADER_TEXT_SCALE = 0.62F;
     private static final int BOTTOM_TEXT_PADDING = 8;
-    private static final int CONTENT_TOP = 24;
+    private static final int CONTENT_TOP = 20;
+    private static final int HEADER_ICON_SIZE = 12;
 
     private static final ResourceLocation TEX_UP =
             ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "textures/gui/sprites/skill_upgrade_button.png");
@@ -69,11 +71,11 @@ public final class SkillDetailsPanel extends AbstractWidget {
         setY(y);
         width = w;
         height = h;
-        int by = y + h - 22;
-        int total = upgrade.getWidth() + 6 + downgrade.getWidth();
+        int by = y + h - 20;
+        int total = upgrade.getWidth() + 2 + downgrade.getWidth();
         int start = x + (w - total) / 2;
         upgrade.setPosition(start, by);
-        downgrade.setPosition(start + upgrade.getWidth() + 6, by);
+        downgrade.setPosition(start + upgrade.getWidth() + 2, by);
         back.setPosition(x, y);
     }
 
@@ -111,12 +113,12 @@ public final class SkillDetailsPanel extends AbstractWidget {
 
         gg.fill(x, y, x + w, y + h, 0xBA303234);
         gg.hLine(x, x + w, y, 0xAA5A5A5A);
-        gg.blit(skill.icon(), x + 4, y + 3, 0, 0, 18, 18, 18, 18);
-        gg.drawString(mc.font, skill.title(), x + 24, y + 4, 0xFFFFFF, false);
-        gg.drawString(mc.font, "level: " + level + "/" + skill.maxLevel(), x + 24, y + 13, 0xD0D0D0, false);
+        gg.blit(skill.icon(), x + 4, y + 4, 0, 0, HEADER_ICON_SIZE, HEADER_ICON_SIZE, HEADER_ICON_SIZE, HEADER_ICON_SIZE);
+        drawScaledText(gg, skill.title(), x + 18, y + 5, 0xFFFFFF, HEADER_TEXT_SCALE);
+        drawScaledText(gg, "level: " + level + "/" + skill.maxLevel(), x + 18, y + 11, 0xD0D0D0, HEADER_TEXT_SCALE);
 
         int viewportTop = y + CONTENT_TOP;
-        int viewportBottom = upgrade.getY() - 5;
+        int viewportBottom = upgrade.getY() - 10;
         int viewportHeight = Math.max(0, viewportBottom - viewportTop);
         contentHeight = measureContentHeight(skill, unlocked, level);
         int maxScroll = Math.max(0, contentHeight - viewportHeight + BOTTOM_TEXT_PADDING);
@@ -142,7 +144,7 @@ public final class SkillDetailsPanel extends AbstractWidget {
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (!visible || !active || skill == null) return false;
         int viewportTop = getY() + CONTENT_TOP;
-        int viewportBottom = upgrade.getY() - 5;
+        int viewportBottom = upgrade.getY() - 10;
         if (mouseX < getX() || mouseX > getX() + width) return false;
         if (mouseY < viewportTop || mouseY > viewportBottom) return false;
         int viewportHeight = Math.max(0, viewportBottom - viewportTop);
@@ -171,6 +173,14 @@ public final class SkillDetailsPanel extends AbstractWidget {
             yy += Math.max(1, Mth.ceil(mc.font.lineHeight * SMALL_TEXT_SCALE));
         }
         return yy;
+    }
+
+    private void drawScaledText(GuiGraphics gg, String text, int x, int y, int color, float scale) {
+        gg.pose().pushPose();
+        gg.pose().translate(x, y, 0);
+        gg.pose().scale(scale, scale, 1.0F);
+        gg.drawString(mc.font, text, 0, 0, color, false);
+        gg.pose().popPose();
     }
 
     private int measureContentHeight(SkillDefinition def, boolean unlocked, int level) {
@@ -208,7 +218,7 @@ public final class SkillDetailsPanel extends AbstractWidget {
     }
 
     private final class UpgradeButton extends AbstractButton {
-        UpgradeButton(int x, int y) { super(x, y, 68, 20, Component.literal("Upgrade")); }
+        UpgradeButton(int x, int y) { super(x, y, 58, 18, Component.literal("Upgrade")); }
 
         @Override
         public void onPress() {
@@ -220,9 +230,12 @@ public final class SkillDetailsPanel extends AbstractWidget {
         protected void renderWidget(GuiGraphics gg, int mouseX, int mouseY, float partialTick) {
             ResourceLocation tex = !active ? TEX_UP_DISABLED : (isMouseOver(mouseX, mouseY) ? TEX_UP_HOVER : TEX_UP);
             gg.blit(tex, getX(), getY(), 0, 0, width, height, width, height);
-            int tx = getX() + (width - mc.font.width(getMessage())) / 2 + 2;
-            int ty = getY() + (height - mc.font.lineHeight) / 2 + 1;
-            gg.drawString(mc.font, getMessage(), tx, ty, active ? 0xFFFFFF : 0x808080, false);
+            float scale = 0.70F;
+            int sw = Math.max(1, Mth.ceil(mc.font.width(getMessage()) * scale));
+            int sh = Math.max(1, Mth.ceil(mc.font.lineHeight * scale));
+            int tx = getX() + (width - sw) / 2;
+            int ty = getY() + (height - sh) / 2;
+            drawScaledText(gg, getMessage().getString(), tx, ty, active ? 0xFFFFFF : 0x808080, scale);
         }
 
         @Override
@@ -230,7 +243,7 @@ public final class SkillDetailsPanel extends AbstractWidget {
     }
 
     private final class DowngradeButton extends AbstractButton {
-        DowngradeButton(int x, int y) { super(x, y, 68, 20, Component.literal("Downgrade")); }
+        DowngradeButton(int x, int y) { super(x, y, 58, 18, Component.literal("Downgrade")); }
 
         @Override
         public void onPress() {
@@ -242,9 +255,12 @@ public final class SkillDetailsPanel extends AbstractWidget {
         protected void renderWidget(GuiGraphics gg, int mouseX, int mouseY, float partialTick) {
             ResourceLocation tex = !active ? TEX_DOWN_DISABLED : (isMouseOver(mouseX, mouseY) ? TEX_DOWN_HOVER : TEX_DOWN);
             gg.blit(tex, getX(), getY(), 0, 0, width, height, width, height);
-            int tx = getX() + (width - mc.font.width(getMessage())) / 2 + 2;
-            int ty = getY() + (height - mc.font.lineHeight) / 2 + 1;
-            gg.drawString(mc.font, getMessage(), tx, ty, active ? 0xFFFFFF : 0x808080, false);
+            float scale = 0.62F;
+            int sw = Math.max(1, Mth.ceil(mc.font.width(getMessage()) * scale));
+            int sh = Math.max(1, Mth.ceil(mc.font.lineHeight * scale));
+            int tx = getX() + (width - sw) / 2;
+            int ty = getY() + (height - sh) / 2;
+            drawScaledText(gg, getMessage().getString(), tx, ty, active ? 0xFFFFFF : 0x808080, scale);
         }
 
         @Override

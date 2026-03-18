@@ -54,10 +54,10 @@ public final class StandaloneSkillsBookScreen extends Screen {
         int listY = innerTop;
         int listH = SkillListWidget.preferredHeight();
 
-        int detailsX = innerLeft;
-        int detailsY = listY + listH + SECTION_GAP;
-        int detailsW = innerRight - innerLeft;
-        int detailsH = Math.max(20, innerBottom - detailsY);
+        int detailsH = panelHeight / 3;
+        int detailsW = Math.max(20, (innerRight - innerLeft) - 5);
+        int detailsX = innerLeft + 2;
+        int detailsY = panelY + panelHeight - detailsH + 3;
 
         list = new SkillListWidget(listX, listY, listW, listH, def -> {
             if (details != null) details.setSkill(def);

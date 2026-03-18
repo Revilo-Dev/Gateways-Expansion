@@ -29,10 +29,10 @@ public final class SkillListWidget extends AbstractWidget {
     private static final ResourceLocation WIDGET_PRIMARY_TEX =
             ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "textures/gui/sprites/skill_widget-primary.png");
 
-    public static final int HEADER_HEIGHT = 12;
-    public static final int CELL_SIZE = 18;
+    public static final int HEADER_HEIGHT = 11;
+    public static final int CELL_SIZE = 23;
     public static final int GAP = 3;
-    private static final int ICON_SIZE = 18;
+    private static final int ICON_SIZE = 16;
 
     private final Minecraft mc = Minecraft.getInstance();
     private final Consumer<SkillDefinition> onClick;
@@ -88,7 +88,7 @@ public final class SkillListWidget extends AbstractWidget {
     protected void renderWidget(GuiGraphics gg, int mouseX, int mouseY, float pt) {
         if (!visible || mc.player == null) return;
         PlayerSkills ps = mc.player.getData(SkillsAttachments.PLAYER_SKILLS.get());
-        gg.drawString(mc.font, "Points: " + ps.points(), getX() + 1, getY() + 2, 0x6AB2FF, false);
+        gg.drawString(mc.font, "Points: " + ps.points(), getX() + 1, getY() + 1, 0x6AB2FF, false);
 
         int top = getY() + HEADER_HEIGHT;
         RenderSystem.enableBlend();
@@ -100,7 +100,9 @@ public final class SkillListWidget extends AbstractWidget {
             boolean unlocked = def.primary() || ps.canUnlock(def.id());
             ResourceLocation tex = def.primary() ? WIDGET_PRIMARY_TEX : (unlocked ? WIDGET_TEX : WIDGET_DISABLED_TEX);
             drawScaledTile(gg, tex, x, y, CELL_SIZE, CELL_SIZE);
-            gg.blit(def.icon(), x, y, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+            int iconX = x + (CELL_SIZE - ICON_SIZE) / 2;
+            int iconY = y + (CELL_SIZE - ICON_SIZE) / 2;
+            gg.blit(def.icon(), iconX, iconY, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
 
             if (selected == def.id()) {
                 gg.fill(x + 1, y + 1, x + CELL_SIZE - 1, y + CELL_SIZE - 1, 0x40FFFFFF);
