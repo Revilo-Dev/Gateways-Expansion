@@ -55,8 +55,8 @@ public final class SkillBalance {
         return clamp(level * SkillConfig.lifeLeachPerLevel(), 0.0D, 1.0D);
     }
 
-    public static int cleanseImmunities(int level) {
-        return Math.max(0, level * SkillConfig.cleanseImmunitiesPerLevel());
+    public static double cleanseImmunities(int level) {
+        return clamp(level * SkillConfig.cleanseImmunitiesPerLevel(), 0.0D, 1.0D);
     }
 
     public static double luck(int level) {

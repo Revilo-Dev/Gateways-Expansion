@@ -34,11 +34,17 @@ public final class SkillListWidget extends AbstractWidget {
             ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "textures/gui/sprites/skill_widget-primary-disabled.png");
     private static final ResourceLocation WIDGET_PRIMARY_HOVER_TEX =
             ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "textures/gui/sprites/skill_widget_primary-hovered.png");
+    private static final ResourceLocation LINK_TEX =
+            ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "textures/gui/sprites/link.png");
+    private static final ResourceLocation LINK_DISABLED_TEX =
+            ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "textures/gui/sprites/link-disabled.png");
 
     public static final int HEADER_HEIGHT = 11;
     public static final int CELL_SIZE = 23;
     public static final int GAP = 3;
     private static final int ICON_SIZE = 16;
+    private static final int LINK_WIDTH = 10;
+    private static final int LINK_HEIGHT = 20;
     private static final float POINTS_TEXT_SCALE = 0.85F;
 
     private final Minecraft mc = Minecraft.getInstance();
@@ -99,6 +105,17 @@ public final class SkillListWidget extends AbstractWidget {
 
         int top = getY() + HEADER_HEIGHT;
         RenderSystem.enableBlend();
+        for (Node node : nodes) {
+            if (node.def.primary() || node.row <= 0) continue;
+
+            int x = getX() + node.col * (CELL_SIZE + GAP);
+            int y = top + node.row * (CELL_SIZE + GAP);
+            ResourceLocation tex = ps.canUnlock(node.def.id()) ? LINK_TEX : LINK_DISABLED_TEX;
+            int linkX = x + (CELL_SIZE - LINK_WIDTH) / 2;
+            int linkY = y - ((LINK_HEIGHT - GAP) / 2);
+            gg.blit(tex, linkX, linkY, 0, 0, LINK_WIDTH, LINK_HEIGHT, LINK_WIDTH, LINK_HEIGHT);
+        }
+
         for (Node node : nodes) {
             int x = getX() + node.col * (CELL_SIZE + GAP);
             int y = top + node.row * (CELL_SIZE + GAP);

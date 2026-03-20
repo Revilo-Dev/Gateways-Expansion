@@ -109,7 +109,7 @@ public final class SkillDetailsPanel extends AbstractWidget {
         boolean canUp = unlocked
                 && level < skill.maxLevel()
                 && ps.points() > 0;
-        boolean canDown = level > 0;
+        boolean canDown = ps.canDowngrade(skill.id());
 
         int x = getX();
         int y = getY();
@@ -202,9 +202,9 @@ public final class SkillDetailsPanel extends AbstractWidget {
         }
         return switch (def.id()) {
             case STRENGTH -> "+" + fmt(SkillBalance.strengthDamage(level)) + " damage";
-            case POWER -> "+" + fmt(SkillBalance.powerDamage(level)) + " power";
-            case CRIT_POWER -> "+" + fmt(SkillBalance.critPowerDamage(level)) + " crit power";
-            case HASTE -> "+" + fmt(SkillBalance.hasteBreakSpeed(level)) + " block break speed";
+            case POWER -> "+" + fmt(SkillBalance.powerDamage(level)) + " bow damage";
+            case CRIT_POWER -> "+" + fmt(SkillBalance.critPowerDamage(level)) + "x crit damage";
+            case HASTE -> "+" + fmt(SkillBalance.hasteBreakSpeed(level)) + " blocks/s";
             case RESISTANCE -> "+" + fmt(SkillBalance.resistance(level) * 100.0D) + "% resistance";
             case FIRE_RESISTANCE -> "+" + fmt(SkillBalance.fireResistance(level) * 100.0D) + "% fire resistance";
             case PROJECTILE_RESISTANCE -> "+" + fmt(SkillBalance.projectileResistance(level) * 100.0D) + "% projectile resistance";
@@ -214,7 +214,7 @@ public final class SkillDetailsPanel extends AbstractWidget {
             case VITALITY -> "+" + fmt(SkillBalance.vitalityHearts(level)) + " hearts";
             case REGENERATION -> "+" + fmt(SkillBalance.regenHeartsPerSecond(level) * 100.0D) + "% regen";
             case HEALTH_BOOST -> "+" + fmt(SkillBalance.lifeLeach(level) * 100.0D) + "% life steal";
-            case CLEANSE -> "+" + SkillBalance.cleanseImmunities(level) + " negative effect immunity";
+            case CLEANSE -> "-" + fmt(SkillBalance.cleanseImmunities(level) * 100.0D) + "% negative effect duration and strength";
             case LUCK -> "+" + fmt(SkillBalance.luck(level)) + " luck";
             case LOOTING -> "+" + fmt(SkillBalance.lootingChance(level) * 100.0D) + "% looting";
             case FORTUNE -> "+" + SkillBalance.fortuneBonus(level) + " fortune";

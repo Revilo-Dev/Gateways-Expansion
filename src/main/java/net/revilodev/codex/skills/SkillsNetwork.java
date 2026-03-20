@@ -14,7 +14,7 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.revilodev.codex.CodexMod;
-import net.revilodev.codex.client.toast.SkillPointToast;
+import net.revilodev.codex.client.toast.LevelUpToast;
 import net.revilodev.codex.skills.logic.SkillLogic;
 
 public final class SkillsNetwork {
@@ -32,6 +32,7 @@ public final class SkillsNetwork {
         // server -> client
         r.playToClient(SkillsSyncPayload.TYPE, SkillsSyncPayload.STREAM_CODEC, SkillsNetwork::handleSync);
         r.playToClient(OpenSkillsBookPayload.TYPE, OpenSkillsBookPayload.STREAM_CODEC, SkillsNetwork::handleOpenSkillsBook);
+        r.playToClient(LevelUpToastPayload.TYPE, LevelUpToastPayload.STREAM_CODEC, SkillsNetwork::handleLevelUpToast);
 
         // client -> server
         r.playToServer(SkillActionPayload.TYPE, SkillActionPayload.STREAM_CODEC, SkillsNetwork::handleAction);
@@ -47,21 +48,21 @@ public final class SkillsNetwork {
         PacketDistributor.sendToPlayer(player, new OpenSkillsBookPayload());
     }
 
+    public static void sendLevelUpToast(ServerPlayer player, int oldLevel, int newLevel) {
+        PacketDistributor.sendToPlayer(player, new LevelUpToastPayload(oldLevel, newLevel));
+    }
+
     private static void handleSync(SkillsSyncPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.player() == null) return;
 
             PlayerSkills skills = ctx.player().getData(SkillsAttachments.PLAYER_SKILLS.get());
-            int beforePoints = skills.points();
-
             CompoundTag tag = payload.data();
             if (tag == null) tag = new CompoundTag();
 
             skills.deserializeNBT(ctx.player().level().registryAccess(), tag);
 
-            if (ctx.player().level().isClientSide()) {
-                ClientOnly.maybeShowSkillPointToasts(skills, beforePoints);
-            }
+            if (ctx.player().level().isClientSide()) ClientOnly.afterSync();
         });
     }
 
@@ -69,6 +70,14 @@ public final class SkillsNetwork {
         ctx.enqueueWork(() -> {
             if (ctx.player() != null && ctx.player().level().isClientSide()) {
                 ClientOnly.openSkillsBook();
+            }
+        });
+    }
+
+    private static void handleLevelUpToast(LevelUpToastPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (ctx.player() != null && ctx.player().level().isClientSide()) {
+                ClientOnly.showLevelUpToast(payload.oldLevel(), payload.newLevel());
             }
         });
     }
@@ -139,6 +148,25 @@ public final class SkillsNetwork {
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    public record LevelUpToastPayload(int oldLevel, int newLevel) implements CustomPacketPayload {
+        public static final Type<LevelUpToastPayload> TYPE =
+                new Type<>(ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "level_up_toast"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, LevelUpToastPayload> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, msg) -> {
+                            buf.writeVarInt(msg.oldLevel);
+                            buf.writeVarInt(msg.newLevel);
+                        },
+                        buf -> new LevelUpToastPayload(buf.readVarInt(), buf.readVarInt())
+                );
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     @OnlyIn(Dist.CLIENT)
     private static final class ClientOnly {
         private static void openSkillsBook() {
@@ -146,23 +174,13 @@ public final class SkillsNetwork {
                     .setScreen(new net.revilodev.codex.client.screen.StandaloneSkillsBookScreen());
         }
 
-        private static boolean syncedOnce = false;
-        private static net.minecraft.client.multiplayer.ClientLevel lastLevel;
+        private static void afterSync() {
+        }
 
-        private static void maybeShowSkillPointToasts(PlayerSkills skills, int beforePoints) {
-            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-            if (mc.level != lastLevel) {
-                lastLevel = mc.level;
-                syncedOnce = false;
-            }
-            if (!syncedOnce) {
-                syncedOnce = true;
-                return;
-            }
-
-            int afterPoints = skills.points();
-            int delta = afterPoints - beforePoints;
-            if (delta > 0) SkillPointToast.showGlobal(delta, afterPoints);
+        private static void showLevelUpToast(int oldLevel, int newLevel) {
+            int levelsGained = Math.max(0, newLevel - oldLevel);
+            if (levelsGained <= 0) return;
+            LevelUpToast.show(newLevel, levelsGained);
         }
     }
 }

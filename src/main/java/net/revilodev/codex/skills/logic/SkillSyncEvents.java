@@ -5,6 +5,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.revilodev.codex.skills.PlayerSkills;
+import net.revilodev.codex.skills.SkillsAttachments;
 import net.revilodev.codex.skills.SkillsNetwork;
 
 import java.util.UUID;
@@ -28,11 +30,13 @@ public final class SkillSyncEvents {
 
     private static void onLogin(PlayerEvent.PlayerLoggedInEvent e) {
         if (!(e.getEntity() instanceof ServerPlayer sp)) return;
+        applyEffectsNow(sp);
         markDirty(sp);
     }
 
     private static void onRespawn(PlayerEvent.PlayerRespawnEvent e) {
         if (!(e.getEntity() instanceof ServerPlayer sp)) return;
+        applyEffectsNow(sp);
         markDirty(sp);
     }
 
@@ -49,5 +53,10 @@ public final class SkillSyncEvents {
             if (sp == null) continue;
             SkillsNetwork.syncTo(sp);
         }
+    }
+
+    private static void applyEffectsNow(ServerPlayer sp) {
+        PlayerSkills skills = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
+        SkillLogic.applyAllEffects(sp, skills);
     }
 }

@@ -26,6 +26,7 @@ public final class SkillLogic {
     private SkillLogic() {}
 
     private static final ResourceLocation MOD_MAX_HEALTH = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_health_boost");
+    private static final ResourceLocation MOD_ATTACK_DAMAGE = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_strength");
     private static final ResourceLocation MOD_MOVEMENT_SPEED = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_agility");
     private static final ResourceLocation MOD_KB_RES = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_knockback_res");
     private static final ResourceLocation MOD_LUCK = ResourceLocation.fromNamespaceAndPath(CodexMod.MOD_ID, "skill_luck");
@@ -38,8 +39,6 @@ public final class SkillLogic {
         int cur = skills.level(id);
         if (cur >= id.maxLevel()) return false;
         if (!skills.canUnlock(id)) return false;
-        int requiredLevel = requiredLevelForNextRank(id, cur);
-        if (!LevelUpApi.meetsLevelRequirement(player, requiredLevel)) return false;
         return skills.tryUpgrade(id);
     }
 
@@ -69,7 +68,7 @@ public final class SkillLogic {
     }
 
     public static int requiredLevelForNextRank(SkillId id, int currentSkillLevel) {
-        return Math.max(1, currentSkillLevel + 1);
+        return 1;
     }
 
     public static int combatKillXp(LivingEntity victim) {
@@ -118,11 +117,13 @@ public final class SkillLogic {
     }
 
     private static void applyAttributeModifiers(ServerPlayer player, PlayerSkills skills) {
+        int strength = skills.level(SkillId.STRENGTH);
         int vitality = skills.level(SkillId.VITALITY);
         int agility = skills.level(SkillId.AGILITY);
         int kb = skills.level(SkillId.KNOCKBACK_RESISTANCE);
         int luck = skills.level(SkillId.LUCK);
 
+        applyModifier(player, Attributes.ATTACK_DAMAGE, MOD_ATTACK_DAMAGE, SkillBalance.strengthDamage(strength), AttributeModifier.Operation.ADD_VALUE);
         applyModifier(player, Attributes.MAX_HEALTH, MOD_MAX_HEALTH, SkillBalance.vitalityHearts(vitality) * 2.0D, AttributeModifier.Operation.ADD_VALUE);
         applyModifier(player, Attributes.MOVEMENT_SPEED, MOD_MOVEMENT_SPEED, SkillBalance.agilitySpeed(agility), AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
         applyModifier(player, Attributes.KNOCKBACK_RESISTANCE, MOD_KB_RES, SkillBalance.knockbackResistance(kb), AttributeModifier.Operation.ADD_VALUE);
@@ -141,18 +142,6 @@ public final class SkillLogic {
         if (jump > 0) {
             int amp = Math.max(0, Math.min(4, (int) Math.floor(SkillBalance.leapingBonus(jump))));
             addIfStronger(player, new MobEffectInstance(MobEffects.JUMP, 220, amp, true, false, false));
-        }
-
-        int cleanse = skills.level(SkillId.CLEANSE);
-        if (cleanse > 0 && player.tickCount % 20 == 0) {
-            int removals = SkillBalance.cleanseImmunities(cleanse);
-            if (removals > 0) {
-                player.getActiveEffects().stream()
-                        .filter(inst -> !inst.getEffect().value().isBeneficial())
-                        .limit(removals)
-                        .toList()
-                        .forEach(inst -> player.removeEffect(inst.getEffect()));
-            }
         }
 
         clampToMaxHealth(player);
@@ -179,7 +168,7 @@ public final class SkillLogic {
             return;
         }
         inst.removeModifier(id);
-        inst.addTransientModifier(new AttributeModifier(id, amount, op));
+        inst.addPermanentModifier(new AttributeModifier(id, amount, op));
     }
 
     private static float streakMultiplier(Map<UUID, Streak> map, UUID id, int tick, int window, float per, float cap) {

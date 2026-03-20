@@ -44,9 +44,8 @@ public final class PlayerSkills implements INBTSerializable<CompoundTag> {
     }
 
     public boolean tryDowngrade(SkillId id) {
+        if (!canDowngrade(id)) return false;
         int cur = level(id);
-        if (cur <= 0) return false;
-        if (id.primary() && hasInvestedChildren(id)) return false;
 
         levels.put(id, cur - 1);
         points = Math.max(0, points + 1);
@@ -94,6 +93,15 @@ public final class PlayerSkills implements INBTSerializable<CompoundTag> {
         if (id.primary()) return true;
         SkillId parent = id.parent();
         return parent != null && level(parent) > 0;
+    }
+
+    public boolean canDowngrade(SkillId id) {
+        if (id == null) return false;
+
+        int cur = level(id);
+        if (cur <= 0) return false;
+
+        return !id.primary() || !hasInvestedChildren(id) || cur > 1;
     }
 
     public boolean consumeModifiersDirty() {

@@ -2,6 +2,7 @@ package net.revilodev.codex.skills.logic;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
@@ -12,6 +13,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingKnockBackEvent;
+import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.BreakSpeed;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
@@ -29,6 +31,7 @@ public final class SkillEvents {
     private SkillEvents() {}
 
     private static final Map<UUID, Snap> INCOMING = new HashMap<>();
+    private static final ThreadLocal<Boolean> REAPPLYING_REDUCED_EFFECT = ThreadLocal.withInitial(() -> false);
 
     public static void register() {
         NeoForge.EVENT_BUS.addListener(SkillEvents::onKill);
@@ -39,6 +42,7 @@ public final class SkillEvents {
         NeoForge.EVENT_BUS.addListener(SkillEvents::onKnockback);
         NeoForge.EVENT_BUS.addListener(SkillEvents::onBreakSpeed);
         NeoForge.EVENT_BUS.addListener(SkillEvents::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(SkillEvents::onMobEffectApplicable);
         NeoForge.EVENT_BUS.addListener(SkillEvents::onLogout);
     }
 
@@ -65,6 +69,10 @@ public final class SkillEvents {
 
     private static void onBlockDrops(BlockDropsEvent event) {
         if (!(event.getBreaker() instanceof ServerPlayer sp)) return;
+        String blockPath = event.getState().getBlockHolder().unwrapKey()
+                .map(key -> key.location().getPath())
+                .orElse("");
+        if (!blockPath.contains("ore")) return;
         PlayerSkills skills = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
         int fortune = skills.level(SkillId.FORTUNE);
         if (fortune <= 0) return;
@@ -72,7 +80,7 @@ public final class SkillEvents {
         if (bonus <= 0) return;
         for (ItemEntity drop : event.getDrops()) {
             ItemStack stack = drop.getItem();
-            if (!stack.isEmpty()) stack.grow(bonus);
+            if (!stack.isEmpty()) stack.setCount(stack.getCount() * (bonus + 1));
         }
     }
 
@@ -83,9 +91,7 @@ public final class SkillEvents {
         if (event.getSource().getEntity() instanceof ServerPlayer attacker && !attacker.isSpectator()) {
             PlayerSkills data = attacker.getData(SkillsAttachments.PLAYER_SKILLS.get());
             boolean projectile = event.getSource().getDirectEntity() instanceof AbstractArrow;
-            if (!projectile) {
-                int strength = data.level(SkillId.STRENGTH);
-                if (strength > 0) amt += (float) SkillBalance.strengthDamage(strength);
+            if (projectile) {
                 int power = data.level(SkillId.POWER);
                 if (power > 0) amt += (float) SkillBalance.powerDamage(power);
             }
@@ -95,7 +101,7 @@ public final class SkillEvents {
             }
             int crit = data.level(SkillId.CRIT_POWER);
             if (crit > 0 && isCritical(attacker)) {
-                amt += (float) SkillBalance.critPowerDamage(crit);
+                amt *= (float) (1.0D + SkillBalance.critPowerDamage(crit));
             }
         }
 
@@ -151,6 +157,32 @@ public final class SkillEvents {
         SkillLogic.applyAllEffects(sp, skills);
     }
 
+    private static void onMobEffectApplicable(MobEffectEvent.Applicable event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (REAPPLYING_REDUCED_EFFECT.get()) return;
+
+        MobEffectInstance effect = event.getEffectInstance();
+        if (effect == null || effect.getEffect().value().isBeneficial()) return;
+
+        PlayerSkills skills = sp.getData(SkillsAttachments.PLAYER_SKILLS.get());
+        int cleanse = skills.level(SkillId.CLEANSE);
+        if (cleanse <= 0) return;
+
+        double reduction = SkillBalance.cleanseImmunities(cleanse);
+        if (reduction <= 0.0D) return;
+
+        MobEffectInstance reduced = scaledNegativeEffect(effect, reduction);
+        if (reduced == effect) return;
+
+        event.setResult(MobEffectEvent.Applicable.Result.DO_NOT_APPLY);
+        REAPPLYING_REDUCED_EFFECT.set(true);
+        try {
+            sp.addEffect(reduced, event.getEffectSource());
+        } finally {
+            REAPPLYING_REDUCED_EFFECT.set(false);
+        }
+    }
+
     private static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         UUID id = sp.getUUID();
@@ -163,6 +195,25 @@ public final class SkillEvents {
         if (player.isInWater() || player.isInLava()) return false;
         if (player.isPassenger()) return false;
         return player.fallDistance > 0.0F;
+    }
+
+    private static MobEffectInstance scaledNegativeEffect(MobEffectInstance effect, double reduction) {
+        int duration = Math.max(1, (int) Math.ceil(effect.getDuration() * (1.0D - reduction)));
+        int amplifier = effect.getAmplifier();
+        int scaledAmplifier = Math.max(0, (int) Math.ceil((amplifier + 1) * (1.0D - reduction)) - 1);
+
+        if (duration == effect.getDuration() && scaledAmplifier == amplifier) {
+            return effect;
+        }
+
+        return new MobEffectInstance(
+                effect.getEffect(),
+                duration,
+                scaledAmplifier,
+                effect.isAmbient(),
+                effect.isVisible(),
+                effect.showIcon()
+        );
     }
 
     private static final class Snap {

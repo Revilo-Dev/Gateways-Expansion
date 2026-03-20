@@ -6,6 +6,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.revilodev.codex.skills.PlayerSkills;
 import net.revilodev.codex.skills.SkillConfig;
 import net.revilodev.codex.skills.SkillsAttachments;
+import net.revilodev.codex.skills.SkillsNetwork;
 
 public final class LevelUpSkillIntegrationEvents {
     private LevelUpSkillIntegrationEvents() {}
@@ -22,5 +23,6 @@ public final class LevelUpSkillIntegrationEvents {
         PlayerSkills skills = player.getData(SkillsAttachments.PLAYER_SKILLS.get());
         skills.adminAddPoints(levelsGained * Math.max(0, SkillConfig.pointsPerLevel()));
         SkillSyncEvents.markDirty(player);
+        SkillsNetwork.sendLevelUpToast(player, event.getOldLevel(), event.getNewLevel());
     }
 }
