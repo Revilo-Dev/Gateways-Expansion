@@ -1,7 +1,0 @@
-{
-  "item.codex.guide_book": "Guide Book",
-  "item.codex.skills_book": "Skill Book",
-  "toast.codex.level_up": "Level Up!",
-  "toast.codex.level_up.single": "Reached level %s",
-  "toast.codex.level_up.multi": "Gained %s levels, now %s"
-}

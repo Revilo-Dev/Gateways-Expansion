@@ -19,7 +19,20 @@ base {
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 repositories {
-    // Add additional repositories if needed
+    maven {
+        name = 'TheIllusiveC4'
+        url = 'https://maven.theillusivec4.top/'
+        content {
+            includeGroupByRegex 'top\\.theillusivec4.*'
+        }
+    }
+    maven {
+        name = 'ShadowsOfFire'
+        url = 'https://maven.shadowsoffire.dev/releases'
+        content {
+            includeGroup 'dev.shadowsoffire'
+        }
+    }
 }
 
 runs {
@@ -49,18 +62,31 @@ runs {
     }
 }
 
-// Include data-generated resources in the main resource set
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+// Include data-generated resources in the main resource set and exclude leftover template namespaces.
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    exclude 'assets/gateways/**'
+    exclude 'assets/gateways-expansion/**'
+    exclude 'assets/codex/**'
+    exclude 'data/codex/**'
+}
 
 // Optional runtime configuration
 configurations {
+    localImplementation
+    compileClasspath.extendsFrom localImplementation
     runtimeClasspath.extendsFrom localRuntime
+    runtimeClasspath.extendsFrom localImplementation
 }
 
 dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
-    compileOnly files("build/libs/levelup-1.0.0.jar")
-    localRuntime files("build/libs/levelup-1.0.0.jar")
+    localImplementation "dev.shadowsoffire:Placebo:${minecraft_version}-${placebo_version}"
+    localImplementation "dev.shadowsoffire:ApothicAttributes:${minecraft_version}-${apothic_attributes_version}"
+    localImplementation "dev.shadowsoffire:GatewaysToEternity:${minecraft_version}-${gateways_version}"
+    localRuntime "dev.shadowsoffire:Placebo:${minecraft_version}-${placebo_version}"
+    localRuntime "dev.shadowsoffire:ApothicAttributes:${minecraft_version}-${apothic_attributes_version}"
+    localRuntime "dev.shadowsoffire:GatewaysToEternity:${minecraft_version}-${gateways_version}"
 }
 
 // Replace properties inside neoforge.mods.toml with gradle.properties values
@@ -75,7 +101,10 @@ tasks.withType(ProcessResources).configureEach {
             mod_license            : mod_license,
             mod_version            : mod_version,
             mod_authors            : mod_authors,
-            mod_description        : mod_description
+            mod_description        : mod_description,
+            gateways_version       : gateways_version,
+            placebo_version        : placebo_version,
+            apothic_attributes_version: apothic_attributes_version
     ]
     inputs.properties replaceProperties
 
@@ -93,7 +122,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/repo"
+            url = uri("${project.projectDir}/repo")
         }
     }
 }
