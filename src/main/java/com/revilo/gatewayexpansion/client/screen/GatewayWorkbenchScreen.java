@@ -6,20 +6,27 @@ import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchForgeLogic;
 import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchSlots;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.Util;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
 public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkbenchMenu> {
 
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/workbench.png");
+    private static final int FORGE_ANIMATION_TICKS = 22;
+    private static final Random PARTICLE_RANDOM = new Random();
 
     private float crystalHoverScale = 1.0F;
+    private int forgeAnimationTicks;
+    private boolean pendingForgeSend;
+    private final List<ScreenParticle> particles = new ArrayList<>();
 
     public GatewayWorkbenchScreen(GatewayWorkbenchMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -37,12 +44,14 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         boolean crystalHovered = this.isHoveringCrystal(mouseX, mouseY);
-        this.crystalHoverScale = Mth.lerp(0.25F, this.crystalHoverScale, crystalHovered ? 1.12F : 1.0F);
+        boolean forgeAnimating = this.isForgeAnimating();
+        this.crystalHoverScale = Mth.lerp(0.25F, this.crystalHoverScale, crystalHovered && !forgeAnimating ? 1.12F : 1.0F);
 
         this.renderOrbitingItems(guiGraphics, partialTick);
         this.renderCenterCrystal(guiGraphics, crystalHovered);
+        this.renderParticles(guiGraphics, partialTick);
 
-        if (crystalHovered && !this.menu.getCrystalStack().isEmpty()) {
+        if (!forgeAnimating && crystalHovered && !this.menu.getCrystalStack().isEmpty()) {
             this.renderCrystalTooltip(guiGraphics, mouseX, mouseY);
         } else {
             this.renderTooltip(guiGraphics, mouseX, mouseY);
@@ -64,12 +73,30 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
                 && this.menu.getCarried().isEmpty()
                 && !hasShiftDown()
                 && this.minecraft != null
-                && this.minecraft.gameMode != null) {
-            this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, GatewayWorkbenchMenu.FORGE_BUTTON_ID);
+                && this.minecraft.gameMode != null
+                && !this.isForgeAnimating()) {
+            this.forgeAnimationTicks = FORGE_ANIMATION_TICKS;
+            this.pendingForgeSend = true;
             return true;
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+
+        if (this.forgeAnimationTicks > 0) {
+            this.forgeAnimationTicks--;
+            if (this.forgeAnimationTicks == 0 && this.pendingForgeSend && this.minecraft != null && this.minecraft.gameMode != null) {
+                this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, GatewayWorkbenchMenu.FORGE_BUTTON_ID);
+                this.pendingForgeSend = false;
+                this.spawnParticleBurst();
+            }
+        }
+
+        this.tickParticles();
     }
 
     private void renderCenterCrystal(GuiGraphics guiGraphics, boolean hovered) {
@@ -80,34 +107,45 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
 
         int centerX = this.leftPos + GatewayWorkbenchSlots.DISPLAY_CENTER_X;
         int centerY = this.topPos + GatewayWorkbenchSlots.DISPLAY_CENTER_Y;
-        WorkbenchCrystalRenderer.render(guiGraphics, crystal, centerX, centerY, this.minecraft == null ? 0.0F : this.minecraft.getTimer().getGameTimeDeltaPartialTick(false), this.crystalHoverScale);
+        float partialTick = this.minecraft == null ? 0.0F : this.minecraft.getTimer().getGameTimeDeltaPartialTick(false);
+        float forgeProgress = this.getForgeProgress(partialTick);
+        float scaleBoost = this.crystalHoverScale + (forgeProgress * 0.2F);
+        float spinSpeed = Mth.lerp(forgeProgress, WorkbenchCrystalRenderer.BASE_SPIN_SPEED, 4.5F);
+        WorkbenchCrystalRenderer.render(guiGraphics, crystal, centerX, centerY, partialTick, scaleBoost, spinSpeed);
 
     }
 
     private void renderOrbitingItems(GuiGraphics guiGraphics, float partialTick) {
-        float time = (this.minecraft != null && this.minecraft.player != null) ? this.minecraft.player.tickCount + partialTick : partialTick;
+        float time = (this.minecraft != null && this.minecraft.level != null)
+                ? this.minecraft.level.getGameTime() + partialTick
+                : (float) (Util.getMillis() / 16.6667);
         int centerX = this.leftPos + GatewayWorkbenchSlots.DISPLAY_CENTER_X;
         int centerY = this.topPos + GatewayWorkbenchSlots.DISPLAY_CENTER_Y;
+        float forgeProgress = this.getForgeProgress(partialTick);
 
         List<ItemStack> orbitStacks = new ArrayList<>();
         orbitStacks.addAll(this.menu.getCatalystStacks());
         orbitStacks.addAll(this.menu.getAugmentStacks());
-        this.renderOrbitGroup(guiGraphics, orbitStacks, centerX, centerY, 24.0D, 0.014D, time);
+        this.renderOrbitGroup(guiGraphics, orbitStacks, centerX, centerY, 24.0D, 0.006D, time, forgeProgress);
     }
 
-    private void renderOrbitGroup(GuiGraphics guiGraphics, List<ItemStack> stacks, int centerX, int centerY, double radius, double speed, float time) {
+    private void renderOrbitGroup(GuiGraphics guiGraphics, List<ItemStack> stacks, int centerX, int centerY, double radius, double speed, float time, float forgeProgress) {
         int stackCount = stacks.size();
         if (stackCount == 0) {
             return;
         }
 
+        double animatedRadius = Mth.lerp(forgeProgress, (float) radius, 1.0F);
+        float itemScale = Mth.lerp(forgeProgress, 0.5F, 0.18F);
+
         for (int index = 0; index < stackCount; index++) {
             double angle = (Math.PI * 2D / stackCount) * index - (time * speed);
-            int renderX = Mth.floor(centerX + Math.cos(angle) * radius - 8.0D);
-            int renderY = Mth.floor(centerY + Math.sin(angle) * radius - 8.0D);
+            int renderX = Mth.floor(centerX + Math.cos(angle) * animatedRadius - 4.0D);
+            int renderY = Mth.floor(centerY + Math.sin(angle) * animatedRadius - 4.0D);
             guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0.0F, 0.0F, 150.0F);
-            guiGraphics.renderItem(stacks.get(index), renderX, renderY);
+            guiGraphics.pose().translate(renderX, renderY, 150.0F);
+            guiGraphics.pose().scale(itemScale, itemScale, 1.0F);
+            guiGraphics.renderItem(stacks.get(index), 0, 0);
             guiGraphics.pose().popPose();
         }
     }
@@ -135,9 +173,81 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
         // Reserved for future crystal-level versus player-level warning logic.
     }
 
+    private void renderParticles(GuiGraphics guiGraphics, float partialTick) {
+        for (ScreenParticle particle : this.particles) {
+            float age = particle.age + partialTick;
+            float progress = age / particle.lifetime;
+            if (progress >= 1.0F) {
+                continue;
+            }
+
+            float x = particle.x + particle.velocityX * age;
+            float y = particle.y + particle.velocityY * age;
+            int alpha = (int) (255 * (1.0F - progress));
+            int color = (alpha << 24) | particle.color;
+            guiGraphics.fill(Mth.floor(x), Mth.floor(y), Mth.floor(x) + particle.size, Mth.floor(y) + particle.size, color);
+        }
+    }
+
+    private void tickParticles() {
+        this.particles.removeIf(particle -> ++particle.age >= particle.lifetime);
+    }
+
+    private void spawnParticleBurst() {
+        int centerX = this.leftPos + GatewayWorkbenchSlots.DISPLAY_CENTER_X;
+        int centerY = this.topPos + GatewayWorkbenchSlots.DISPLAY_CENTER_Y;
+        for (int index = 0; index < 30; index++) {
+            double angle = (Math.PI * 2D / 30.0D) * index + (PARTICLE_RANDOM.nextDouble() * 0.16D);
+            float speed = 0.8F + PARTICLE_RANDOM.nextFloat() * 1.8F;
+            int color = PARTICLE_RANDOM.nextBoolean() ? 0xA24BFF : 0xD58DFF;
+            this.particles.add(new ScreenParticle(
+                    centerX,
+                    centerY,
+                    (float) Math.cos(angle) * speed,
+                    (float) Math.sin(angle) * speed,
+                    2 + PARTICLE_RANDOM.nextInt(2),
+                    color,
+                    12 + PARTICLE_RANDOM.nextInt(8)
+            ));
+        }
+    }
+
+    private boolean isForgeAnimating() {
+        return this.forgeAnimationTicks > 0 || this.pendingForgeSend;
+    }
+
+    private float getForgeProgress(float partialTick) {
+        if (!this.isForgeAnimating()) {
+            return 0.0F;
+        }
+
+        return 1.0F - ((this.forgeAnimationTicks + partialTick) / FORGE_ANIMATION_TICKS);
+    }
+
     private boolean isHoveringCrystal(double mouseX, double mouseY) {
         int left = this.leftPos + GatewayWorkbenchSlots.DISPLAY_CENTER_X - 26;
         int top = this.topPos + GatewayWorkbenchSlots.DISPLAY_CENTER_Y - 26;
         return mouseX >= left && mouseX <= left + 52 && mouseY >= top && mouseY <= top + 52;
+    }
+
+    private static final class ScreenParticle {
+        private final float x;
+        private final float y;
+        private final float velocityX;
+        private final float velocityY;
+        private final int size;
+        private final int color;
+        private final int lifetime;
+        private int age;
+
+        private ScreenParticle(float x, float y, float velocityX, float velocityY, int size, int color, int lifetime) {
+            this.x = x;
+            this.y = y;
+            this.velocityX = velocityX;
+            this.velocityY = velocityY;
+            this.size = size;
+            this.color = color;
+            this.lifetime = lifetime;
+        }
     }
 }

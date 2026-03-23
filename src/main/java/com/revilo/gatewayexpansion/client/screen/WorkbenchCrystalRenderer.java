@@ -14,10 +14,12 @@ import net.minecraft.world.level.Level;
 
 public final class WorkbenchCrystalRenderer {
 
+    public static final float BASE_SPIN_SPEED = 0.5F;
+
     private WorkbenchCrystalRenderer() {
     }
 
-    public static void render(GuiGraphics guiGraphics, ItemStack stack, int absCenterX, int absCenterY, float partialTick, float scaleBoost) {
+    public static void render(GuiGraphics guiGraphics, ItemStack stack, int absCenterX, int absCenterY, float partialTick, float scaleBoost, float spinSpeed) {
         if (stack.isEmpty()) {
             return;
         }
@@ -26,19 +28,16 @@ public final class WorkbenchCrystalRenderer {
         ItemRenderer itemRenderer = minecraft.getItemRenderer();
         Level level = minecraft.level;
 
-        int size = 92;
-        guiGraphics.enableScissor(absCenterX - size / 2, absCenterY - size / 2, absCenterX + size / 2, absCenterY + size / 2);
-
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(absCenterX, absCenterY + 2.0F, 200.0F);
+        guiGraphics.pose().translate(absCenterX, absCenterY + 4.0F, 220.0F);
 
-        float scale = 7.0F * scaleBoost;
+        float scale = 36.0F * scaleBoost;
         guiGraphics.pose().scale(scale, -scale, scale);
 
-        float time = level != null ? level.getGameTime() + partialTick : (float) (Util.getMillis() / 50.0);
-        float yaw = (time * 1.2F) % 360.0F;
-        guiGraphics.pose().mulPose(Axis.XP.rotationDegrees(15.0F));
+        float time = level != null ? (level.getGameTime() + partialTick) : (Util.getMillis() / 16.6667F);
+        float yaw = (time * spinSpeed) % 360.0F;
+        guiGraphics.pose().mulPose(Axis.XP.rotationDegrees(18.0F));
         guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(yaw));
 
         itemRenderer.renderStatic(
@@ -54,6 +53,5 @@ public final class WorkbenchCrystalRenderer {
 
         guiGraphics.pose().popPose();
         buffers.endBatch();
-        guiGraphics.disableScissor();
     }
 }
