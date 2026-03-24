@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "gatewayexpansion:item/crystal-1"
+    "layer0": "gatewayexpansion:item/crystal-2"
   }
 }

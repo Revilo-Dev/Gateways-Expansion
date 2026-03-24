@@ -10,7 +10,9 @@ public enum AugmentStatCategory {
     DAMAGE,
     EFFECT,
     CHAOS,
-    LOOT;
+    LOOT,
+    TIME,
+    WAVE;
 
     public Component displayName() {
         return Component.translatable("enum.gatewayexpansion.augment_stat." + this.name().toLowerCase());

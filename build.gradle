@@ -65,7 +65,6 @@ runs {
 // Include data-generated resources in the main resource set and exclude leftover template namespaces.
 sourceSets.main.resources {
     srcDir 'src/generated/resources'
-    exclude 'assets/gateways/**'
     exclude 'assets/gateways-expansion/**'
     exclude 'assets/codex/**'
     exclude 'data/codex/**'

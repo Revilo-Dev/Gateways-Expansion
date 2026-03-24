@@ -30,7 +30,7 @@ public final class WorkbenchCrystalRenderer {
 
         MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(absCenterX, absCenterY + 4.0F, 220.0F);
+        guiGraphics.pose().translate(absCenterX, absCenterY + 2.0F, 220.0F);
 
         float scale = 36.0F * scaleBoost;
         guiGraphics.pose().scale(scale, -scale, scale);

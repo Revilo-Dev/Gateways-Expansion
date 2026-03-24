@@ -25,8 +25,8 @@ public class CatalystItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.type").withStyle(ChatFormatting.AQUA));
-        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.positive", this.definition.positiveEffect()).withStyle(ChatFormatting.GREEN));
-        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.negative", this.definition.negativeEffect()).withStyle(ChatFormatting.RED));
+        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.positive", this.definition.positiveEffect().description()).withStyle(ChatFormatting.GREEN));
+        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.negative", this.definition.negativeEffect().description()).withStyle(ChatFormatting.RED));
         if (!this.definition.tags().isEmpty()) {
             tooltipComponents.add(Component.translatable(
                     "tooltip.gatewayexpansion.common.tags",

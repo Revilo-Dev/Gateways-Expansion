@@ -4,8 +4,8 @@ import java.util.List;
 
 public record CatalystDefinition(
         String id,
-        String positiveEffect,
-        String negativeEffect,
+        CatalystEffectEntry positiveEffect,
+        CatalystEffectEntry negativeEffect,
         List<String> tags
 ) {
     public CatalystDefinition {

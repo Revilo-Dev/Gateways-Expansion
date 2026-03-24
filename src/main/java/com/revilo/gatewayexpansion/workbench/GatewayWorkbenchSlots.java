@@ -15,7 +15,8 @@ public final class GatewayWorkbenchSlots {
     public static final int CATALYST_SLOT_COUNT = 12;
     public static final int AUGMENT_SLOT_START = CATALYST_SLOT_START + CATALYST_SLOT_COUNT;
     public static final int AUGMENT_SLOT_COUNT = 12;
-    public static final int CUSTOM_SLOT_COUNT = 1 + CATALYST_SLOT_COUNT + AUGMENT_SLOT_COUNT;
+    public static final int OUTPUT_SLOT = AUGMENT_SLOT_START + AUGMENT_SLOT_COUNT;
+    public static final int CUSTOM_SLOT_COUNT = 2 + CATALYST_SLOT_COUNT + AUGMENT_SLOT_COUNT;
 
     public static final int CATALYST_START_X = 8;
     public static final int AUGMENT_START_X = 116;
@@ -25,8 +26,10 @@ public final class GatewayWorkbenchSlots {
     public static final int SLOT_SPACING = 18;
     public static final int CRYSTAL_X = 80;
     public static final int CRYSTAL_Y = 62;
-    public static final int DISPLAY_CENTER_X = 87;
-    public static final int DISPLAY_CENTER_Y = 31;
+    public static final int DISPLAY_CENTER_X = 88;
+    public static final int DISPLAY_CENTER_Y = 32;
+    public static final int OUTPUT_X = DISPLAY_CENTER_X - 8;
+    public static final int OUTPUT_Y = DISPLAY_CENTER_Y - 8;
 
     private GatewayWorkbenchSlots() {
     }
@@ -44,6 +47,9 @@ public final class GatewayWorkbenchSlots {
     }
 
     public static boolean mayPlace(int slot, ItemStack stack) {
+        if (slot == OUTPUT_SLOT) {
+            return false;
+        }
         if (isCrystalSlot(slot)) {
             return stack.getItem() instanceof CrystalItem;
         }

@@ -26,6 +26,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
     public static final int AUGMENT_SLOT_COUNT = GatewayWorkbenchSlots.AUGMENT_SLOT_COUNT;
     public static final int CATALYST_SLOT_START = GatewayWorkbenchSlots.CATALYST_SLOT_START;
     public static final int CATALYST_SLOT_COUNT = GatewayWorkbenchSlots.CATALYST_SLOT_COUNT;
+    public static final int OUTPUT_SLOT = GatewayWorkbenchSlots.OUTPUT_SLOT;
     public static final int CUSTOM_SLOT_COUNT = GatewayWorkbenchSlots.CUSTOM_SLOT_COUNT;
     private static final int PLAYER_INVENTORY_START = CUSTOM_SLOT_COUNT;
     private static final int PLAYER_INVENTORY_END = PLAYER_INVENTORY_START + 27;
@@ -34,6 +35,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
 
     private final Container container;
     private final ContainerLevelAccess access;
+    private final Player player;
 
     public GatewayWorkbenchMenu(int containerId, Inventory playerInventory) {
         this(containerId, playerInventory, new SimpleContainer(CUSTOM_SLOT_COUNT), ContainerLevelAccess.NULL);
@@ -44,6 +46,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         checkContainerSize(container, CUSTOM_SLOT_COUNT);
         this.container = container;
         this.access = access;
+        this.player = playerInventory.player;
         this.container.startOpen(playerInventory.player);
 
         this.addSlot(new FilteredSlot(container, CRYSTAL_SLOT, GatewayWorkbenchSlots.CRYSTAL_X, GatewayWorkbenchSlots.CRYSTAL_Y, stack -> stack.getItem() instanceof CrystalItem));
@@ -59,6 +62,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
             int y = GatewayWorkbenchSlots.GRID_START_Y + (index / GatewayWorkbenchSlots.GRID_COLUMNS) * GatewayWorkbenchSlots.SLOT_SPACING;
             this.addSlot(new FilteredSlot(container, AUGMENT_SLOT_START + index, x, y, stack -> stack.getItem() instanceof AugmentItem));
         }
+        this.addSlot(new ResultSlot(container, OUTPUT_SLOT, GatewayWorkbenchSlots.OUTPUT_X, GatewayWorkbenchSlots.OUTPUT_Y));
 
         this.addPlayerInventory(playerInventory);
     }
@@ -85,7 +89,12 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         ItemStack stackInSlot = slot.getItem();
         ItemStack originalStack = stackInSlot.copy();
 
-        if (index < CUSTOM_SLOT_COUNT) {
+        if (index == OUTPUT_SLOT) {
+            if (!this.moveItemStackTo(stackInSlot, PLAYER_INVENTORY_START, HOTBAR_END, true)) {
+                return ItemStack.EMPTY;
+            }
+            slot.onQuickCraft(stackInSlot, originalStack);
+        } else if (index < CUSTOM_SLOT_COUNT) {
             if (!this.moveItemStackTo(stackInSlot, PLAYER_INVENTORY_START, HOTBAR_END, true)) {
                 return ItemStack.EMPTY;
             }
@@ -125,7 +134,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
             return false;
         }
 
-        if (GatewayWorkbenchForgeLogic.forge(this.container)) {
+        if (GatewayWorkbenchForgeLogic.forge(player, this.container)) {
             this.broadcastChanges();
             return true;
         }
@@ -161,7 +170,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
     }
 
     public GatewayWorkbenchForgeLogic.PreviewData getPreviewData() {
-        return GatewayWorkbenchForgeLogic.buildPreview(this.container);
+        return GatewayWorkbenchForgeLogic.buildPreview(this.player, this.container);
     }
 
     private static final class FilteredSlot extends Slot {
@@ -176,6 +185,38 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         @Override
         public boolean mayPlace(ItemStack stack) {
             return this.predicate.test(stack);
+        }
+
+        @Override
+        public int getMaxStackSize() {
+            return 1;
+        }
+
+        @Override
+        public int getMaxStackSize(ItemStack stack) {
+            return 1;
+        }
+    }
+
+    private static final class ResultSlot extends Slot {
+
+        private ResultSlot(Container container, int slot, int x, int y) {
+            super(container, slot, x, y);
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return false;
+        }
+
+        @Override
+        public int getMaxStackSize() {
+            return 1;
+        }
+
+        @Override
+        public int getMaxStackSize(ItemStack stack) {
+            return 1;
         }
     }
 }

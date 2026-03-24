@@ -45,7 +45,7 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
 
         boolean crystalHovered = this.isHoveringCrystal(mouseX, mouseY);
         boolean forgeAnimating = this.isForgeAnimating();
-        this.crystalHoverScale = Mth.lerp(0.25F, this.crystalHoverScale, crystalHovered && !forgeAnimating ? 1.12F : 1.0F);
+        this.crystalHoverScale = Mth.lerp(0.25F, this.crystalHoverScale, 1.0F);
 
         this.renderOrbitingItems(guiGraphics, partialTick);
         this.renderCenterCrystal(guiGraphics, crystalHovered);
@@ -157,12 +157,20 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_label"));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_tier", previewData.crystalTier()));
+        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_theme", previewData.crystalTheme()));
+        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_level", previewData.crystalLevel()));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_augments", previewData.augmentCount()));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_catalysts", previewData.catalystCount()));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.difficulty", previewData.difficultyName()));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.reward", "+" + previewData.rewardBonusPercent() + "%"));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.waves", previewData.waves()));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.time_pressure", previewData.timePressure()));
+        if (previewData.playerLevel() >= 0) {
+            tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.player_level", previewData.playerLevel()));
+        }
+        if (previewData.overleveled()) {
+            tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.warning_detail", previewData.crystalLevel(), previewData.playerLevel()).withStyle(net.minecraft.ChatFormatting.RED));
+        }
         if (this.menu.canForge()) {
             tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.click_to_forge"));
         }
@@ -170,7 +178,7 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
     }
 
     private void renderLevelWarning(GuiGraphics guiGraphics) {
-        // Reserved for future crystal-level versus player-level warning logic.
+        // Tooltip-only warning.
     }
 
     private void renderParticles(GuiGraphics guiGraphics, float partialTick) {

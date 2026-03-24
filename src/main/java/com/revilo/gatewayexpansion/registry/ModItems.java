@@ -9,6 +9,8 @@ import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import com.revilo.gatewayexpansion.item.data.AugmentStatCategory;
 import com.revilo.gatewayexpansion.item.data.AugmentStatEntry;
 import com.revilo.gatewayexpansion.item.data.CatalystDefinition;
+import com.revilo.gatewayexpansion.item.data.CatalystEffectEntry;
+import com.revilo.gatewayexpansion.item.data.CatalystEffectType;
 import java.util.List;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -78,13 +80,33 @@ public final class ModItems {
             ), new Item.Properties().stacksTo(16)));
 
     public static final DeferredHolder<Item, CatalystItem> TIME_CATALYST = ITEMS.register("time_catalyst",
-            () -> new CatalystItem(new CatalystDefinition("time_catalyst", "Shorter completion clock", "Tighter wave timing", List.of("time", "tempo")), new Item.Properties().stacksTo(16)));
+            () -> new CatalystItem(new CatalystDefinition(
+                    "time_catalyst",
+                    new CatalystEffectEntry(CatalystEffectType.WAVE_TIME, 120.0D, "+6s wave timer"),
+                    new CatalystEffectEntry(CatalystEffectType.REWARD_MULTIPLIER, -0.08D, "-8% reward scaling"),
+                    List.of("time", "tempo")
+            ), new Item.Properties().stacksTo(16)));
     public static final DeferredHolder<Item, CatalystItem> STAT_CATALYST = ITEMS.register("stat_catalyst",
-            () -> new CatalystItem(new CatalystDefinition("stat_catalyst", "Sharper stat modifier", "Enemies scale harder", List.of("stats", "pressure")), new Item.Properties().stacksTo(16)));
+            () -> new CatalystItem(new CatalystDefinition(
+                    "stat_catalyst",
+                    new CatalystEffectEntry(CatalystEffectType.REWARD_MULTIPLIER, 0.10D, "+10% reward scaling"),
+                    new CatalystEffectEntry(CatalystEffectType.DAMAGE_MULTIPLIER, 0.15D, "+15% enemy damage"),
+                    List.of("stats", "pressure")
+            ), new Item.Properties().stacksTo(16)));
     public static final DeferredHolder<Item, CatalystItem> LOOT_CATALYST = ITEMS.register("loot_catalyst",
-            () -> new CatalystItem(new CatalystDefinition("loot_catalyst", "Better reward rolls", "Riskier encounter tags", List.of("loot", "greed")), new Item.Properties().stacksTo(16)));
+            () -> new CatalystItem(new CatalystDefinition(
+                    "loot_catalyst",
+                    new CatalystEffectEntry(CatalystEffectType.REWARD_ROLLS, 1.0D, "+1 extra reward roll"),
+                    new CatalystEffectEntry(CatalystEffectType.HEALTH_MULTIPLIER, 0.12D, "+12% enemy health"),
+                    List.of("loot", "greed")
+            ), new Item.Properties().stacksTo(16)));
     public static final DeferredHolder<Item, CatalystItem> HIGHRISK_CATALYST = ITEMS.register("highrisk_catalyst",
-            () -> new CatalystItem(new CatalystDefinition("highrisk_catalyst", "Large reward swing", "Severe danger spike", List.of("high-risk", "volatile")), new Item.Properties().stacksTo(16)));
+            () -> new CatalystItem(new CatalystDefinition(
+                    "highrisk_catalyst",
+                    new CatalystEffectEntry(CatalystEffectType.RARE_REWARD_CHANCE, 0.18D, "+18% rare reward chance"),
+                    new CatalystEffectEntry(CatalystEffectType.ELITE_CHANCE, 0.14D, "+14% elite chance"),
+                    List.of("high-risk", "volatile")
+            ), new Item.Properties().stacksTo(16)));
 
     public static final DeferredHolder<Item, BlockItem> GATEWAY_WORKBENCH = ITEMS.register("gateway_workbench",
             () -> new BlockItem(ModBlocks.GATEWAY_WORKBENCH.get(), new Item.Properties()));
