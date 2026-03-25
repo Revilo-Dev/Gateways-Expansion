@@ -1,8 +1,8 @@
 package com.revilo.gatewayexpansion.client.screen;
 
 import com.revilo.gatewayexpansion.GatewayExpansion;
+import com.revilo.gatewayexpansion.gateway.builder.GatewayPreview;
 import com.revilo.gatewayexpansion.menu.GatewayWorkbenchMenu;
-import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchForgeLogic;
 import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchSlots;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,11 +15,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.Util;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkbenchMenu> {
 
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/workbench.png");
+    private static final ResourceLocation LOCKED_SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/locked_slot.png");
     private static final int FORGE_ANIMATION_TICKS = 22;
     private static final Random PARTICLE_RANDOM = new Random();
 
@@ -37,6 +39,7 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         guiGraphics.blit(TEXTURE, this.leftPos, this.topPos, 0, 0, this.imageWidth, this.imageHeight, 256, 256);
+        this.renderLockedSlots(guiGraphics);
     }
 
     @Override
@@ -53,6 +56,8 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
 
         if (!forgeAnimating && crystalHovered && !this.menu.getCrystalStack().isEmpty()) {
             this.renderCrystalTooltip(guiGraphics, mouseX, mouseY);
+        } else if (this.renderLockedSlotTooltip(guiGraphics, mouseX, mouseY)) {
+            // Locked slot tooltip handled above normal tooltip flow.
         } else {
             this.renderTooltip(guiGraphics, mouseX, mouseY);
         }
@@ -62,7 +67,7 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        // The workbench texture carries the layout; keep labels hidden for a cleaner centerpiece.
+        // Keep the workbench face clean; progression feedback is handled through slot tooltips.
     }
 
     @Override
@@ -153,7 +158,7 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
     private void renderCrystalTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         ItemStack crystal = this.menu.getCrystalStack();
         List<Component> tooltip = new ArrayList<>(Screen.getTooltipFromItem(this.minecraft, crystal));
-        GatewayWorkbenchForgeLogic.PreviewData previewData = this.menu.getPreviewData();
+        GatewayPreview previewData = this.menu.getPreviewData();
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_label"));
         tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_tier", previewData.crystalTier()));
@@ -179,6 +184,34 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
 
     private void renderLevelWarning(GuiGraphics guiGraphics) {
         // Tooltip-only warning.
+    }
+
+    private void renderLockedSlots(GuiGraphics guiGraphics) {
+        for (int slotIndex = GatewayWorkbenchMenu.CATALYST_SLOT_START; slotIndex < GatewayWorkbenchMenu.OUTPUT_SLOT; slotIndex++) {
+            if (!this.menu.isSlotLocked(slotIndex)) {
+                continue;
+            }
+            Slot slot = this.menu.slots.get(slotIndex);
+            guiGraphics.blit(LOCKED_SLOT_TEXTURE, this.leftPos + slot.x, this.topPos + slot.y, 0, 0, 16, 16, 16, 16);
+        }
+    }
+
+    private boolean renderLockedSlotTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        Slot hovered = this.getSlotUnderMouse();
+        if (!(hovered instanceof GatewayWorkbenchMenu.ProgressionSlot progressionSlot) || !progressionSlot.isLocked()) {
+            return false;
+        }
+
+        guiGraphics.renderComponentTooltip(
+                this.font,
+                List.of(
+                        Component.translatable("screen.gatewayexpansion.gateway_workbench.locked_slot"),
+                        Component.translatable("screen.gatewayexpansion.gateway_workbench.unlocks_at", progressionSlot.requiredLevel())
+                ),
+                mouseX,
+                mouseY
+        );
+        return true;
     }
 
     private void renderParticles(GuiGraphics guiGraphics, float partialTick) {

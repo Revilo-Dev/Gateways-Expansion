@@ -1,11 +1,14 @@
 package com.revilo.gatewayexpansion.menu;
 
+import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
 import com.revilo.gatewayexpansion.item.AugmentItem;
 import com.revilo.gatewayexpansion.item.CatalystItem;
 import com.revilo.gatewayexpansion.item.CrystalItem;
+import com.revilo.gatewayexpansion.gateway.builder.GatewayPreview;
 import com.revilo.gatewayexpansion.registry.ModBlocks;
 import com.revilo.gatewayexpansion.registry.ModMenus;
 import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchForgeLogic;
+import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchProgression;
 import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchSlots;
 import java.util.List;
 import java.util.function.Predicate;
@@ -54,13 +57,15 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         for (int index = 0; index < CATALYST_SLOT_COUNT; index++) {
             int x = GatewayWorkbenchSlots.CATALYST_START_X + (index % GatewayWorkbenchSlots.GRID_COLUMNS) * GatewayWorkbenchSlots.SLOT_SPACING;
             int y = GatewayWorkbenchSlots.GRID_START_Y + (index / GatewayWorkbenchSlots.GRID_COLUMNS) * GatewayWorkbenchSlots.SLOT_SPACING;
-            this.addSlot(new FilteredSlot(container, CATALYST_SLOT_START + index, x, y, stack -> stack.getItem() instanceof CatalystItem));
+            int slotIndex = CATALYST_SLOT_START + index;
+            this.addSlot(new ProgressionSlot(container, slotIndex, x, y, stack -> stack.getItem() instanceof CatalystItem, GatewayWorkbenchProgression.getRequiredLevel(slotIndex), GatewayWorkbenchProgression.SlotType.CATALYST));
         }
 
         for (int index = 0; index < AUGMENT_SLOT_COUNT; index++) {
             int x = GatewayWorkbenchSlots.AUGMENT_START_X + (index % GatewayWorkbenchSlots.GRID_COLUMNS) * GatewayWorkbenchSlots.SLOT_SPACING;
             int y = GatewayWorkbenchSlots.GRID_START_Y + (index / GatewayWorkbenchSlots.GRID_COLUMNS) * GatewayWorkbenchSlots.SLOT_SPACING;
-            this.addSlot(new FilteredSlot(container, AUGMENT_SLOT_START + index, x, y, stack -> stack.getItem() instanceof AugmentItem));
+            int slotIndex = AUGMENT_SLOT_START + index;
+            this.addSlot(new ProgressionSlot(container, slotIndex, x, y, stack -> stack.getItem() instanceof AugmentItem, GatewayWorkbenchProgression.getRequiredLevel(slotIndex), GatewayWorkbenchProgression.SlotType.AUGMENT));
         }
         this.addSlot(new ResultSlot(container, OUTPUT_SLOT, GatewayWorkbenchSlots.OUTPUT_X, GatewayWorkbenchSlots.OUTPUT_Y));
 
@@ -103,11 +108,11 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
         } else if (stackInSlot.getItem() instanceof CatalystItem) {
-            if (!this.moveItemStackTo(stackInSlot, CATALYST_SLOT_START, CATALYST_SLOT_START + CATALYST_SLOT_COUNT, false)) {
+            if (!this.moveItemStackToProgressionSlots(stackInSlot, CATALYST_SLOT_START, CATALYST_SLOT_START + CATALYST_SLOT_COUNT, false)) {
                 return ItemStack.EMPTY;
             }
         } else if (stackInSlot.getItem() instanceof AugmentItem) {
-            if (!this.moveItemStackTo(stackInSlot, AUGMENT_SLOT_START, AUGMENT_SLOT_START + AUGMENT_SLOT_COUNT, false)) {
+            if (!this.moveItemStackToProgressionSlots(stackInSlot, AUGMENT_SLOT_START, AUGMENT_SLOT_START + AUGMENT_SLOT_COUNT, false)) {
                 return ItemStack.EMPTY;
             }
         } else if (index < PLAYER_INVENTORY_END) {
@@ -126,6 +131,26 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
 
         slot.onTake(player, stackInSlot);
         return originalStack;
+    }
+
+    private boolean moveItemStackToProgressionSlots(ItemStack stack, int startInclusive, int endExclusive, boolean reverse) {
+        if (reverse) {
+            for (int slotIndex = endExclusive - 1; slotIndex >= startInclusive; slotIndex--) {
+                if (this.slots.get(slotIndex) instanceof ProgressionSlot progressionSlot && !progressionSlot.isLocked()
+                        && this.moveItemStackTo(stack, slotIndex, slotIndex + 1, false)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        for (int slotIndex = startInclusive; slotIndex < endExclusive; slotIndex++) {
+            if (this.slots.get(slotIndex) instanceof ProgressionSlot progressionSlot && !progressionSlot.isLocked()
+                    && this.moveItemStackTo(stack, slotIndex, slotIndex + 1, false)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -169,11 +194,25 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         return GatewayWorkbenchForgeLogic.canForge(this.container);
     }
 
-    public GatewayWorkbenchForgeLogic.PreviewData getPreviewData() {
+    public GatewayPreview getPreviewData() {
         return GatewayWorkbenchForgeLogic.buildPreview(this.player, this.container);
     }
 
-    private static final class FilteredSlot extends Slot {
+    public int getPlayerLevel() {
+        return LevelUpIntegration.getPlayerLevel(this.player);
+    }
+
+    public boolean isSlotLocked(int slotIndex) {
+        Slot slot = this.slots.get(slotIndex);
+        return slot instanceof ProgressionSlot progressionSlot && progressionSlot.isLocked();
+    }
+
+    public int getRequiredLevelForSlot(int slotIndex) {
+        Slot slot = this.slots.get(slotIndex);
+        return slot instanceof ProgressionSlot progressionSlot ? progressionSlot.requiredLevel() : 0;
+    }
+
+    private static class FilteredSlot extends Slot {
 
         private final Predicate<ItemStack> predicate;
 
@@ -195,6 +234,40 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         @Override
         public int getMaxStackSize(ItemStack stack) {
             return 1;
+        }
+    }
+
+    public final class ProgressionSlot extends FilteredSlot {
+
+        private final int requiredLevel;
+        private final GatewayWorkbenchProgression.SlotType slotType;
+
+        private ProgressionSlot(Container container, int slot, int x, int y, Predicate<ItemStack> predicate, int requiredLevel, GatewayWorkbenchProgression.SlotType slotType) {
+            super(container, slot, x, y, predicate);
+            this.requiredLevel = requiredLevel;
+            this.slotType = slotType;
+        }
+
+        public boolean isLocked() {
+            return GatewayWorkbenchMenu.this.getPlayerLevel() < this.requiredLevel;
+        }
+
+        public int requiredLevel() {
+            return this.requiredLevel;
+        }
+
+        public GatewayWorkbenchProgression.SlotType slotType() {
+            return this.slotType;
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return !this.isLocked() && super.mayPlace(stack);
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            return !this.isLocked() && super.mayPickup(player);
         }
     }
 

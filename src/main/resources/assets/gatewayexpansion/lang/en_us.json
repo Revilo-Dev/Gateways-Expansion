@@ -50,7 +50,7 @@
   "screen.gatewayexpansion.gateway_workbench.preview_level": "Level: %s",
   "screen.gatewayexpansion.gateway_workbench.preview_augments": "Augments Inserted: %s",
   "screen.gatewayexpansion.gateway_workbench.preview_catalysts": "Catalysts Inserted: %s",
-  "screen.gatewayexpansion.gateway_workbench.player_level": "LevelUP Level: %s",
+  "screen.gatewayexpansion.gateway_workbench.player_level": "Level: %s",
   "screen.gatewayexpansion.gateway_workbench.difficulty": "Difficulty: %s",
   "screen.gatewayexpansion.gateway_workbench.reward": "Reward: %s",
   "screen.gatewayexpansion.gateway_workbench.waves": "Waves: %s",
@@ -58,5 +58,8 @@
   "screen.gatewayexpansion.gateway_workbench.forge_hint": "Forge",
   "screen.gatewayexpansion.gateway_workbench.click_to_forge": "Click the crystal to forge.",
   "screen.gatewayexpansion.gateway_workbench.warning": "Crystal level is too high.",
-  "screen.gatewayexpansion.gateway_workbench.warning_detail": "Level %s crystal exceeds your level of %s."
+  "screen.gatewayexpansion.gateway_workbench.warning_detail": "Level %s crystal exceeds your Level %s.",
+  "screen.gatewayexpansion.gateway_workbench.locked_slot": "Locked Slot",
+  "screen.gatewayexpansion.gateway_workbench.unlocks_at": "Unlocks at Level %s",
+  "screen.gatewayexpansion.gateway_workbench.level_hint": "Level %s"
 }

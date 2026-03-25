@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion;
 
 import com.revilo.gatewayexpansion.client.GatewayExpansionClient;
+import com.revilo.gatewayexpansion.integration.GeneratedGatewayPearlTracker;
 import com.revilo.gatewayexpansion.registry.ModBlockEntities;
 import com.revilo.gatewayexpansion.registry.ModBlocks;
 import com.revilo.gatewayexpansion.registry.ModCreativeTabs;
@@ -9,6 +10,7 @@ import com.revilo.gatewayexpansion.registry.ModMenus;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 
 @Mod(GatewayExpansion.MOD_ID)
@@ -24,5 +26,6 @@ public final class GatewayExpansion {
         ModMenus.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
         GatewayExpansionClient.register(modEventBus);
+        NeoForge.EVENT_BUS.register(GeneratedGatewayPearlTracker.class);
     }
 }

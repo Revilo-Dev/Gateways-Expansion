@@ -1,10 +1,13 @@
 package com.revilo.gatewayexpansion.client;
 
+import com.revilo.gatewayexpansion.client.render.GatewayWorkbenchBlockEntityRenderer;
 import com.revilo.gatewayexpansion.client.screen.GatewayWorkbenchScreen;
+import com.revilo.gatewayexpansion.registry.ModBlockEntities;
 import com.revilo.gatewayexpansion.registry.ModMenus;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 public final class GatewayExpansionClient {
@@ -26,6 +29,11 @@ public final class GatewayExpansionClient {
         @SubscribeEvent
         public static void registerScreens(RegisterMenuScreensEvent event) {
             event.register(ModMenus.GATEWAY_WORKBENCH.get(), GatewayWorkbenchScreen::new);
+        }
+
+        @SubscribeEvent
+        public static void registerBlockEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+            event.registerBlockEntityRenderer(ModBlockEntities.GATEWAY_WORKBENCH.get(), GatewayWorkbenchBlockEntityRenderer::new);
         }
     }
 }

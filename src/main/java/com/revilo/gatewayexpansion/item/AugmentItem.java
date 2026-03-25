@@ -1,48 +1,62 @@
 package com.revilo.gatewayexpansion.item;
 
-import com.revilo.gatewayexpansion.item.data.AugmentDefinition;
-import com.revilo.gatewayexpansion.item.data.AugmentStatEntry;
+import com.revilo.gatewayexpansion.augment.AugmentDefinition;
+import com.revilo.gatewayexpansion.augment.AugmentStackData;
+import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import java.util.List;
-import java.util.stream.Collectors;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 
 public class AugmentItem extends Item {
 
-    private final AugmentDefinition definition;
+    private final AugmentDifficultyTier difficultyTier;
 
-    public AugmentItem(AugmentDefinition definition, Properties properties) {
+    public AugmentItem(AugmentDifficultyTier difficultyTier, Properties properties) {
         super(properties);
-        this.definition = definition;
+        this.difficultyTier = difficultyTier;
     }
 
-    public AugmentDefinition definition() {
-        return this.definition;
+    public AugmentDifficultyTier difficultyTier() {
+        return this.difficultyTier;
+    }
+
+    public AugmentDefinition definition(ItemStack stack) {
+        return AugmentStackData.getDefinition(stack, this.difficultyTier);
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        AugmentDefinition definition = this.definition(stack);
+        return definition != null ? Component.literal(definition.title()) : super.getName(stack);
     }
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+        AugmentDefinition definition = this.definition(stack);
         tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.augment.type").withStyle(ChatFormatting.AQUA));
-        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.augment.difficulty", this.definition.difficultyTier().displayName()).withStyle(ChatFormatting.GRAY));
-
-        for (AugmentStatEntry statEntry : this.definition.statEntries()) {
-            tooltipComponents.add(Component.translatable(
-                    "tooltip.gatewayexpansion.augment.stat_line",
-                    statEntry.category().displayName(),
-                    statEntry.magnitude(),
-                    statEntry.detail()
-            ).withStyle(ChatFormatting.GRAY));
+        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.augment.difficulty", this.difficultyTier.displayName()).withStyle(ChatFormatting.GRAY));
+        if (definition == null) {
+            return;
         }
-
-        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.augment.reward_bonus", this.definition.rewardBonusPercent()).withStyle(ChatFormatting.GOLD));
-        if (!this.definition.tags().isEmpty()) {
-            tooltipComponents.add(Component.translatable(
-                    "tooltip.gatewayexpansion.common.tags",
-                    this.definition.tags().stream().collect(Collectors.joining(", "))
-            ).withStyle(ChatFormatting.DARK_GRAY));
+        for (var effect : definition.modifierEffects()) {
+            tooltipComponents.add(Component.literal(effect.description()).withStyle(ChatFormatting.GRAY));
         }
+        tooltipComponents.add(Component.literal(definition.rewardEffect().description()).withStyle(ChatFormatting.GOLD));
+        if (!definition.tags().isEmpty()) {
+            tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.common.tags", String.join(", ", definition.tags())).withStyle(ChatFormatting.DARK_GRAY));
+        }
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, Level level, net.minecraft.world.entity.Entity entity, int slotId, boolean isSelected) {
+        if (level instanceof ServerLevel serverLevel) {
+            AugmentStackData.ensureDefinition(stack, this.difficultyTier, serverLevel.random);
+        }
+        super.inventoryTick(stack, level, entity, slotId, isSelected);
     }
 }
