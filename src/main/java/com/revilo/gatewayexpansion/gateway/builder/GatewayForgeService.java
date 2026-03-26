@@ -382,6 +382,9 @@ public final class GatewayForgeService {
             rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()), 0.35F + (state.profile.level() / 180.0F)));
         }
         rewards.add(new Reward.ExperienceReward(15 + state.profile.level() * 2 + state.experienceBonus + (bossWaveEnabled ? 45 : 0), 5));
+        if (LevelUpIntegration.isLoaded()) {
+            rewards.add(new Reward.CommandReward("levelup spawnorb " + levelUpOrbCount(state, bossWaveEnabled), "rewards.gatewayexpansion.levelup_orbs"));
+        }
         return rewards;
     }
 
@@ -423,6 +426,10 @@ public final class GatewayForgeService {
             failures.add(new Failure.ChancedFailure(new Failure.ExplosionFailure(2.0F + state.crystalTier.tier() * 0.4F, false, false), 0.25F));
         }
         return failures;
+    }
+
+    private static int levelUpOrbCount(ForgeState state, boolean bossWaveEnabled) {
+        return 24 + state.profile.level() + state.crystalTier.tier() * 12 + state.finalRewardRolls * 4 + (bossWaveEnabled ? 20 : 0);
     }
 
     private static void addWaveRewardDrops(Wave.Builder builder, ForgeState state, GatewayThemeProfile theme, int waveIndex, int waveCount, RandomSource random) {
