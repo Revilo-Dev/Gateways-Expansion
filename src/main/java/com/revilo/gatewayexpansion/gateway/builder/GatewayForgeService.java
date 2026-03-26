@@ -8,6 +8,7 @@ import com.mojang.serialization.JsonOps;
 import com.revilo.gatewayexpansion.GatewayExpansion;
 import com.revilo.gatewayexpansion.augment.AugmentDefinition;
 import com.revilo.gatewayexpansion.augment.AugmentStackData;
+import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.catalyst.CatalystDefinition;
 import com.revilo.gatewayexpansion.catalyst.CatalystStackData;
 import com.revilo.gatewayexpansion.gateway.GatewayThemeProfile;
@@ -20,7 +21,9 @@ import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
 import com.revilo.gatewayexpansion.item.AugmentItem;
 import com.revilo.gatewayexpansion.item.CatalystItem;
 import com.revilo.gatewayexpansion.item.CrystalItem;
+import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import com.revilo.gatewayexpansion.item.data.CrystalForgeData;
+import com.revilo.gatewayexpansion.registry.ModItems;
 import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchSlots;
 import dev.shadowsoffire.apothic_attributes.api.ALObjects;
 import dev.shadowsoffire.gateways.GatewayObjects;
@@ -70,6 +73,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public final class GatewayForgeService {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final CatalystArchetype[] CATALYST_ARCHETYPES = CatalystArchetype.values();
     private static final String ROOT_KEY = GatewayExpansion.MOD_ID;
     private static final String GATEWAY_ID_KEY = "gateway_id";
     private static final String GATEWAY_JSON_KEY = "gateway_json";
@@ -105,14 +109,15 @@ public final class GatewayForgeService {
         int playerLevel = LevelUpIntegration.getPlayerLevel(player);
         boolean overleveled = playerLevel >= 0 && profile.level() > playerLevel;
 
-        List<String> previewLines = new ArrayList<>();
-        previewLines.add("Theme: " + titleCase(profile.theme().name()));
-        previewLines.add("Level: " + profile.level());
-        previewLines.add("Waves: " + state.waveCount());
-        previewLines.add("Difficulty: " + difficultyLabel(state.difficultyEstimate));
-        previewLines.add("Reward Direction: " + signedPercent(state.rewardMultiplier - 1.0D));
-        previewLines.add("Augments: " + joinedOrNone(state.augmentSummary));
-        previewLines.add("Catalysts: " + joinedOrNone(state.catalystSummary));
+        List<String> previewLines = List.of(
+                "Theme: " + titleCase(profile.theme().name()),
+                "Level: " + profile.level(),
+                "Waves: " + state.waveCount(),
+                "Difficulty: " + difficultyLabel(state.difficultyEstimate),
+                "Reward Direction: " + signedPercent(state.rewardMultiplier - 1.0D),
+                "Augments: " + joinedOrNone(state.augmentSummary),
+                "Catalysts: " + joinedOrNone(state.catalystSummary)
+        );
 
         return new GatewayPreview(
                 crystalItem.crystalTier().tier(),
@@ -159,7 +164,7 @@ public final class GatewayForgeService {
     }
 
     public static boolean restoreGatewayFromPearl(ItemStack stack) {
-        CompoundTag root = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getCompound(ROOT_KEY);
+        CompoundTag root = getRootTag(stack);
         if (!root.contains(GATEWAY_ID_KEY) || !root.contains(GATEWAY_JSON_KEY)) {
             return false;
         }
@@ -257,17 +262,18 @@ public final class GatewayForgeService {
         GatewayThemeProfile theme = GatewayThemeProfile.forTheme(state.profile.theme(), state.profile.level());
         EnemyPoolSet enemyPools = EnemyPoolRegistry.create(state.profile.theme(), state.profile.level());
         RandomSource random = RandomSource.create(state.profile.seed());
+        int waveCount = state.waveCount();
         int bossWaveIndex = selectBossWaveIndex(state, enemyPools, random);
         boolean bossWaveEnabled = bossWaveIndex >= 0;
         List<Wave> waves = new ArrayList<>();
-        for (int waveIndex = 0; waveIndex < state.waveCount(); waveIndex++) {
+        for (int waveIndex = 0; waveIndex < waveCount; waveIndex++) {
             if (waveIndex == bossWaveIndex) {
-                waves.add(buildBossWave(state, theme, enemyPools, random));
+                waves.add(buildBossWave(state, theme, enemyPools, random, waveCount));
                 continue;
             }
 
             Wave.Builder builder = Wave.builder();
-            int packs = 1 + waveIndex / 2 + state.densePacks + (waveIndex >= state.waveCount() - 2 ? 1 : 0);
+            int packs = 1 + waveIndex / 2 + state.densePacks + (waveIndex >= waveCount - 2 ? 1 : 0);
             for (int pack = 0; pack < packs; pack++) {
                 EntityType<?> primary = pickEnemy(enemyPools, random, EnemyPoolRole.THEME, EnemyPoolRole.MELEE);
                 builder.entity(StandardWaveEntity.builder(primary).count(Mth.clamp(baseCount(state, waveIndex, random), 1, 64)).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
@@ -287,23 +293,24 @@ public final class GatewayForgeService {
                 builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.TANK, EnemyPoolRole.MELEE)).count(2 + state.reinforcementRolls).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
             }
             if (shouldAddElite(state, waveIndex, random)) {
-                int eliteCount = 1 + (waveIndex == state.waveCount() - 1 ? state.finalWaveEliteCount : 0);
+                int eliteCount = 1 + (waveIndex == waveCount - 1 ? state.finalWaveEliteCount : 0);
                 for (int i = 0; i < eliteCount; i++) {
                     builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.MELEE)).count(1).addModifiers(eliteModifiers(state, random)).finalizeSpawn(true).build());
                 }
             }
-            if (waveIndex >= state.waveCount() - 2 && random.nextFloat() < state.minibossChance) {
+            if (waveIndex >= waveCount - 2 && random.nextFloat() < state.minibossChance) {
                 builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.TANK)).count(1).addModifiers(minibossModifiers(state)).finalizeSpawn(true).build());
             }
             for (WaveModifier modifier : globalWaveModifiers(state)) {
                 builder.modifier(modifier);
             }
-            if (state.entityLootRolls > 0 && (waveIndex == state.waveCount() - 1 || random.nextFloat() < 0.40F)) {
+            if (state.entityLootRolls > 0 && (waveIndex == waveCount - 1 || random.nextFloat() < 0.40F)) {
                 builder.reward(new Reward.EntityLootReward(pickEnemy(enemyPools, random, EnemyPoolRole.MELEE, EnemyPoolRole.THEME), null, state.entityLootRolls));
             }
+            addWaveRewardDrops(builder, state, theme, waveIndex, waveCount, random);
             builder.reward(new Reward.ExperienceReward(5 + state.profile.level() / 2 + state.experienceBonus / 4 + waveIndex * 2, 5));
-            builder.maxWaveTime(Mth.clamp(1020 + state.profile.level() * 6 + state.waveTimeDelta + (waveIndex >= state.waveCount() - 2 ? state.lateWaveTimeBonus : 0), 220, 1800));
-            builder.setupTime(waveIndex == state.waveCount() - 1 ? 20 : Mth.clamp(100 + state.setupTimeDelta - (state.shorterDenser ? 20 : 0), 20, 260));
+            builder.maxWaveTime(Mth.clamp(1020 + state.profile.level() * 6 + state.waveTimeDelta + (waveIndex >= waveCount - 2 ? state.lateWaveTimeBonus : 0), 220, 1800));
+            builder.setupTime(waveIndex == waveCount - 1 ? 20 : Mth.clamp(100 + state.setupTimeDelta - (state.shorterDenser ? 20 : 0), 20, 260));
             waves.add(builder.build());
         }
 
@@ -337,7 +344,7 @@ public final class GatewayForgeService {
                 "theme=" + state.profile.theme(),
                 "level=" + state.profile.level(),
                 "difficulty=" + difficultyLabel(state.difficultyEstimate),
-                "waves=" + state.waveCount(),
+                "waves=" + waveCount,
                 "bossWave=" + bossWaveEnabled,
                 "rewardMultiplier=" + state.rewardMultiplier,
                 "finalRolls=" + state.finalRollSummary
@@ -367,12 +374,12 @@ public final class GatewayForgeService {
         List<Reward> rewards = new ArrayList<>();
         int bossBonus = bossWaveEnabled ? 2 : 0;
         int baseRolls = Math.max(1, 1 + state.finalRewardRolls + bossBonus + (int) Math.floor(Math.max(0.0D, (state.rewardMultiplier - 1.0D) * 3.5D)));
-        rewards.add(new Reward.LootTableReward(theme.commonLoot(), baseRolls, theme.prefix() + " Cache"));
+        rewards.add(new Reward.LootTableReward(theme.commonLoot(), baseRolls, theme.finalDescKey()));
         if (state.rewardMultiplier > 1.0D && state.lootTableBonusChance > 0.0D) {
-            rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.commonLoot(), 1, theme.prefix() + " Overflow"), (float) state.lootTableBonusChance));
+            rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.commonLoot(), 1, theme.finalDescKey()), (float) state.lootTableBonusChance));
         }
         for (int i = 0; i < Math.max(0, state.rareRewardRolls); i++) {
-            rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.prefix() + " Rare Cache"), 0.45F + (state.profile.level() / 200.0F)));
+            rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()), 0.35F + (state.profile.level() / 180.0F)));
         }
         rewards.add(new Reward.ExperienceReward(15 + state.profile.level() * 2 + state.experienceBonus + (bossWaveEnabled ? 45 : 0), 5));
         return rewards;
@@ -385,7 +392,7 @@ public final class GatewayForgeService {
         return random.nextFloat() < 0.28F ? state.waveCount() - 1 : -1;
     }
 
-    private static Wave buildBossWave(ForgeState state, GatewayThemeProfile theme, EnemyPoolSet enemyPools, RandomSource random) {
+    private static Wave buildBossWave(ForgeState state, GatewayThemeProfile theme, EnemyPoolSet enemyPools, RandomSource random, int waveCount) {
         Wave.Builder builder = Wave.builder();
         EntityType<?> boss = enemyPools.pickBoss(random);
         builder.entity(StandardWaveEntity.builder(boss).count(1).addModifiers(bossModifiers(state)).finalizeSpawn(true).build());
@@ -400,7 +407,9 @@ public final class GatewayForgeService {
         for (WaveModifier modifier : globalWaveModifiers(state)) {
             builder.modifier(modifier);
         }
-        builder.reward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.prefix() + " Boss Cache"));
+        builder.reward(new Reward.StackReward(createAugmentRewardStack(state, waveCount - 1, random)));
+        builder.reward(new Reward.StackReward(createCatalystRewardStack(random)));
+        builder.reward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()));
         builder.reward(new Reward.ExperienceReward(55 + state.profile.level() * 2, 5));
         builder.maxWaveTime(Mth.clamp(7200 + state.profile.level() * 20 + state.waveTimeDelta, 3600, 12000));
         builder.setupTime(20);
@@ -414,6 +423,66 @@ public final class GatewayForgeService {
             failures.add(new Failure.ChancedFailure(new Failure.ExplosionFailure(2.0F + state.crystalTier.tier() * 0.4F, false, false), 0.25F));
         }
         return failures;
+    }
+
+    private static void addWaveRewardDrops(Wave.Builder builder, ForgeState state, GatewayThemeProfile theme, int waveIndex, int waveCount, RandomSource random) {
+        float augmentChance = Math.min(0.85F, 0.18F + state.crystalTier.tier() * 0.08F + waveIndex * 0.07F);
+        if (random.nextFloat() < augmentChance) {
+            builder.reward(new Reward.StackReward(createAugmentRewardStack(state, waveIndex, random)));
+        }
+
+        int tierRolls = Math.max(1, state.crystalTier.tier() >= 4 && waveIndex >= waveCount - 2 ? 2 : 1);
+        builder.reward(new Reward.LootTableReward(
+                ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/tier_" + state.crystalTier.tier()),
+                tierRolls,
+                theme.waveDescKey()
+        ));
+        if (random.nextFloat() < Math.min(0.9F, 0.45F + state.crystalTier.tier() * 0.08F)) {
+            builder.reward(new Reward.LootTableReward(theme.waveLoot(), 1, theme.themedWaveDescKey()));
+        }
+
+        float catalystChance = Math.min(0.70F, 0.10F + state.crystalTier.tier() * 0.05F + waveIndex * 0.05F);
+        if (random.nextFloat() < catalystChance) {
+            builder.reward(new Reward.StackReward(createCatalystRewardStack(random)));
+        }
+    }
+
+    private static ItemStack createAugmentRewardStack(ForgeState state, int waveIndex, RandomSource random) {
+        AugmentDifficultyTier tier = selectAugmentTier(state, waveIndex);
+        ItemStack stack = new ItemStack(switch (tier) {
+            case EASY -> ModItems.EASY_AUGMENT.get();
+            case MEDIUM -> ModItems.MEDIUM_AUGMENT.get();
+            case HARD -> ModItems.HARD_AUGMENT.get();
+            case EXTREME -> ModItems.EXTREME_AUGMENT.get();
+        });
+        AugmentStackData.ensureDefinition(stack, tier, random);
+        return stack;
+    }
+
+    private static AugmentDifficultyTier selectAugmentTier(ForgeState state, int waveIndex) {
+        int rewardScore = state.profile.level() + state.crystalTier.tier() * 8 + waveIndex * 6;
+        if (rewardScore >= 62) {
+            return AugmentDifficultyTier.EXTREME;
+        }
+        if (rewardScore >= 42) {
+            return AugmentDifficultyTier.HARD;
+        }
+        if (rewardScore >= 24) {
+            return AugmentDifficultyTier.MEDIUM;
+        }
+        return AugmentDifficultyTier.EASY;
+    }
+
+    private static ItemStack createCatalystRewardStack(RandomSource random) {
+        CatalystArchetype archetype = CATALYST_ARCHETYPES[random.nextInt(CATALYST_ARCHETYPES.length)];
+        ItemStack stack = new ItemStack(switch (archetype) {
+            case TIME -> ModItems.TIME_CATALYST.get();
+            case STAT -> ModItems.STAT_CATALYST.get();
+            case LOOT -> ModItems.LOOT_CATALYST.get();
+            case VOLATILE -> ModItems.HIGHRISK_CATALYST.get();
+        });
+        CatalystStackData.ensureDefinition(stack, archetype, random);
+        return stack;
     }
 
     private static List<WaveModifier> globalWaveModifiers(ForgeState state) {
@@ -523,6 +592,10 @@ public final class GatewayForgeService {
             tag.put(ROOT_KEY, root);
         });
         return pearl;
+    }
+
+    private static CompoundTag getRootTag(ItemStack stack) {
+        return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getCompound(ROOT_KEY);
     }
 
     private static ResourceLocation registerGeneratedGateway(ResourceLocation gatewayId, NormalGateway gateway) {

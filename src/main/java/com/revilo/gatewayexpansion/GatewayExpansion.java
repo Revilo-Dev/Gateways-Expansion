@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion;
 
 import com.revilo.gatewayexpansion.client.GatewayExpansionClient;
+import com.revilo.gatewayexpansion.integration.GatewayFailureEvents;
 import com.revilo.gatewayexpansion.integration.GeneratedGatewayPearlTracker;
 import com.revilo.gatewayexpansion.registry.ModBlockEntities;
 import com.revilo.gatewayexpansion.registry.ModBlocks;
@@ -26,6 +27,7 @@ public final class GatewayExpansion {
         ModMenus.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
         GatewayExpansionClient.register(modEventBus);
+        NeoForge.EVENT_BUS.register(GatewayFailureEvents.class);
         NeoForge.EVENT_BUS.register(GeneratedGatewayPearlTracker.class);
     }
 }

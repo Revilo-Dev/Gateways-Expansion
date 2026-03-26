@@ -17,15 +17,15 @@ public final class ModItems {
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(GatewayExpansion.MOD_ID);
 
     public static final DeferredHolder<Item, CrystalItem> TIER_1_CRYSTAL = ITEMS.register("tier_1_crystal",
-            () -> new CrystalItem(new CrystalItem.CrystalTier(1, 1, 10), new Item.Properties()));
+            () -> new CrystalItem(new CrystalItem.CrystalTier(1, 0, 19), new Item.Properties()));
     public static final DeferredHolder<Item, CrystalItem> TIER_2_CRYSTAL = ITEMS.register("tier_2_crystal",
-            () -> new CrystalItem(new CrystalItem.CrystalTier(2, 11, 20), new Item.Properties()));
+            () -> new CrystalItem(new CrystalItem.CrystalTier(2, 20, 49), new Item.Properties()));
     public static final DeferredHolder<Item, CrystalItem> TIER_3_CRYSTAL = ITEMS.register("tier_3_crystal",
-            () -> new CrystalItem(new CrystalItem.CrystalTier(3, 21, 30), new Item.Properties()));
+            () -> new CrystalItem(new CrystalItem.CrystalTier(3, 50, 69), new Item.Properties()));
     public static final DeferredHolder<Item, CrystalItem> TIER_4_CRYSTAL = ITEMS.register("tier_4_crystal",
-            () -> new CrystalItem(new CrystalItem.CrystalTier(4, 31, 40), new Item.Properties()));
+            () -> new CrystalItem(new CrystalItem.CrystalTier(4, 70, 89), new Item.Properties()));
     public static final DeferredHolder<Item, CrystalItem> TIER_5_CRYSTAL = ITEMS.register("tier_5_crystal",
-            () -> new CrystalItem(new CrystalItem.CrystalTier(5, 41, 50), new Item.Properties()));
+            () -> new CrystalItem(new CrystalItem.CrystalTier(5, 90, 100), new Item.Properties()));
 
     public static final DeferredHolder<Item, AugmentItem> EASY_AUGMENT = ITEMS.register("easy_augment",
             () -> new AugmentItem(AugmentDifficultyTier.EASY, new Item.Properties().stacksTo(16)));

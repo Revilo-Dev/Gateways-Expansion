@@ -61,5 +61,18 @@
   "screen.gatewayexpansion.gateway_workbench.warning_detail": "Level %s crystal exceeds your Level %s.",
   "screen.gatewayexpansion.gateway_workbench.locked_slot": "Locked Slot",
   "screen.gatewayexpansion.gateway_workbench.unlocks_at": "Unlocks at Level %s",
-  "screen.gatewayexpansion.gateway_workbench.level_hint": "Level %s"
+  "screen.gatewayexpansion.gateway_workbench.level_hint": "Level %s",
+  "rewards.gatewayexpansion.wave_cache": "Wave Cache",
+  "rewards.gatewayexpansion.grave_wave_bonus": "Grave Trophies",
+  "rewards.gatewayexpansion.feral_wave_bonus": "Feral Trophies",
+  "rewards.gatewayexpansion.astral_wave_bonus": "Astral Trophies",
+  "rewards.gatewayexpansion.infernal_wave_bonus": "Infernal Trophies",
+  "rewards.gatewayexpansion.grave_final_cache": "Grave Reliquary",
+  "rewards.gatewayexpansion.feral_final_cache": "Feral Reliquary",
+  "rewards.gatewayexpansion.astral_final_cache": "Astral Reliquary",
+  "rewards.gatewayexpansion.infernal_final_cache": "Infernal Reliquary",
+  "rewards.gatewayexpansion.grave_jackpot_cache": "Grave Jackpot",
+  "rewards.gatewayexpansion.feral_jackpot_cache": "Feral Jackpot",
+  "rewards.gatewayexpansion.astral_jackpot_cache": "Astral Jackpot",
+  "rewards.gatewayexpansion.infernal_jackpot_cache": "Infernal Jackpot"
 }

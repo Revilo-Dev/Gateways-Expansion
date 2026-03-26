@@ -15,6 +15,7 @@ import net.minecraft.world.item.component.CustomData;
 public final class CrystalForgeData {
 
     private static final String ROOT_KEY = GatewayExpansion.MOD_ID;
+    private static final CrystalTheme[] THEMES = CrystalTheme.values();
     private static final String THEME_KEY = "theme";
     private static final String LEVEL_KEY = "level";
     private static final String SEED_KEY = "seed";
@@ -25,7 +26,7 @@ public final class CrystalForgeData {
     public static CrystalProfile ensureProfile(ItemStack stack, int minLevel, int maxLevel, RandomSource random) {
         CompoundTag rootTag = getRootTag(stack);
         if (!rootTag.contains(THEME_KEY) || !rootTag.contains(LEVEL_KEY) || !rootTag.contains(SEED_KEY)) {
-            CrystalTheme theme = CrystalTheme.values()[random.nextInt(CrystalTheme.values().length)];
+            CrystalTheme theme = THEMES[random.nextInt(THEMES.length)];
             int level = Mth.clamp(minLevel + random.nextInt(Math.max(1, maxLevel - minLevel + 1)), minLevel, maxLevel);
             long seed = random.nextLong();
             CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
