@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": {
+      "item": "minecraft:polished_deepslate"
+    },
+    "G": {
+      "item": "minecraft:diamond"
+    },
+    "T": {
+      "item": "minecraft:tuff"
+    }
+  },
+  "pattern": [
+    "DGD",
+    " T ",
+    " D "
+  ],
+  "result": {
+    "count": 1,
+    "id": "gatewayexpansion:gateway_workbench"
+  }
+}

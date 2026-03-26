@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "C": {
+      "item": "gatewayexpansion:tier_1_crystal"
+    }
+  },
+  "pattern": [
+    "GGG",
+    "GCG",
+    "GGG"
+  ],
+  "result": {
+    "count": 1,
+    "id": "gatewayexpansion:tier_2_crystal"
+  }
+}
