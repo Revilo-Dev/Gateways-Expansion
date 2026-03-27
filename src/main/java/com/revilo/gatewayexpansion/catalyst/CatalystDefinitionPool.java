@@ -34,6 +34,12 @@ public final class CatalystDefinitionPool {
         register(CatalystArchetype.TIME, c("staged_breath", "Staged Breath", tags("setup", "safe"),
                 fx(ForgeEffectType.SETUP_TIME_DELTA, 80, "+4s setup time"),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, -0.06D, "-6% loot")));
+        register(CatalystArchetype.TIME, c("borrowed_sun", "Borrowed Sun", tags("time", "tempo"),
+                fx(ForgeEffectType.BONUS_EXPERIENCE, 18, "+18 bonus experience"),
+                fx(ForgeEffectType.WAVE_TIME_DELTA, -80, "-4s wave time")));
+        register(CatalystArchetype.TIME, c("ember_lull", "Ember Lull", tags("setup", "safe"),
+                fx(ForgeEffectType.SETUP_TIME_DELTA, 120, "+6s setup time"),
+                fx(ForgeEffectType.EXTRA_ENTITY_LOOT_ROLLS, -1, "-1 entity loot roll")));
 
         register(CatalystArchetype.STAT, c("thickened_hide", "Thickened Hide", tags("stat", "loot"),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.12D, "+12% loot"),
@@ -53,6 +59,12 @@ public final class CatalystDefinitionPool {
         register(CatalystArchetype.STAT, c("sundered_quarry", "Sundered Quarry", tags("stat", "damage"),
                 fx(ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS, 1, "+1 final reward roll"),
                 fx(ForgeEffectType.ARMOR_PIERCE, 2, "+2 armor pierce")));
+        register(CatalystArchetype.STAT, c("glass_jaw", "Glass Jaw", tags("stat", "risk"),
+                fx(ForgeEffectType.REWARD_MULTIPLIER, 0.14D, "+14% loot"),
+                fx(ForgeEffectType.KNOCKBACK_RESISTANCE, 0.18D, "+18% knockback resistance")));
+        register(CatalystArchetype.STAT, c("witchsteel", "Witchsteel", tags("stat", "ranged"),
+                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll"),
+                fx(ForgeEffectType.PROJECTILE_DAMAGE, 0.18D, "+18% ranged damage")));
 
         register(CatalystArchetype.LOOT, c("gilded_teeth", "Gilded Teeth", tags("loot", "risk"),
                 fx(ForgeEffectType.EXTRA_ENTITY_LOOT_ROLLS, 1, "+1 entity loot roll"),
@@ -72,6 +84,12 @@ public final class CatalystDefinitionPool {
         register(CatalystArchetype.LOOT, c("mercy_clause", "Mercy Clause", tags("loot", "safe"),
                 fx(ForgeEffectType.HEALTH_MULTIPLIER, -0.08D, "-8% enemy health"),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, -0.10D, "-10% loot")));
+        register(CatalystArchetype.LOOT, c("deep_pockets", "Deep Pockets", tags("loot", "reward"),
+                fx(ForgeEffectType.BONUS_LOOT_TABLE_CHANCE, 0.20D, "+20% extra cache chance"),
+                fx(ForgeEffectType.ELITE_CHANCE, 0.07D, "+7% elite chance")));
+        register(CatalystArchetype.LOOT, c("grave_tribute", "Grave Tribute", tags("loot", "xp"),
+                fx(ForgeEffectType.BONUS_EXPERIENCE, 28, "+28 bonus experience"),
+                fx(ForgeEffectType.FINAL_WAVE_ELITES, 1, "+1 final wave elite")));
 
         register(CatalystArchetype.VOLATILE, c("razor_dusk", "Razor Dusk", tags("volatile", "time"),
                 fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 2, "+2 rare reward rolls"),
@@ -91,6 +109,12 @@ public final class CatalystDefinitionPool {
         register(CatalystArchetype.VOLATILE, c("last_bell", "Last Bell", tags("volatile", "finale"),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.18D, "+18% loot"),
                 fx(ForgeEffectType.DANGEROUS_FINAL_WAVE, 1, "Harder final wave")));
+        register(CatalystArchetype.VOLATILE, c("black_banner", "Black Banner", tags("volatile", "elite"),
+                fx(ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS, 1, "+1 final reward roll"),
+                fx(ForgeEffectType.ELITE_EVERY, 2, "+1 elite every 2 waves")));
+        register(CatalystArchetype.VOLATILE, c("furnace_heart", "Furnace Heart", tags("volatile", "damage"),
+                fx(ForgeEffectType.REWARD_MULTIPLIER, 0.22D, "+22% loot"),
+                fx(ForgeEffectType.DAMAGE_MULTIPLIER, 0.18D, "+18% enemy damage")));
     }
 
     private CatalystDefinitionPool() {

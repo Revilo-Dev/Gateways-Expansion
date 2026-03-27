@@ -27,7 +27,7 @@ public final class CrystalForgeData {
         CompoundTag rootTag = getRootTag(stack);
         if (!rootTag.contains(THEME_KEY) || !rootTag.contains(LEVEL_KEY) || !rootTag.contains(SEED_KEY)) {
             CrystalTheme theme = THEMES[random.nextInt(THEMES.length)];
-            int level = Mth.clamp(minLevel + random.nextInt(Math.max(1, maxLevel - minLevel + 1)), minLevel, maxLevel);
+            int level = minLevel;
             long seed = random.nextLong();
             CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
                 CompoundTag updatedRoot = tag.getCompound(ROOT_KEY);
@@ -39,6 +39,27 @@ public final class CrystalForgeData {
             return new CrystalProfile(theme, level, seed);
         }
         return readProfile(rootTag, minLevel, maxLevel);
+    }
+
+    public static CrystalProfile syncLevelToPlayer(ItemStack stack, int minLevel, int maxLevel, int playerLevel, RandomSource random) {
+        CrystalProfile profile = ensureProfile(stack, minLevel, maxLevel, random);
+        if (playerLevel < 0) {
+            return profile;
+        }
+
+        int level = Mth.clamp(playerLevel, minLevel, maxLevel);
+        if (profile.level() == level) {
+            return profile;
+        }
+
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+            CompoundTag updatedRoot = tag.getCompound(ROOT_KEY);
+            updatedRoot.putString(THEME_KEY, profile.theme().name());
+            updatedRoot.putInt(LEVEL_KEY, level);
+            updatedRoot.putLong(SEED_KEY, profile.seed());
+            tag.put(ROOT_KEY, updatedRoot);
+        });
+        return new CrystalProfile(profile.theme(), level, profile.seed());
     }
 
     public static CrystalProfile getProfile(ItemStack stack, int minLevel, int maxLevel) {

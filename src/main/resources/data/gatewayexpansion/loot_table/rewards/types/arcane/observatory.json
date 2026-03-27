@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:amethyst_shard", "weight": 8, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 5.0, "max": 12.0 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:spyglass", "weight": 2 },
+        { "type": "minecraft:item", "name": "minecraft:experience_bottle", "weight": 6, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2.0, "max": 5.0 }, "add": false } ] }
+      ]
+    }
+  ]
+}

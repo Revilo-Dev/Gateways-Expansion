@@ -75,5 +75,17 @@
   "rewards.gatewayexpansion.feral_jackpot_cache": "Feral Jackpot",
   "rewards.gatewayexpansion.astral_jackpot_cache": "Astral Jackpot",
   "rewards.gatewayexpansion.infernal_jackpot_cache": "Infernal Jackpot",
-  "rewards.gatewayexpansion.levelup_orbs": "Level Up Orbs"
+  "rewards.gatewayexpansion.levelup_orbs": "Level Up Orbs",
+  "rewards.gatewayexpansion.gate_type.ossuary": "Ossuary Cache",
+  "rewards.gatewayexpansion.gate_type.plague": "Plague Cache",
+  "rewards.gatewayexpansion.gate_type.mooncrypt": "Mooncrypt Cache",
+  "rewards.gatewayexpansion.gate_type.pack": "Pack Cache",
+  "rewards.gatewayexpansion.gate_type.hive": "Hive Cache",
+  "rewards.gatewayexpansion.gate_type.thornwild": "Thornwild Cache",
+  "rewards.gatewayexpansion.gate_type.rift": "Rift Cache",
+  "rewards.gatewayexpansion.gate_type.observatory": "Observatory Cache",
+  "rewards.gatewayexpansion.gate_type.stormglass": "Stormglass Cache",
+  "rewards.gatewayexpansion.gate_type.forge": "Forge Cache",
+  "rewards.gatewayexpansion.gate_type.bastion": "Bastion Cache",
+  "rewards.gatewayexpansion.gate_type.ashfall": "Ashfall Cache"
 }

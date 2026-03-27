@@ -34,40 +34,40 @@ public final class EnemyPoolRegistry {
     private static void addVanilla(CrystalTheme theme, int level, EnemyPoolSet pools) {
         switch (theme) {
             case UNDEAD -> {
-                pools.pool(EnemyPoolRole.MELEE).add(EntityType.ZOMBIE, 8, "vanilla").add(EntityType.HUSK, 4, "vanilla").add(EntityType.DROWNED, level >= 18 ? 5 : 2, "vanilla");
-                pools.pool(EnemyPoolRole.RANGED).add(EntityType.SKELETON, 8, "vanilla").add(EntityType.STRAY, 4, "vanilla").add(EntityType.BOGGED, 4, "vanilla");
-                pools.pool(EnemyPoolRole.TANK).add(EntityType.ZOMBIE, 5, "vanilla").add(EntityType.WITHER_SKELETON, 2, "vanilla");
-                pools.pool(EnemyPoolRole.FAST).add(EntityType.HUSK, 4, "vanilla").add(EntityType.DROWNED, 3, "vanilla");
-                pools.pool(EnemyPoolRole.ELITE).add(EntityType.WITHER_SKELETON, 5, "vanilla").add(EntityType.WITCH, 4, "vanilla").add(EntityType.STRAY, 3, "vanilla");
-                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 8, "vanilla").add(EntityType.BOGGED, 3, "vanilla");
-                pools.pool(EnemyPoolRole.THEME).add(EntityType.ZOMBIE, 6, "vanilla").add(EntityType.SKELETON, 6, "vanilla");
+                pools.pool(EnemyPoolRole.MELEE).add(EntityType.ZOMBIE, 8, "vanilla").add(EntityType.HUSK, 4, "vanilla").add(EntityType.DROWNED, level >= 18 ? 5 : 2, "vanilla").add(EntityType.ZOMBIE_VILLAGER, level >= 20 ? 4 : 1, "vanilla");
+                pools.pool(EnemyPoolRole.RANGED).add(EntityType.SKELETON, 8, "vanilla").add(EntityType.STRAY, 4, "vanilla").add(EntityType.BOGGED, 4, "vanilla").add(EntityType.PHANTOM, level >= 24 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.TANK).add(EntityType.ZOMBIE, 5, "vanilla").add(EntityType.WITHER_SKELETON, 2, "vanilla").add(EntityType.ZOGLIN, level >= 65 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.FAST).add(EntityType.HUSK, 4, "vanilla").add(EntityType.DROWNED, 3, "vanilla").add(EntityType.PHANTOM, level >= 24 ? 4 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.ELITE).add(EntityType.WITHER_SKELETON, 5, "vanilla").add(EntityType.WITCH, 4, "vanilla").add(EntityType.STRAY, 3, "vanilla").add(EntityType.BREEZE, level >= 55 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 8, "vanilla").add(EntityType.BOGGED, 3, "vanilla").add(EntityType.PHANTOM, level >= 40 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.THEME).add(EntityType.ZOMBIE, 6, "vanilla").add(EntityType.SKELETON, 6, "vanilla").add(EntityType.ZOMBIE_VILLAGER, level >= 20 ? 4 : 0, "vanilla");
             }
             case BEAST -> {
-                pools.pool(EnemyPoolRole.MELEE).add(EntityType.SPIDER, 7, "vanilla").add(EntityType.WOLF, 5, "vanilla").add(EntityType.POLAR_BEAR, 3, "vanilla");
-                pools.pool(EnemyPoolRole.RANGED).add(EntityType.BEE, 6, "vanilla");
-                pools.pool(EnemyPoolRole.TANK).add(EntityType.POLAR_BEAR, 6, "vanilla").add(EntityType.RAVAGER, 3, "vanilla");
-                pools.pool(EnemyPoolRole.FAST).add(EntityType.CAVE_SPIDER, 7, "vanilla").add(EntityType.WOLF, 6, "vanilla");
-                pools.pool(EnemyPoolRole.ELITE).add(EntityType.RAVAGER, 6, "vanilla").add(EntityType.POLAR_BEAR, 4, "vanilla");
-                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.BEE, 6, "vanilla").add(EntityType.CAVE_SPIDER, 4, "vanilla");
-                pools.pool(EnemyPoolRole.THEME).add(EntityType.SPIDER, 7, "vanilla").add(EntityType.WOLF, 4, "vanilla");
+                pools.pool(EnemyPoolRole.MELEE).add(EntityType.SPIDER, 7, "vanilla").add(EntityType.WOLF, 5, "vanilla").add(EntityType.POLAR_BEAR, 3, "vanilla").add(EntityType.SLIME, level >= 18 ? 4 : 1, "vanilla");
+                pools.pool(EnemyPoolRole.RANGED).add(EntityType.BEE, 6, "vanilla").add(EntityType.BREEZE, level >= 45 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.TANK).add(EntityType.POLAR_BEAR, 6, "vanilla").add(EntityType.RAVAGER, 3, "vanilla").add(EntityType.SLIME, level >= 30 ? 4 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.FAST).add(EntityType.CAVE_SPIDER, 7, "vanilla").add(EntityType.WOLF, 6, "vanilla").add(EntityType.ENDERMITE, level >= 36 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.ELITE).add(EntityType.RAVAGER, 6, "vanilla").add(EntityType.POLAR_BEAR, 4, "vanilla").add(EntityType.BREEZE, level >= 45 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.BEE, 6, "vanilla").add(EntityType.CAVE_SPIDER, 4, "vanilla").add(EntityType.SLIME, level >= 18 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.THEME).add(EntityType.SPIDER, 7, "vanilla").add(EntityType.WOLF, 4, "vanilla").add(EntityType.SLIME, level >= 18 ? 3 : 0, "vanilla");
             }
             case ARCANE -> {
-                pools.pool(EnemyPoolRole.MELEE).add(EntityType.ENDERMAN, 6, "vanilla").add(EntityType.VEX, 6, "vanilla");
-                pools.pool(EnemyPoolRole.RANGED).add(EntityType.PILLAGER, 8, "vanilla").add(EntityType.BLAZE, 5, "vanilla").add(EntityType.WITCH, 4, "vanilla");
-                pools.pool(EnemyPoolRole.TANK).add(EntityType.ENDERMAN, 5, "vanilla");
-                pools.pool(EnemyPoolRole.FAST).add(EntityType.VEX, 8, "vanilla").add(EntityType.ENDERMITE, 4, "vanilla");
-                pools.pool(EnemyPoolRole.ELITE).add(EntityType.EVOKER, 6, "vanilla").add(EntityType.ENDERMAN, 5, "vanilla").add(EntityType.ILLUSIONER, 3, "vanilla");
-                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 6, "vanilla").add(EntityType.EVOKER, 4, "vanilla");
-                pools.pool(EnemyPoolRole.THEME).add(EntityType.VEX, 7, "vanilla").add(EntityType.ENDERMAN, 6, "vanilla");
+                pools.pool(EnemyPoolRole.MELEE).add(EntityType.ENDERMAN, 6, "vanilla").add(EntityType.VEX, 6, "vanilla").add(EntityType.SHULKER, level >= 60 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.RANGED).add(EntityType.PILLAGER, 8, "vanilla").add(EntityType.BLAZE, 5, "vanilla").add(EntityType.WITCH, 4, "vanilla").add(EntityType.BREEZE, level >= 25 ? 4 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.TANK).add(EntityType.ENDERMAN, 5, "vanilla").add(EntityType.SHULKER, level >= 60 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.FAST).add(EntityType.VEX, 8, "vanilla").add(EntityType.ENDERMITE, 4, "vanilla").add(EntityType.BREEZE, level >= 25 ? 4 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.ELITE).add(EntityType.EVOKER, 6, "vanilla").add(EntityType.ENDERMAN, 5, "vanilla").add(EntityType.ILLUSIONER, 3, "vanilla").add(EntityType.SHULKER, level >= 60 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 6, "vanilla").add(EntityType.EVOKER, 4, "vanilla").add(EntityType.BREEZE, level >= 30 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.THEME).add(EntityType.VEX, 7, "vanilla").add(EntityType.ENDERMAN, 6, "vanilla").add(EntityType.BREEZE, level >= 25 ? 3 : 0, "vanilla");
             }
             case NETHER -> {
-                pools.pool(EnemyPoolRole.MELEE).add(EntityType.ZOMBIFIED_PIGLIN, 7, "vanilla").add(EntityType.HOGLIN, 6, "vanilla");
-                pools.pool(EnemyPoolRole.RANGED).add(EntityType.BLAZE, 8, "vanilla").add(EntityType.GHAST, 3, "vanilla");
-                pools.pool(EnemyPoolRole.TANK).add(EntityType.HOGLIN, 6, "vanilla").add(EntityType.MAGMA_CUBE, 5, "vanilla");
-                pools.pool(EnemyPoolRole.FAST).add(EntityType.MAGMA_CUBE, 7, "vanilla");
-                pools.pool(EnemyPoolRole.ELITE).add(EntityType.PIGLIN_BRUTE, 6, "vanilla").add(EntityType.WITHER_SKELETON, 5, "vanilla").add(EntityType.BLAZE, 4, "vanilla");
-                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.BLAZE, 7, "vanilla").add(EntityType.PIGLIN, 4, "vanilla");
-                pools.pool(EnemyPoolRole.THEME).add(EntityType.BLAZE, 6, "vanilla").add(EntityType.HOGLIN, 5, "vanilla");
+                pools.pool(EnemyPoolRole.MELEE).add(EntityType.ZOMBIFIED_PIGLIN, 7, "vanilla").add(EntityType.HOGLIN, 6, "vanilla").add(EntityType.ZOGLIN, level >= 50 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.RANGED).add(EntityType.BLAZE, 8, "vanilla").add(EntityType.GHAST, 3, "vanilla").add(EntityType.PIGLIN, level >= 20 ? 4 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.TANK).add(EntityType.HOGLIN, 6, "vanilla").add(EntityType.MAGMA_CUBE, 5, "vanilla").add(EntityType.ZOGLIN, level >= 50 ? 4 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.FAST).add(EntityType.MAGMA_CUBE, 7, "vanilla").add(EntityType.PIGLIN, level >= 20 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.ELITE).add(EntityType.PIGLIN_BRUTE, 6, "vanilla").add(EntityType.WITHER_SKELETON, 5, "vanilla").add(EntityType.BLAZE, 4, "vanilla").add(EntityType.ZOGLIN, level >= 50 ? 2 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.BLAZE, 7, "vanilla").add(EntityType.PIGLIN, 4, "vanilla").add(EntityType.MAGMA_CUBE, level >= 30 ? 3 : 0, "vanilla");
+                pools.pool(EnemyPoolRole.THEME).add(EntityType.BLAZE, 6, "vanilla").add(EntityType.HOGLIN, 5, "vanilla").add(EntityType.ZOGLIN, level >= 50 ? 2 : 0, "vanilla");
             }
         }
     }

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:gold_ingot", "weight": 8, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 4.0, "max": 8.0 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:crying_obsidian", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2.0, "max": 5.0 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:gilded_blackstone", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 3.0, "max": 7.0 }, "add": false } ] }
+      ]
+    }
+  ]
+}

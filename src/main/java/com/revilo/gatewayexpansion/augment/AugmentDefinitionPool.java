@@ -41,6 +41,12 @@ public final class AugmentDefinitionPool {
         register(a("cinder_rush", "Cinder Rush", AugmentDifficultyTier.EASY, tags("speed", "nether"),
                 List.of(fx(ForgeEffectType.SPEED_MULTIPLIER, 0.10D, "+10% movement speed")),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.10D, "+10% loot")));
+        register(a("grave_drift", "Grave Drift", AugmentDifficultyTier.EASY, tags("undead", "time"),
+                List.of(fx(ForgeEffectType.WAVE_TIME_DELTA, -40, "-2s wave time"), fx(ForgeEffectType.ADD_MINIONS_PER_WAVE, 1, "+1 minion per wave")),
+                fx(ForgeEffectType.BONUS_EXPERIENCE, 12, "+12 bonus experience")));
+        register(a("ember_watch", "Ember Watch", AugmentDifficultyTier.EASY, tags("nether", "effect"),
+                List.of(effect("minecraft:fire_resistance", 0, "Enemies gain fire resistance")),
+                fx(ForgeEffectType.EXTRA_ENTITY_LOOT_ROLLS, 1, "+1 entity loot roll")));
 
         register(a("late_harvest", "Late Harvest", AugmentDifficultyTier.MEDIUM, tags("wave", "reward"),
                 List.of(fx(ForgeEffectType.EXTEND_LATE_WAVES, 50, "Extended later waves")),
@@ -66,6 +72,12 @@ public final class AugmentDefinitionPool {
         register(a("burning_raiders", "Burning Raiders", AugmentDifficultyTier.MEDIUM, tags("nether", "damage"),
                 List.of(effect("minecraft:fire_resistance", 0, "Enemies resist fire"), fx(ForgeEffectType.DAMAGE_MULTIPLIER, 0.15D, "+15% damage")),
                 fx(ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS, 1, "+1 final reward roll")));
+        register(a("ritual_surge", "Ritual Surge", AugmentDifficultyTier.MEDIUM, tags("undead", "elite"),
+                List.of(fx(ForgeEffectType.ELITE_CHANCE, 0.08D, "+8% elite chance"), effect("minecraft:strength", 0, "Enemies gain Strength")),
+                fx(ForgeEffectType.BONUS_EXPERIENCE, 24, "+24 bonus experience")));
+        register(a("starved_pack", "Starved Pack", AugmentDifficultyTier.MEDIUM, tags("beast", "support"),
+                List.of(dual(ForgeEffectType.SUPPORT_PACK_EVERY, 3, 2, "+2 support mobs every 3 waves"), fx(ForgeEffectType.SPEED_MULTIPLIER, 0.10D, "+10% speed")),
+                fx(ForgeEffectType.EXTRA_ENTITY_LOOT_ROLLS, 1, "+1 entity loot roll")));
 
         register(a("siege_lords", "Siege Lords", AugmentDifficultyTier.HARD, tags("elite", "finale"),
                 List.of(fx(ForgeEffectType.FINAL_WAVE_ELITES, 2, "+2 stronger final wave units"), fx(ForgeEffectType.ELITE_CHANCE, 0.12D, "+12% elite chance")),
@@ -91,6 +103,12 @@ public final class AugmentDefinitionPool {
         register(a("crossfire_choir", "Crossfire Choir", AugmentDifficultyTier.HARD, tags("ranged", "arcane"),
                 List.of(fx(ForgeEffectType.RANGED_PACKS, 2, "Heavy ranged pressure"), fx(ForgeEffectType.PROJECTILE_DAMAGE, 0.25D, "+25% ranged damage")),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.22D, "+22% loot")));
+        register(a("crypt_bulwark", "Crypt Bulwark", AugmentDifficultyTier.HARD, tags("undead", "defense"),
+                List.of(fx(ForgeEffectType.HEALTH_MULTIPLIER, 0.16D, "+16% health"), fx(ForgeEffectType.ARMOR_BONUS, 5, "+5 armor"), effect("minecraft:resistance", 0, "Enemies gain Resistance")),
+                fx(ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS, 1, "+1 final reward roll")));
+        register(a("storm_lattice", "Storm Lattice", AugmentDifficultyTier.HARD, tags("arcane", "chaos"),
+                List.of(fx(ForgeEffectType.RANGED_PACKS, 1, "More ranged enemies"), fx(ForgeEffectType.MIXED_PACKS, 2, "Mixed enemy additions"), effect("minecraft:glowing", 0, "Glowing enemies")),
+                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll")));
 
         register(a("cataclysm_engine", "Cataclysm Engine", AugmentDifficultyTier.EXTREME, tags("extreme", "chaos"),
                 List.of(fx(ForgeEffectType.BONUS_WAVES, 2, "+2 waves"), fx(ForgeEffectType.THEMED_REINFORCEMENTS, 2, "Heavy random reinforcements"), fx(ForgeEffectType.DANGEROUS_FINAL_WAVE, 1, "Dangerous final wave bonus")),
@@ -110,6 +128,12 @@ public final class AugmentDefinitionPool {
         register(a("infernal_overrun", "Infernal Overrun", AugmentDifficultyTier.EXTREME, tags("nether", "finale"),
                 List.of(fx(ForgeEffectType.DAMAGE_MULTIPLIER, 0.25D, "+25% damage"), fx(ForgeEffectType.ARMOR_PIERCE, 3, "+3 armor pierce"), fx(ForgeEffectType.DANGEROUS_FINAL_WAVE, 1, "Infernal final wave")),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.28D, "+28% loot")));
+        register(a("voidstamp_host", "Voidstamp Host", AugmentDifficultyTier.EXTREME, tags("extreme", "arcane"),
+                List.of(fx(ForgeEffectType.NAMED_ELITE_CHANCE, 0.24D, "Named enemies appear"), fx(ForgeEffectType.ELITE_UPGRADE_CHANCE, 0.22D, "Elite upgrades on some waves"), effect("minecraft:glowing", 0, "Glowing enemies")),
+                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 2, "+2 rare reward rolls")));
+        register(a("warpit_maw", "Warpit Maw", AugmentDifficultyTier.EXTREME, tags("extreme", "beast"),
+                List.of(fx(ForgeEffectType.ADD_MINIONS_PER_WAVE, 3, "+3 minions per wave"), dual(ForgeEffectType.SUPPORT_PACK_EVERY, 2, 2, "+2 support mobs every 2 waves"), fx(ForgeEffectType.SPEED_MULTIPLIER, 0.18D, "+18% speed")),
+                fx(ForgeEffectType.REWARD_MULTIPLIER, 0.24D, "+24% loot")));
     }
 
     private AugmentDefinitionPool() {

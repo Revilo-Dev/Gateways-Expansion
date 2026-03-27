@@ -138,15 +138,16 @@ public final class GatewayForgeService {
     public static ItemStack forge(ServerPlayer player, Container container) {
         ItemStack crystalStack = container.getItem(GatewayWorkbenchSlots.CRYSTAL_SLOT);
         CrystalItem crystalItem = (CrystalItem) crystalStack.getItem();
-        CrystalForgeData.CrystalProfile profile = CrystalForgeData.ensureProfile(
+        int playerLevel = LevelUpIntegration.getPlayerLevel(player);
+        CrystalForgeData.CrystalProfile profile = CrystalForgeData.syncLevelToPlayer(
                 crystalStack,
                 crystalItem.crystalTier().minLevel(),
                 crystalItem.crystalTier().maxLevel(),
+                playerLevel,
                 player.serverLevel().random
         );
 
         ForgeState state = buildState(container, crystalItem.crystalTier(), profile);
-        int playerLevel = LevelUpIntegration.getPlayerLevel(player);
         boolean overleveled = playerLevel >= 0 && profile.level() > playerLevel;
 
         applyFinalRandomStage(state);
@@ -260,6 +261,7 @@ public final class GatewayForgeService {
 
     private static GatewayBuildResult generateGateway(ForgeState state, int playerLevel, boolean overleveled) {
         GatewayThemeProfile theme = GatewayThemeProfile.forTheme(state.profile.theme(), state.profile.level());
+        GatewayThemeProfile.GateTypeProfile gateType = theme.gateType(state.profile.seed());
         EnemyPoolSet enemyPools = EnemyPoolRegistry.create(state.profile.theme(), state.profile.level());
         RandomSource random = RandomSource.create(state.profile.seed());
         int waveCount = state.waveCount();
@@ -314,7 +316,7 @@ public final class GatewayForgeService {
             waves.add(builder.build());
         }
 
-        List<Reward> rewards = buildRewards(state, theme, bossWaveEnabled);
+        List<Reward> rewards = buildRewards(state, theme, gateType, bossWaveEnabled);
         List<Failure> failures = buildFailures(state);
         GateRules rules = GateRules.builder()
                 .spawnRange(8.0D + state.crystalTier.tier())
@@ -342,6 +344,7 @@ public final class GatewayForgeService {
         String gatewayJson = serializeGateway(gateway);
         List<String> debugLines = List.of(
                 "theme=" + state.profile.theme(),
+                "gateType=" + gateType.id(),
                 "level=" + state.profile.level(),
                 "difficulty=" + difficultyLabel(state.difficultyEstimate),
                 "waves=" + waveCount,
@@ -351,7 +354,7 @@ public final class GatewayForgeService {
         );
         return new GatewayBuildResult(
                 gatewayId,
-                generateName(state, theme),
+                generateName(state, theme, gateType),
                 state.profile.theme(),
                 theme.color(),
                 state.profile.level(),
@@ -370,11 +373,12 @@ public final class GatewayForgeService {
         );
     }
 
-    private static List<Reward> buildRewards(ForgeState state, GatewayThemeProfile theme, boolean bossWaveEnabled) {
+    private static List<Reward> buildRewards(ForgeState state, GatewayThemeProfile theme, GatewayThemeProfile.GateTypeProfile gateType, boolean bossWaveEnabled) {
         List<Reward> rewards = new ArrayList<>();
         int bossBonus = bossWaveEnabled ? 2 : 0;
         int baseRolls = Math.max(1, 1 + state.finalRewardRolls + bossBonus + (int) Math.floor(Math.max(0.0D, (state.rewardMultiplier - 1.0D) * 3.5D)));
         rewards.add(new Reward.LootTableReward(theme.commonLoot(), baseRolls, theme.finalDescKey()));
+        rewards.add(new Reward.LootTableReward(gateType.bonusLoot(), 1 + state.crystalTier.tier() / 3, gateType.descKey()));
         if (state.rewardMultiplier > 1.0D && state.lootTableBonusChance > 0.0D) {
             rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.commonLoot(), 1, theme.finalDescKey()), (float) state.lootTableBonusChance));
         }
@@ -650,9 +654,9 @@ public final class GatewayForgeService {
         return Gateway.Size.SMALL;
     }
 
-    private static String generateName(ForgeState state, GatewayThemeProfile theme) {
+    private static String generateName(ForgeState state, GatewayThemeProfile theme, GatewayThemeProfile.GateTypeProfile gateType) {
         String suffix = state.dangerousFinalWave ? "Cataclysm" : state.finalWaveEliteCount > 1 ? "Siege" : state.shorterDenser ? "Rush" : "Rift";
-        return theme.prefix() + " " + titleCase(state.profile.theme().name()) + " " + suffix;
+        return theme.prefix() + " " + gateType.title() + " " + suffix;
     }
 
     private static void applyEffects(ForgeState state, List<ForgeEffect> effects, boolean augment) {
