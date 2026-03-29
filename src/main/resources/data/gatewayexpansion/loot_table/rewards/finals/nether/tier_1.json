@@ -1,1 +1,196 @@
-{ "type": "minecraft:chest", "pools": [ { "rolls": 1, "entries": [ { "type": "minecraft:item", "name": "minecraft:blaze_rod", "weight": 8, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2.0, "max": 4.0 }, "add": false } ] }, { "type": "minecraft:item", "name": "minecraft:magma_cream", "weight": 7, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2.0, "max": 5.0 }, "add": false } ] }, { "type": "minecraft:item", "name": "minecraft:quartz", "weight": 7, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 6.0, "max": 14.0 }, "add": false } ] }, { "type": "minecraft:item", "name": "minecraft:gold_ingot", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2.0, "max": 5.0 }, "add": false } ] }, { "type": "minecraft:item", "name": "minecraft:potion", "weight": 3, "functions": [ { "function": "minecraft:set_potion", "id": "minecraft:fire_resistance" } ] } ] } ] }
+{
+    "type":  "minecraft:chest",
+    "pools":  [
+                  {
+                      "rolls":  1,
+                      "entries":  [
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:blaze_rod",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  2.0,
+                                                                              "max":  4.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:magma_cream",
+                                          "weight":  7,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  2.0,
+                                                                              "max":  5.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:quartz",
+                                          "weight":  7,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  6.0,
+                                                                              "max":  14.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:gold_ingot",
+                                          "weight":  5,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  2.0,
+                                                                              "max":  5.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:potion",
+                                          "weight":  3,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_potion",
+                                                                "id":  "minecraft:fire_resistance"
+                                                            }
+                                                        ]
+                                      }
+                                  ]
+                  },
+                  {
+                      "name":  "gatewayexpansion:runic_bonus",
+                      "rolls":  {
+                                    "type":  "minecraft:uniform",
+                                    "min":  0,
+                                    "max":  4
+                                },
+                      "entries":  [
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_custom_data",
+                                                                "tag":  "{runic_stats:{attack_speed:-1.0f}}"
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_custom_data",
+                                                                "tag":  "{runic_stats:{attack_damage:-1.0f}}"
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_custom_data",
+                                                                "tag":  "{runic_stats:{movement_speed:-1.0f}}"
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_custom_data",
+                                                                "tag":  "{runic_stats:{durability:-1.0f}}"
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_custom_data",
+                                                                "tag":  "{runic_stats:{resistance:-1.0f}}"
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_custom_data",
+                                                                "tag":  "{runic_stats:{mining_speed:-1.0f}}"
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_custom_data",
+                                                                "tag":  "{runic_stats:{health:-1.0f}}"
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:enhanced_rune",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_enchantments",
+                                                                "enchantments":  {
+                                                                                     "minecraft:respiration":  1
+                                                                                 },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:blank_inscription",
+                                          "weight":  3
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "runic:repair_rune",
+                                          "weight":  1
+                                      }
+                                  ]
+                  }
+              ]
+}
