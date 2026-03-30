@@ -1,5 +1,6 @@
 package com.revilo.gatewayexpansion.gateway;
 
+import com.revilo.gatewayexpansion.integration.ModCompat;
 import com.revilo.gatewayexpansion.item.data.CrystalTheme;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
@@ -16,8 +17,11 @@ public record GatewayThemeProfile(
         ResourceLocation rareLoot
 ) {
 
+    private static final boolean RUNIC_LOADED = ModCompat.isAnyLoaded("runic");
+
     public static GatewayThemeProfile forTheme(CrystalTheme theme, int level) {
         String tierSuffix = "tier_" + rewardTier(level);
+        String finalLootBase = RUNIC_LOADED ? "rewards/finals/" : "rewards/finals_fallback/";
         return switch (theme) {
             case UNDEAD -> new GatewayThemeProfile(
                     theme,
@@ -31,8 +35,8 @@ public record GatewayThemeProfile(
                             gateType("mooncrypt", "Mooncrypt", "rewards/types/undead/mooncrypt")
                     ),
                     ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/undead"),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/undead/" + tierSuffix),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/undead/" + tierSuffix));
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "undead/" + tierSuffix),
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "undead/" + tierSuffix));
             case BEAST -> new GatewayThemeProfile(
                     theme,
                     0xB87B32,
@@ -45,8 +49,8 @@ public record GatewayThemeProfile(
                             gateType("thornwild", "Thornwild", "rewards/types/beast/thornwild")
                     ),
                     ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/beast"),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/beast/" + tierSuffix),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/beast/" + tierSuffix));
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "beast/" + tierSuffix),
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "beast/" + tierSuffix));
             case ARCANE -> new GatewayThemeProfile(
                     theme,
                     0x3EA5D9,
@@ -59,8 +63,8 @@ public record GatewayThemeProfile(
                             gateType("stormglass", "Stormglass", "rewards/types/arcane/stormglass")
                     ),
                     ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/arcane"),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/arcane/" + tierSuffix),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/arcane/" + tierSuffix));
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "arcane/" + tierSuffix),
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "arcane/" + tierSuffix));
             case NETHER -> new GatewayThemeProfile(
                     theme,
                     0xD9492B,
@@ -73,8 +77,8 @@ public record GatewayThemeProfile(
                             gateType("ashfall", "Ashfall", "rewards/types/nether/ashfall")
                     ),
                     ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/nether"),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/nether/" + tierSuffix),
-                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/finals/nether/" + tierSuffix));
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "nether/" + tierSuffix),
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "nether/" + tierSuffix));
         };
     }
 

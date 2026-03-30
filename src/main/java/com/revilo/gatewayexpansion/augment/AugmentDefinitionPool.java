@@ -152,6 +152,10 @@ public final class AugmentDefinitionPool {
         return BY_TIER.getOrDefault(tier, List.of()).getFirst();
     }
 
+    public static List<AugmentDefinition> definitionsFor(AugmentDifficultyTier tier) {
+        return List.copyOf(BY_TIER.getOrDefault(tier, List.of()));
+    }
+
     private static void register(AugmentDefinition definition) {
         BY_ID.put(definition.id(), definition);
         BY_TIER.computeIfAbsent(definition.difficultyTier(), ignored -> new ArrayList<>()).add(definition);

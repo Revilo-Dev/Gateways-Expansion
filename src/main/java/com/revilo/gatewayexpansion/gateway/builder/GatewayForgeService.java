@@ -18,6 +18,7 @@ import com.revilo.gatewayexpansion.gateway.pool.EnemyPoolSet;
 import com.revilo.gatewayexpansion.gateway.roll.ForgeEffect;
 import com.revilo.gatewayexpansion.gateway.roll.ForgeEffectType;
 import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
+import com.revilo.gatewayexpansion.integration.ModCompat;
 import com.revilo.gatewayexpansion.item.AugmentItem;
 import com.revilo.gatewayexpansion.item.CatalystItem;
 import com.revilo.gatewayexpansion.item.CrystalItem;
@@ -74,6 +75,7 @@ public final class GatewayForgeService {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final CatalystArchetype[] CATALYST_ARCHETYPES = CatalystArchetype.values();
+    private static final boolean RUNIC_LOADED = ModCompat.isAnyLoaded("runic");
     private static final String ROOT_KEY = GatewayExpansion.MOD_ID;
     private static final String GATEWAY_ID_KEY = "gateway_id";
     private static final String GATEWAY_JSON_KEY = "gateway_json";
@@ -444,7 +446,7 @@ public final class GatewayForgeService {
 
         int tierRolls = Math.max(1, state.crystalTier.tier() >= 4 && waveIndex >= waveCount - 2 ? 2 : 1);
         builder.reward(new Reward.LootTableReward(
-                ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/tier_" + state.crystalTier.tier()),
+                ResourceLocation.fromNamespaceAndPath("gatewayexpansion", (RUNIC_LOADED ? "rewards/waves/tier_" : "rewards/waves_fallback/tier_") + state.crystalTier.tier()),
                 tierRolls,
                 theme.waveDescKey()
         ));

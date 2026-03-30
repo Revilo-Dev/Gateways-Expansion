@@ -133,6 +133,10 @@ public final class CatalystDefinitionPool {
         return BY_ARCHETYPE.getOrDefault(archetype, List.of()).getFirst();
     }
 
+    public static List<CatalystDefinition> definitionsFor(CatalystArchetype archetype) {
+        return List.copyOf(BY_ARCHETYPE.getOrDefault(archetype, List.of()));
+    }
+
     private static void register(CatalystArchetype archetype, CatalystDefinition definition) {
         BY_ID.put(definition.id(), definition);
         BY_ARCHETYPE.computeIfAbsent(archetype, ignored -> new ArrayList<>()).add(definition);

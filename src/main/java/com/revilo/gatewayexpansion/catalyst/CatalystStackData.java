@@ -21,12 +21,16 @@ public final class CatalystStackData {
             return existing;
         }
         CatalystDefinition definition = CatalystDefinitionPool.random(archetype, random);
+        setDefinitionId(stack, definition.id());
+        return definition;
+    }
+
+    public static void setDefinitionId(ItemStack stack, String definitionId) {
         CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
             CompoundTag root = tag.getCompound(ROOT_KEY);
-            root.putString(ID_KEY, definition.id());
+            root.putString(ID_KEY, definitionId);
             tag.put(ROOT_KEY, root);
         });
-        return definition;
     }
 
     public static CatalystDefinition getDefinition(ItemStack stack, CatalystArchetype archetype) {
