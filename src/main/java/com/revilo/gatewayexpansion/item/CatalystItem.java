@@ -38,7 +38,6 @@ public class CatalystItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         CatalystDefinition definition = this.definition(stack);
-        tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.type").withStyle(ChatFormatting.AQUA));
         if (definition == null) {
             return;
         }

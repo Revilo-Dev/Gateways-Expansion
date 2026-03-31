@@ -28,7 +28,7 @@ public final class ModCompat {
         for (var entry : BuiltInRegistries.ENTITY_TYPE.entrySet()) {
             ResourceLocation id = entry.getKey().location();
             EntityType<?> type = entry.getValue();
-            if (Arrays.stream(namespaces).anyMatch(namespace -> namespace.equals(id.getNamespace())) && isHostile(type)) {
+            if (Arrays.stream(namespaces).anyMatch(namespace -> namespace.equals(id.getNamespace())) && isPoolEligible(id, type)) {
                 entities.add(type);
             }
         }
@@ -50,7 +50,7 @@ public final class ModCompat {
         for (var entry : BuiltInRegistries.ENTITY_TYPE.entrySet()) {
             ResourceLocation id = entry.getKey().location();
             EntityType<?> type = entry.getValue();
-            if (!isHostile(type) || Arrays.stream(namespaces).noneMatch(namespace -> namespace.equals(id.getNamespace()))) {
+            if (!isPoolEligible(id, type) || Arrays.stream(namespaces).noneMatch(namespace -> namespace.equals(id.getNamespace()))) {
                 continue;
             }
             if (pathKeywords.length == 0 || Arrays.stream(pathKeywords).anyMatch(keyword -> id.getPath().contains(keyword))) {
@@ -69,5 +69,9 @@ public final class ModCompat {
 
     private static boolean isHostile(EntityType<?> type) {
         return type.getCategory() == MobCategory.MONSTER;
+    }
+
+    private static boolean isPoolEligible(ResourceLocation id, EntityType<?> type) {
+        return isHostile(type) && !id.getPath().contains("creeper");
     }
 }

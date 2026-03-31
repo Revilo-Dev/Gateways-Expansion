@@ -191,7 +191,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
     }
 
     public boolean canForge() {
-        return GatewayWorkbenchForgeLogic.canForge(this.container);
+        return GatewayWorkbenchForgeLogic.canForge(this.player, this.container);
     }
 
     public GatewayPreview getPreviewData() {

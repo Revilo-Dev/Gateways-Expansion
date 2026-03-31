@@ -14,12 +14,12 @@ public final class GatewayWorkbenchForgeLogic {
     private GatewayWorkbenchForgeLogic() {
     }
 
-    public static boolean canForge(Container container) {
-        return GatewayForgeService.canForge(container);
+    public static boolean canForge(Player player, Container container) {
+        return GatewayForgeService.canForge(player, container);
     }
 
     public static boolean forge(Player player, Container container) {
-        if (!(player instanceof ServerPlayer serverPlayer) || !canForge(container)) {
+        if (!(player instanceof ServerPlayer serverPlayer) || !canForge(player, container)) {
             return false;
         }
 

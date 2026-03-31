@@ -24,6 +24,7 @@ import com.revilo.gatewayexpansion.item.CatalystItem;
 import com.revilo.gatewayexpansion.item.CrystalItem;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import com.revilo.gatewayexpansion.item.data.CrystalForgeData;
+import com.revilo.gatewayexpansion.item.data.CrystalTheme;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import com.revilo.gatewayexpansion.workbench.GatewayWorkbenchSlots;
 import dev.shadowsoffire.apothic_attributes.api.ALObjects;
@@ -89,15 +90,24 @@ public final class GatewayForgeService {
     private GatewayForgeService() {
     }
 
-    public static boolean canForge(Container container) {
+    public static boolean canForge(net.minecraft.world.entity.player.Player player, Container container) {
         ItemStack crystal = container.getItem(GatewayWorkbenchSlots.CRYSTAL_SLOT);
-        if (!(crystal.getItem() instanceof CrystalItem)) {
+        if (!(crystal.getItem() instanceof CrystalItem crystalItem)) {
             return false;
         }
         if (!container.getItem(GatewayWorkbenchSlots.OUTPUT_SLOT).isEmpty()) {
             return false;
         }
-        return !GatewayWorkbenchSlots.collectAugments(container).isEmpty() || !GatewayWorkbenchSlots.collectCatalysts(container).isEmpty();
+        if (player == null) {
+            return true;
+        }
+
+        CrystalForgeData.CrystalProfile profile = CrystalForgeData.getProfile(
+                crystal,
+                crystalItem.crystalTier().minLevel(),
+                crystalItem.crystalTier().maxLevel()
+        );
+        return !LevelUpIntegration.isCrystalOverleveled(player, profile.level());
     }
 
     public static GatewayPreview buildPreview(net.minecraft.world.entity.player.Player player, Container container) {
@@ -139,7 +149,19 @@ public final class GatewayForgeService {
 
     public static ItemStack forge(ServerPlayer player, Container container) {
         ItemStack crystalStack = container.getItem(GatewayWorkbenchSlots.CRYSTAL_SLOT);
-        CrystalItem crystalItem = (CrystalItem) crystalStack.getItem();
+        if (!(crystalStack.getItem() instanceof CrystalItem crystalItem)) {
+            throw new IllegalStateException("Cannot forge without a crystal.");
+        }
+
+        CrystalForgeData.CrystalProfile currentProfile = CrystalForgeData.getProfile(
+                crystalStack,
+                crystalItem.crystalTier().minLevel(),
+                crystalItem.crystalTier().maxLevel()
+        );
+        if (LevelUpIntegration.isCrystalOverleveled(player, currentProfile.level())) {
+            throw new IllegalStateException("Cannot forge an overleveled crystal.");
+        }
+
         int playerLevel = LevelUpIntegration.getPlayerLevel(player);
         CrystalForgeData.CrystalProfile profile = CrystalForgeData.syncLevelToPlayer(
                 crystalStack,
@@ -312,7 +334,7 @@ public final class GatewayForgeService {
                 builder.reward(new Reward.EntityLootReward(pickEnemy(enemyPools, random, EnemyPoolRole.MELEE, EnemyPoolRole.THEME), null, state.entityLootRolls));
             }
             addWaveRewardDrops(builder, state, theme, waveIndex, waveCount, random);
-            builder.reward(new Reward.ExperienceReward(5 + state.profile.level() / 2 + state.experienceBonus / 4 + waveIndex * 2, 5));
+            builder.reward(new Reward.ExperienceReward(waveExperienceReward(state), 5));
             builder.maxWaveTime(Mth.clamp(1020 + state.profile.level() * 6 + state.waveTimeDelta + (waveIndex >= waveCount - 2 ? state.lateWaveTimeBonus : 0), 220, 1800));
             builder.setupTime(waveIndex == waveCount - 1 ? 20 : Mth.clamp(100 + state.setupTimeDelta - (state.shorterDenser ? 20 : 0), 20, 260));
             waves.add(builder.build());
@@ -387,7 +409,7 @@ public final class GatewayForgeService {
         for (int i = 0; i < Math.max(0, state.rareRewardRolls); i++) {
             rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()), 0.35F + (state.profile.level() / 180.0F)));
         }
-        rewards.add(new Reward.ExperienceReward(15 + state.profile.level() * 2 + state.experienceBonus + (bossWaveEnabled ? 45 : 0), 5));
+        rewards.add(new Reward.ExperienceReward(finalExperienceReward(state), 5));
         if (LevelUpIntegration.isLoaded()) {
             rewards.add(new Reward.CommandReward("levelup spawnorb " + levelUpOrbCount(state, bossWaveEnabled), "rewards.gatewayexpansion.levelup_orbs"));
         }
@@ -419,7 +441,7 @@ public final class GatewayForgeService {
         builder.reward(new Reward.StackReward(createAugmentRewardStack(state, waveCount - 1, random)));
         builder.reward(new Reward.StackReward(createCatalystRewardStack(random)));
         builder.reward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()));
-        builder.reward(new Reward.ExperienceReward(55 + state.profile.level() * 2, 5));
+        builder.reward(new Reward.ExperienceReward(waveExperienceReward(state), 5));
         builder.maxWaveTime(Mth.clamp(7200 + state.profile.level() * 20 + state.waveTimeDelta, 3600, 12000));
         builder.setupTime(20);
         return builder.build();
@@ -438,13 +460,31 @@ public final class GatewayForgeService {
         return 24 + state.profile.level() + state.crystalTier.tier() * 12 + state.finalRewardRolls * 4 + (bossWaveEnabled ? 20 : 0);
     }
 
+    private static int finalExperienceReward(ForgeState state) {
+        return Math.max(1, state.profile.level() * 50 + state.experienceBonus);
+    }
+
+    private static int waveExperienceReward(ForgeState state) {
+        return Math.max(1, (int) Math.round(finalExperienceReward(state) * 0.25D));
+    }
+
     private static void addWaveRewardDrops(Wave.Builder builder, ForgeState state, GatewayThemeProfile theme, int waveIndex, int waveCount, RandomSource random) {
-        float augmentChance = Math.min(0.85F, 0.18F + state.crystalTier.tier() * 0.08F + waveIndex * 0.07F);
+        float levelBoost = Math.min(0.30F, state.profile.level() * 0.006F);
+        float augmentChance = Math.min(0.95F, 0.18F + state.crystalTier.tier() * 0.08F + waveIndex * 0.07F + levelBoost);
         if (random.nextFloat() < augmentChance) {
             builder.reward(new Reward.StackReward(createAugmentRewardStack(state, waveIndex, random)));
         }
+        if (state.profile.level() >= 35 && random.nextFloat() < Math.min(0.55F, levelBoost * 0.8F + waveIndex * 0.03F)) {
+            builder.reward(new Reward.StackReward(createAugmentRewardStack(state, waveIndex + 1, random)));
+        }
 
         int tierRolls = Math.max(1, state.crystalTier.tier() >= 4 && waveIndex >= waveCount - 2 ? 2 : 1);
+        if (state.profile.level() >= 30) {
+            tierRolls++;
+        }
+        if (state.profile.level() >= 50 && waveIndex >= waveCount - 2) {
+            tierRolls++;
+        }
         builder.reward(new Reward.LootTableReward(
                 ResourceLocation.fromNamespaceAndPath("gatewayexpansion", (RUNIC_LOADED ? "rewards/waves/tier_" : "rewards/waves_fallback/tier_") + state.crystalTier.tier()),
                 tierRolls,
@@ -454,8 +494,11 @@ public final class GatewayForgeService {
             builder.reward(new Reward.LootTableReward(theme.waveLoot(), 1, theme.themedWaveDescKey()));
         }
 
-        float catalystChance = Math.min(0.70F, 0.10F + state.crystalTier.tier() * 0.05F + waveIndex * 0.05F);
+        float catalystChance = Math.min(0.90F, 0.10F + state.crystalTier.tier() * 0.05F + waveIndex * 0.05F + (levelBoost * 0.75F));
         if (random.nextFloat() < catalystChance) {
+            builder.reward(new Reward.StackReward(createCatalystRewardStack(random)));
+        }
+        if (state.profile.level() >= 45 && random.nextFloat() < Math.min(0.40F, levelBoost * 0.55F + waveIndex * 0.025F)) {
             builder.reward(new Reward.StackReward(createCatalystRewardStack(random)));
         }
     }
@@ -749,6 +792,32 @@ public final class GatewayForgeService {
         return values.isEmpty() ? "None" : String.join(", ", values);
     }
 
+    private static double naturalHealthMultiplier(int level) {
+        if (level <= 10) {
+            return 0.0D;
+        }
+        if (level <= 50) {
+            return 0.15D + ((level - 10) / 40.0D) * 0.95D;
+        }
+        if (level <= 100) {
+            return 1.10D + ((level - 50) / 50.0D) * 1.90D;
+        }
+        return 3.0D;
+    }
+
+    private static double naturalDamageMultiplier(int level) {
+        if (level <= 10) {
+            return 0.0D;
+        }
+        if (level <= 50) {
+            return 0.10D + ((level - 10) / 40.0D) * 0.90D;
+        }
+        if (level <= 100) {
+            return 1.0D + ((level - 50) / 50.0D) * 3.0D;
+        }
+        return 4.0D;
+    }
+
     private static final class ForgeState {
         private final CrystalItem.CrystalTier crystalTier;
         private final CrystalForgeData.CrystalProfile profile;
@@ -794,6 +863,11 @@ public final class GatewayForgeService {
         private ForgeState(CrystalItem.CrystalTier crystalTier, CrystalForgeData.CrystalProfile profile) {
             this.crystalTier = crystalTier;
             this.profile = profile;
+            this.healthMultiplier = naturalHealthMultiplier(profile.level());
+            this.damageMultiplier = naturalDamageMultiplier(profile.level());
+            if (profile.theme() == CrystalTheme.UNDEAD) {
+                this.mobEffects.add(ResourceLocation.withDefaultNamespace("fire_resistance"));
+            }
             this.difficultyEstimate = crystalTier.tier() * 8 + profile.level();
         }
 
@@ -811,8 +885,8 @@ public final class GatewayForgeService {
         }
 
         private void finish() {
-            this.healthMultiplier = Mth.clamp(this.healthMultiplier, -0.20D, 0.60D);
-            this.damageMultiplier = Mth.clamp(this.damageMultiplier, -0.20D, 0.60D);
+            this.healthMultiplier = Mth.clamp(this.healthMultiplier, -0.20D, 3.75D);
+            this.damageMultiplier = Mth.clamp(this.damageMultiplier, -0.20D, 4.75D);
             this.speedMultiplier = Mth.clamp(this.speedMultiplier, -0.10D, 0.40D);
             this.eliteChance = Mth.clamp(this.eliteChance, 0.02F, 0.60F);
             this.rewardMultiplier = Math.max(0.40D, this.rewardMultiplier);
