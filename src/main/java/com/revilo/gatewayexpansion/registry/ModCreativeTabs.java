@@ -32,6 +32,8 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.STAT_CATALYST.get());
                         output.accept(ModItems.LOOT_CATALYST.get());
                         output.accept(ModItems.HIGHRISK_CATALYST.get());
+                        output.accept(ModItems.MYTHIC_COIN.get());
+                        output.accept(ModItems.SHOP_GATEWAY.get());
                     })
                     .build());
 

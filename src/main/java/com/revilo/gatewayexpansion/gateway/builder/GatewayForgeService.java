@@ -43,9 +43,11 @@ import dev.shadowsoffire.gateways.item.GatePearlItem;
 import dev.shadowsoffire.placebo.reload.DynamicRegistry;
 import dev.shadowsoffire.placebo.reload.ReloadListenerPayloads;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -86,6 +88,8 @@ public final class GatewayForgeService {
     private static final String PLAYER_LEVEL_KEY = "player_level";
     private static final String OVERLEVELED_KEY = "overleveled";
     private static final String SUMMARY_KEY = "summary";
+    private static final String DISPLAY_NAME_KEY = "display_name";
+    private static final Map<ResourceLocation, String> GENERATED_GATEWAY_NAMES = new HashMap<>();
 
     private GatewayForgeService() {
     }
@@ -177,6 +181,7 @@ public final class GatewayForgeService {
         applyFinalRandomStage(state);
         GatewayBuildResult result = generateGateway(state, playerLevel, overleveled);
         registerGeneratedGateway(result.gatewayId(), result.gateway());
+        GENERATED_GATEWAY_NAMES.put(result.gatewayId(), result.name());
         syncGatewayRegistry(player);
 
         ItemStack pearl = createPearl(result);
@@ -202,6 +207,9 @@ public final class GatewayForgeService {
         JsonElement json = JsonParser.parseString(root.getString(GATEWAY_JSON_KEY));
         NormalGateway gateway = NormalGateway.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow(IllegalStateException::new);
         registerGeneratedGateway(gatewayId, gateway);
+        int level = root.contains(LEVEL_KEY) ? root.getInt(LEVEL_KEY) : 0;
+        String displayName = root.contains(DISPLAY_NAME_KEY) ? root.getString(DISPLAY_NAME_KEY) : "Lv " + level + " Gateway";
+        GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
         return true;
     }
 
@@ -357,7 +365,7 @@ public final class GatewayForgeService {
                 .keyRewards(rewards)
                 .failures(failures)
                 .rules(rules)
-                .bossSettings(BossEventSettings.DEFAULT)
+                .bossSettings(new BossEventSettings(BossEventSettings.Mode.NAME_PLATE, false))
                 .build();
         validate(waves, rewards);
         if (bossWaveEnabled && !state.finalRollSummary.contains("Boss encounter")) {
@@ -639,6 +647,7 @@ public final class GatewayForgeService {
             CompoundTag root = tag.getCompound(ROOT_KEY);
             root.putString(GATEWAY_ID_KEY, result.gatewayId().toString());
             root.putString(GATEWAY_JSON_KEY, result.gatewayJson());
+            root.putString(DISPLAY_NAME_KEY, result.name());
             root.putString(DIFFICULTY_KEY, difficultyLabel(result.difficultyEstimate()));
             root.putString(THEME_KEY, result.theme().name());
             root.putInt(LEVEL_KEY, result.crystalLevel());
@@ -656,7 +665,16 @@ public final class GatewayForgeService {
 
     private static ResourceLocation registerGeneratedGateway(ResourceLocation gatewayId, NormalGateway gateway) {
         DynamicRegistry.DataGenPopulator.runScoped(GatewayRegistry.INSTANCE, populator -> populator.register(gatewayId, gateway));
+        GENERATED_GATEWAY_NAMES.putIfAbsent(gatewayId, "Gateway");
         return gatewayId;
+    }
+
+    public static String getGatewayDisplayName(Gateway gateway) {
+        ResourceLocation id = GatewayRegistry.INSTANCE.getKey(gateway);
+        if (id == null) {
+            return null;
+        }
+        return GENERATED_GATEWAY_NAMES.get(id);
     }
 
     private static void consumeInputs(Container container) {
@@ -700,8 +718,7 @@ public final class GatewayForgeService {
     }
 
     private static String generateName(ForgeState state, GatewayThemeProfile theme, GatewayThemeProfile.GateTypeProfile gateType) {
-        String suffix = state.dangerousFinalWave ? "Cataclysm" : state.finalWaveEliteCount > 1 ? "Siege" : state.shorterDenser ? "Rush" : "Rift";
-        return theme.prefix() + " " + gateType.title() + " " + suffix;
+        return "Lv " + state.profile.level() + " Gateway";
     }
 
     private static void applyEffects(ForgeState state, List<ForgeEffect> effects, boolean augment) {

@@ -5,6 +5,8 @@ import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.item.AugmentItem;
 import com.revilo.gatewayexpansion.item.CatalystItem;
 import com.revilo.gatewayexpansion.item.CrystalItem;
+import com.revilo.gatewayexpansion.item.MythicCoinItem;
+import com.revilo.gatewayexpansion.item.ShopGatewayPearlItem;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -44,6 +46,10 @@ public final class ModItems {
             () -> new CatalystItem(CatalystArchetype.LOOT, new Item.Properties().stacksTo(16)));
     public static final DeferredHolder<Item, CatalystItem> HIGHRISK_CATALYST = ITEMS.register("highrisk_catalyst",
             () -> new CatalystItem(CatalystArchetype.VOLATILE, new Item.Properties().stacksTo(16)));
+    public static final DeferredHolder<Item, MythicCoinItem> MYTHIC_COIN = ITEMS.register("mythic_coin",
+            () -> new MythicCoinItem(new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, ShopGatewayPearlItem> SHOP_GATEWAY = ITEMS.register("shop_gateway",
+            () -> new ShopGatewayPearlItem(new Item.Properties().stacksTo(16)));
 
     public static final DeferredHolder<Item, BlockItem> GATEWAY_WORKBENCH = ITEMS.register("gateway_workbench",
             () -> new BlockItem(ModBlocks.GATEWAY_WORKBENCH.get(), new Item.Properties()));
