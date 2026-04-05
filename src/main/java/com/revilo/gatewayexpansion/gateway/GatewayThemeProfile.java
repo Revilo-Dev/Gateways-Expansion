@@ -79,6 +79,20 @@ public record GatewayThemeProfile(
                     ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/nether"),
                     ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "nether/" + tierSuffix),
                     ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "nether/" + tierSuffix));
+            case RAIDER -> new GatewayThemeProfile(
+                    theme,
+                    0x8B6F47,
+                    "Raider",
+                    "raider",
+                    List.of(ResourceLocation.withDefaultNamespace("hero_of_the_village"), ResourceLocation.withDefaultNamespace("strength"), ResourceLocation.withDefaultNamespace("speed")),
+                    List.of(
+                            gateType("outpost", "Outpost", "rewards/types/raider/outpost"),
+                            gateType("caravan", "Caravan", "rewards/types/raider/caravan"),
+                            gateType("belfry", "Belfry", "rewards/types/raider/belfry")
+                    ),
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "rewards/waves/raider"),
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "raider/" + tierSuffix),
+                    ResourceLocation.fromNamespaceAndPath("gatewayexpansion", finalLootBase + "raider/" + tierSuffix));
         };
     }
 

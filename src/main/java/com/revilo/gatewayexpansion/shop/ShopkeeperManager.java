@@ -1,7 +1,12 @@
 package com.revilo.gatewayexpansion.shop;
 
 import com.revilo.gatewayexpansion.currency.MythicCoinWallet;
+import com.revilo.gatewayexpansion.entity.GatekeeperEntity;
+import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
+import com.revilo.gatewayexpansion.item.LootMaterialItem;
+import com.revilo.gatewayexpansion.item.data.LootRarity;
 import com.revilo.gatewayexpansion.menu.ShopkeeperMenu;
+import com.revilo.gatewayexpansion.registry.ModEntities;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.event.GateEvent;
@@ -20,29 +25,47 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.neoforged.neoforge.registries.DeferredHolder;
 
 public final class ShopkeeperManager {
 
     private static final String SHOPKEEPER_KEY = "gatewayexpansion.shopkeeper";
     private static final String TEMP_TRADE_KEY = "gatewayexpansion.temp_trades";
+    private static final String STOCK_KEY = "gatewayexpansion.stock";
+    private static final String REROLL_COUNT_KEY = "gatewayexpansion.reroll_count";
     private static final String SHOP_GATEWAY_ANIMATION_KEY = "gatewayexpansion.shop_gateway_animation";
     private static final String SHOP_GATEWAY_TRADER_ID = "gatewayexpansion.shop_gateway_trader";
     private static final String SHOP_GATEWAY_TRADER_SPAWNED = "gatewayexpansion.shop_gateway_trader_spawned";
-    private static final int SHOPKEEPER_LIFETIME_TICKS = 20 * 60;
+    private static final String SHOP_GATEWAY_ENTITY_ID = "gatewayexpansion.shop_gateway_entity";
+    private static final int MAX_REROLLS = 3;
+    private static final int BASE_REROLL_COST = 100;
     private static final int SHOP_GATEWAY_ANIMATION_TICKS = 50;
-    private static final int SHOP_GATEWAY_EXPIRE_TICKS = 20 * 60 * 5;
     private static final double COIN_ATTRACTION_RANGE = 7.5D;
     private static final double COIN_ATTRACTION_FORCE = 0.022D;
+    private static final java.util.List<DeferredHolder<net.minecraft.world.item.Item, LootMaterialItem>> GATEWAY_DROP_ITEMS = java.util.List.of(
+            ModItems.GRIMSTONE,
+            ModItems.MYSTIC_ESSENCE,
+            ModItems.SCRAP_METAL,
+            ModItems.MANA_GEMS,
+            ModItems.ARCANE_ESSENCE,
+            ModItems.MANASTONES,
+            ModItems.SOLAR_CRYSTAL,
+            ModItems.PRISMATIC_DIAMOND,
+            ModItems.DARK_ESSENCE,
+            ModItems.PRISMATIC_CORE
+    );
+    private static final LootMaterialItem[] GATEWAY_DROP_POOL = GATEWAY_DROP_ITEMS.stream().map(DeferredHolder::get).toArray(LootMaterialItem[]::new);
+    private static final int GATEWAY_DROP_TOTAL_WEIGHT = java.util.Arrays.stream(GATEWAY_DROP_POOL).mapToInt(item -> item.rarity().weight()).sum();
 
     private ShopkeeperManager() {
     }
@@ -56,6 +79,7 @@ public final class ShopkeeperManager {
 
         int completionBurst = 14 + serverLevel.random.nextInt(9) + (gate.getWave() * 3);
         spawnCoins(gate, completionBurst);
+        spawnGatewayLoot(gate, 2 + serverLevel.random.nextInt(2));
         Player summoner = gate.summonerOrClosest();
         spawnShopkeeper(serverLevel, gate.getX(), gate.getY() + 0.5D, gate.getZ(), summoner);
     }
@@ -66,6 +90,7 @@ public final class ShopkeeperManager {
         if (gate.level() instanceof ServerLevel serverLevel) {
             int waveBurst = 8 + serverLevel.random.nextInt(5) + Math.max(0, gate.getWave());
             spawnCoins(gate, waveBurst);
+            spawnGatewayLoot(gate, 1 + serverLevel.random.nextInt(2));
         }
     }
 
@@ -97,21 +122,13 @@ public final class ShopkeeperManager {
             if (gatewayEntity.level() instanceof ServerLevel serverLevel) {
                 if (!gatewayEntity.getPersistentData().getBoolean(SHOP_GATEWAY_TRADER_SPAWNED) && gatewayEntity.tickCount >= SHOP_GATEWAY_ANIMATION_TICKS) {
                     Player summoner = gatewayEntity.summonerOrClosest();
-                    WanderingTrader trader = spawnShopkeeper(serverLevel, gatewayEntity.getX(), gatewayEntity.getY() + 0.5D, gatewayEntity.getZ(), summoner, SHOP_GATEWAY_EXPIRE_TICKS);
+                    GatekeeperEntity trader = spawnShopkeeper(serverLevel, gatewayEntity.getX(), gatewayEntity.getY() + 0.5D, gatewayEntity.getZ(), summoner);
                     if (trader != null) {
                         gatewayEntity.getPersistentData().putBoolean(SHOP_GATEWAY_TRADER_SPAWNED, true);
                         gatewayEntity.getPersistentData().putUUID(SHOP_GATEWAY_TRADER_ID, trader.getUUID());
+                        trader.getPersistentData().putUUID(SHOP_GATEWAY_ENTITY_ID, gatewayEntity.getUUID());
+                        gatewayEntity.remove(Entity.RemovalReason.DISCARDED);
                     }
-                }
-
-                if (gatewayEntity.tickCount >= SHOP_GATEWAY_EXPIRE_TICKS) {
-                    if (gatewayEntity.getPersistentData().hasUUID(SHOP_GATEWAY_TRADER_ID)) {
-                        Entity trader = serverLevel.getEntity(gatewayEntity.getPersistentData().getUUID(SHOP_GATEWAY_TRADER_ID));
-                        if (trader != null) {
-                            trader.remove(Entity.RemovalReason.DISCARDED);
-                        }
-                    }
-                    gatewayEntity.remove(Entity.RemovalReason.DISCARDED);
                 }
             }
             return;
@@ -159,7 +176,7 @@ public final class ShopkeeperManager {
     @SubscribeEvent
     public static void onInteract(PlayerInteractEvent.EntityInteract event) {
         Entity target = event.getTarget();
-        if (!(target instanceof WanderingTrader trader) || !isShopkeeper(trader) || !(event.getEntity() instanceof ServerPlayer player)) {
+        if (!(target instanceof GatekeeperEntity trader) || !isShopkeeper(trader) || !(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
 
@@ -171,35 +188,43 @@ public final class ShopkeeperManager {
         player.openMenu(provider, buffer -> buffer.writeInt(trader.getId()));
     }
 
-    public static boolean spawnShopkeeper(Level level, double x, double y, double z, Player summoner) {
-        return spawnShopkeeper(level, x, y, z, summoner, SHOPKEEPER_LIFETIME_TICKS) != null;
+    @SubscribeEvent
+    public static void onShopkeeperDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof GatekeeperEntity trader) || trader.level().isClientSide || !isShopkeeper(trader)) {
+            return;
+        }
+
+        CompoundTag traderData = trader.getPersistentData();
+        if (!traderData.hasUUID(SHOP_GATEWAY_ENTITY_ID) || !(trader.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        Entity linkedEntity = serverLevel.getEntity(traderData.getUUID(SHOP_GATEWAY_ENTITY_ID));
+        if (linkedEntity instanceof GatewayEntity gatewayEntity && isGatewayAnimation(gatewayEntity) && !gatewayEntity.isRemoved()) {
+            gatewayEntity.remove(Entity.RemovalReason.DISCARDED);
+        }
     }
 
-    public static WanderingTrader spawnShopkeeper(Level level, double x, double y, double z, Player summoner, int despawnDelay) {
+    public static GatekeeperEntity spawnShopkeeper(Level level, double x, double y, double z, Player summoner) {
         if (!(level instanceof ServerLevel serverLevel)) {
             return null;
         }
 
-        WanderingTrader trader = EntityType.WANDERING_TRADER.create(serverLevel);
+        GatekeeperEntity trader = ModEntities.GATEKEEPER.get().create(serverLevel);
         if (trader == null) {
             return null;
         }
 
         trader.moveTo(x, y, z, summoner == null ? 0.0F : summoner.getYRot(), 0.0F);
-        trader.setNoAi(true);
         trader.setCustomName(Component.translatable("entity.gatewayexpansion.shopkeeper").withStyle(ChatFormatting.GOLD));
         trader.setCustomNameVisible(true);
-        trader.setDespawnDelay(despawnDelay);
+        trader.setPersistenceRequired();
         trader.getPersistentData().putBoolean(SHOPKEEPER_KEY, true);
-        rollTempTrades(trader, serverLevel.random);
-        if (trader.getAttribute(Attributes.MAX_HEALTH) != null) {
-            trader.getAttribute(Attributes.MAX_HEALTH).setBaseValue(1.0D);
-        }
-        trader.setHealth(1.0F);
+        rollVisibleOffers(trader, serverLevel.random);
         return serverLevel.addFreshEntity(trader) ? trader : null;
     }
 
-    public static boolean isShopkeeper(WanderingTrader trader) {
+    public static boolean isShopkeeper(GatekeeperEntity trader) {
         return trader.getPersistentData().getBoolean(SHOPKEEPER_KEY);
     }
 
@@ -211,18 +236,82 @@ public final class ShopkeeperManager {
         return entity.getPersistentData().getBoolean(SHOP_GATEWAY_ANIMATION_KEY);
     }
 
-    public static java.util.List<ShopOfferDefinition> getOffers(WanderingTrader trader) {
-        java.util.List<ShopOfferDefinition> offers = new java.util.ArrayList<>(ShopOfferDefinition.CORE_OFFERS);
-        CompoundTag tag = trader.getPersistentData();
-        if (tag.contains(TEMP_TRADE_KEY)) {
-            int[] tempIndexes = tag.getIntArray(TEMP_TRADE_KEY);
-            for (int tempIndex : tempIndexes) {
-                if (tempIndex >= 0 && tempIndex < ShopOfferDefinition.TEMP_OFFERS.size()) {
-                    offers.add(ShopOfferDefinition.TEMP_OFFERS.get(tempIndex));
-                }
-            }
+    public static java.util.List<ShopOfferDefinition> getOffers(GatekeeperEntity trader) {
+        java.util.List<ShopOfferDefinition> offers = buildOffers(trader.getPersistentData().getIntArray(TEMP_TRADE_KEY));
+        return offers.size() > ShopkeeperMenu.GRID_SLOT_COUNT ? offers.subList(0, ShopkeeperMenu.GRID_SLOT_COUNT) : offers;
+    }
+
+    public static int getMaxRerolls() {
+        return MAX_REROLLS;
+    }
+
+    public static int getRerollCost(GatekeeperEntity trader) {
+        int rerollCount = getRerollCount(trader);
+        if (rerollCount >= MAX_REROLLS) {
+            return 0;
         }
-        return offers;
+        return BASE_REROLL_COST << rerollCount;
+    }
+
+    public static int getRerollCount(GatekeeperEntity trader) {
+        return Math.max(0, trader.getPersistentData().getInt(REROLL_COUNT_KEY));
+    }
+
+    public static int[] getTempOfferIndexes(GatekeeperEntity trader) {
+        return trader.getPersistentData().getIntArray(TEMP_TRADE_KEY);
+    }
+
+    public static int[] getOfferStocks(GatekeeperEntity trader) {
+        int[] stocks = trader.getPersistentData().getIntArray(STOCK_KEY);
+        if (stocks.length == ShopkeeperMenu.GRID_SLOT_COUNT) {
+            return stocks;
+        }
+
+        int[] normalized = new int[ShopkeeperMenu.GRID_SLOT_COUNT];
+        System.arraycopy(stocks, 0, normalized, 0, Math.min(stocks.length, normalized.length));
+        return normalized;
+    }
+
+    public static boolean rerollOffers(ServerPlayer player, GatekeeperEntity trader) {
+        int rerollCount = Math.max(0, trader.getPersistentData().getInt(REROLL_COUNT_KEY));
+        if (rerollCount >= MAX_REROLLS) {
+            return false;
+        }
+
+        int rerollCost = getRerollCost(trader);
+        if (!MythicCoinWallet.spend(player, rerollCost)) {
+            return false;
+        }
+
+        rollVisibleOffers(trader, player.getRandom());
+        CompoundTag tag = trader.getPersistentData();
+        tag.putInt(REROLL_COUNT_KEY, rerollCount + 1);
+        return true;
+    }
+
+    public static boolean consumeStock(GatekeeperEntity trader, int slotIndex) {
+        if (slotIndex < 0 || slotIndex >= ShopkeeperMenu.GRID_SLOT_COUNT) {
+            return false;
+        }
+
+        int[] stocks = getOfferStocks(trader);
+        if (stocks[slotIndex] <= 0) {
+            return false;
+        }
+
+        stocks[slotIndex]--;
+        trader.getPersistentData().putIntArray(STOCK_KEY, stocks);
+        return true;
+    }
+
+    public static void restoreStock(GatekeeperEntity trader, int slotIndex) {
+        if (slotIndex < 0 || slotIndex >= ShopkeeperMenu.GRID_SLOT_COUNT) {
+            return;
+        }
+
+        int[] stocks = getOfferStocks(trader);
+        stocks[slotIndex]++;
+        trader.getPersistentData().putIntArray(STOCK_KEY, stocks);
     }
 
     private static void spawnCoins(GatewayEntity gate, int amount) {
@@ -241,12 +330,128 @@ public final class ShopkeeperManager {
         }
     }
 
-    private static void rollTempTrades(WanderingTrader trader, RandomSource random) {
-        java.util.List<Integer> pool = new java.util.ArrayList<>();
-        for (int index = 0; index < ShopOfferDefinition.TEMP_OFFERS.size(); index++) {
-            pool.add(index);
+    private static void spawnGatewayLoot(GatewayEntity gate, int rolls) {
+        RandomSource random = gate.level().random;
+        for (int index = 0; index < rolls; index++) {
+            LootMaterialItem item = rollGatewayLoot(gate, random);
+            if (item == null) {
+                continue;
+            }
+
+            int stackSize = switch (item.rarity()) {
+                case COMMON -> 2 + random.nextInt(3);
+                case UNCOMMON -> 1 + random.nextInt(2);
+                case RARE, EPIC, LEGENDARY, UNIQUE -> 1;
+            };
+
+            ItemEntity itemEntity = new ItemEntity(gate.level(), gate.getX(), gate.getY() + 1.0D, gate.getZ(), new ItemStack(item, stackSize));
+            itemEntity.setDeltaMovement(
+                    random.nextDouble() * 0.24D - 0.12D,
+                    0.22D + random.nextDouble() * 0.10D,
+                    random.nextDouble() * 0.24D - 0.12D);
+            itemEntity.setNoPickUpDelay();
+            gate.level().addFreshEntity(itemEntity);
         }
-        java.util.Collections.shuffle(pool, new java.util.Random(random.nextLong()));
-        trader.getPersistentData().putIntArray(TEMP_TRADE_KEY, new int[] {pool.get(0), pool.get(1)});
+    }
+
+    private static LootMaterialItem rollGatewayLoot(GatewayEntity gate, RandomSource random) {
+        LootMaterialItem[] pool = getDropPoolForGate(gate);
+        int totalWeight = java.util.Arrays.stream(pool).mapToInt(item -> item.rarity().weight()).sum();
+        if (totalWeight <= 0) {
+            return null;
+        }
+
+        int roll = random.nextInt(totalWeight);
+        for (LootMaterialItem item : pool) {
+            LootRarity rarity = item.rarity();
+            roll -= rarity.weight();
+            if (roll < 0) {
+                return item;
+            }
+        }
+
+        return pool[0];
+    }
+
+    private static void rollVisibleOffers(GatekeeperEntity trader, RandomSource random) {
+        int tempCount = Math.min(ShopkeeperMenu.GRID_SLOT_COUNT, ShopOfferDefinition.ALL_OFFERS.size());
+        int[] picks = pickTempOfferIndexes(random, tempCount);
+        trader.getPersistentData().putIntArray(TEMP_TRADE_KEY, picks);
+        trader.getPersistentData().putIntArray(STOCK_KEY, rollStocks(buildOffers(picks), random));
+    }
+
+    private static int[] rollStocks(java.util.List<ShopOfferDefinition> offers, RandomSource random) {
+        int[] stocks = new int[ShopkeeperMenu.GRID_SLOT_COUNT];
+        for (int index = 0; index < stocks.length; index++) {
+            if (index >= offers.size()) {
+                stocks[index] = 0;
+                continue;
+            }
+
+            stocks[index] = rollStockForOffer(offers.get(index), random);
+        }
+        return stocks;
+    }
+
+    private static int rollStockForOffer(ShopOfferDefinition offer, RandomSource random) {
+        ItemStack preview = offer.previewStack();
+        if (preview.is(ModItems.GRIMSTONE.get()) || preview.is(ModItems.MYSTIC_ESSENCE.get()) || preview.is(ModItems.SCRAP_METAL.get())) {
+            return 32 + random.nextInt(17);
+        }
+        if (preview.is(ModItems.MANA_GEMS.get()) || preview.is(ModItems.ARCANE_ESSENCE.get()) || preview.is(ModItems.MANASTONES.get())) {
+            return 18 + random.nextInt(11);
+        }
+        if (preview.is(ModItems.SOLAR_CRYSTAL.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
+            return 10 + random.nextInt(7);
+        }
+        if (preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
+            return 6 + random.nextInt(5);
+        }
+        if (preview.is(ModItems.PRISMATIC_CORE.get())) {
+            return 3 + random.nextInt(3);
+        }
+        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem) {
+            return 2 + random.nextInt(3);
+        }
+        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.AugmentItem || preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
+            return 4 + random.nextInt(5);
+        }
+        return 8 + random.nextInt(7);
+    }
+
+    private static java.util.List<ShopOfferDefinition> buildOffers(int[] tempIndexes) {
+        java.util.List<ShopOfferDefinition> offers = new java.util.ArrayList<>(tempIndexes.length);
+        for (int tempIndex : tempIndexes) {
+            if (tempIndex >= 0 && tempIndex < ShopOfferDefinition.ALL_OFFERS.size()) {
+                offers.add(ShopOfferDefinition.ALL_OFFERS.get(tempIndex));
+            }
+        }
+        return offers;
+    }
+
+    private static int[] pickTempOfferIndexes(RandomSource random, int tempCount) {
+        int poolSize = ShopOfferDefinition.ALL_OFFERS.size();
+        int[] pool = new int[poolSize];
+        for (int index = 0; index < poolSize; index++) {
+            pool[index] = index;
+        }
+
+        for (int index = 0; index < tempCount; index++) {
+            int swapIndex = index + random.nextInt(poolSize - index);
+            int selected = pool[swapIndex];
+            pool[swapIndex] = pool[index];
+            pool[index] = selected;
+        }
+        return java.util.Arrays.copyOf(pool, tempCount);
+    }
+
+    private static LootMaterialItem[] getDropPoolForGate(GatewayEntity gate) {
+        if (gate == null || GatewayForgeService.getGatewayCrystalTier(gate.getGateway()) >= 4) {
+            return GATEWAY_DROP_POOL;
+        }
+
+        return java.util.Arrays.stream(GATEWAY_DROP_POOL)
+                .filter(item -> item != ModItems.PRISMATIC_CORE.get())
+                .toArray(LootMaterialItem[]::new);
     }
 }

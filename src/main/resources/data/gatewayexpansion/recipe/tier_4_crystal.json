@@ -3,10 +3,10 @@
   "category": "misc",
   "key": {
     "D": {
-      "item": "minecraft:diamond"
+      "item": "gatewayexpansion:solar_crystal"
     },
     "C": {
-      "item": "gatewayexpansion:tier_3_crystal"
+      "item": "gatewayexpansion:dark_essence"
     }
   },
   "pattern": [

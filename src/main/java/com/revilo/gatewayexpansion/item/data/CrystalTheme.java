@@ -6,7 +6,8 @@ public enum CrystalTheme {
     UNDEAD,
     BEAST,
     ARCANE,
-    NETHER;
+    NETHER,
+    RAIDER;
 
     public Component displayName() {
         return Component.translatable("enum.gatewayexpansion.crystal_theme." + this.name().toLowerCase());

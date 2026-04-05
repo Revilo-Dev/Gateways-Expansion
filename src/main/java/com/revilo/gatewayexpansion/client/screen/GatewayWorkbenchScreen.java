@@ -113,10 +113,15 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
         int centerX = this.leftPos + GatewayWorkbenchSlots.DISPLAY_CENTER_X;
         int centerY = this.topPos + GatewayWorkbenchSlots.DISPLAY_CENTER_Y;
         float partialTick = this.minecraft == null ? 0.0F : this.minecraft.getTimer().getGameTimeDeltaPartialTick(false);
+        float time = (this.minecraft != null && this.minecraft.level != null)
+                ? this.minecraft.level.getGameTime() + partialTick
+                : (float) (Util.getMillis() / 16.6667);
         float forgeProgress = this.getForgeProgress(partialTick);
-        float scaleBoost = this.crystalHoverScale + (forgeProgress * 0.2F);
+        float hoverBoost = hovered ? 0.12F : 0.0F;
+        float bob = Mth.sin(time * 0.11F) * 2.5F;
+        float scaleBoost = this.crystalHoverScale + hoverBoost + (forgeProgress * 0.2F);
         float spinSpeed = Mth.lerp(forgeProgress, WorkbenchCrystalRenderer.BASE_SPIN_SPEED, 4.5F);
-        WorkbenchCrystalRenderer.render(guiGraphics, crystal, centerX, centerY, partialTick, scaleBoost, spinSpeed);
+        WorkbenchCrystalRenderer.render(guiGraphics, crystal, centerX, Math.round(centerY + bob), partialTick, scaleBoost, spinSpeed);
 
     }
 
@@ -128,10 +133,24 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
         int centerY = this.topPos + GatewayWorkbenchSlots.DISPLAY_CENTER_Y;
         float forgeProgress = this.getForgeProgress(partialTick);
 
-        List<ItemStack> orbitStacks = new ArrayList<>();
-        orbitStacks.addAll(this.menu.getCatalystStacks());
-        orbitStacks.addAll(this.menu.getAugmentStacks());
+        List<ItemStack> orbitStacks = this.buildInterleavedOrbitStacks();
         this.renderOrbitGroup(guiGraphics, orbitStacks, centerX, centerY, 24.0D, 0.006D, time, forgeProgress);
+    }
+
+    private List<ItemStack> buildInterleavedOrbitStacks() {
+        List<ItemStack> catalysts = this.menu.getCatalystStacks();
+        List<ItemStack> augments = this.menu.getAugmentStacks();
+        List<ItemStack> orbitStacks = new ArrayList<>(catalysts.size() + augments.size());
+        int max = Math.max(catalysts.size(), augments.size());
+        for (int index = 0; index < max; index++) {
+            if (index < catalysts.size()) {
+                orbitStacks.add(catalysts.get(index));
+            }
+            if (index < augments.size()) {
+                orbitStacks.add(augments.get(index));
+            }
+        }
+        return orbitStacks;
     }
 
     private void renderOrbitGroup(GuiGraphics guiGraphics, List<ItemStack> stacks, int centerX, int centerY, double radius, double speed, float time, float forgeProgress) {

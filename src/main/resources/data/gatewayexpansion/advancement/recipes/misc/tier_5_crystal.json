@@ -1,13 +1,13 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_tier_4_crystal": {
+    "has_prismatic_core": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
             "items": [
-              "gatewayexpansion:tier_4_crystal"
+              "gatewayexpansion:prismatic_core"
             ]
           }
         ]
@@ -22,7 +22,7 @@
   },
   "requirements": [
     [
-      "has_tier_4_crystal",
+      "has_prismatic_core",
       "has_the_recipe"
     ]
   ],

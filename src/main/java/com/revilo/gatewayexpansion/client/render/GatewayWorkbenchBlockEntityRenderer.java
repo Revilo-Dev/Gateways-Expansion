@@ -17,6 +17,12 @@ import net.minecraft.world.item.ItemStack;
 
 public final class GatewayWorkbenchBlockEntityRenderer implements BlockEntityRenderer<GatewayWorkbenchBlockEntity> {
 
+    private static final float CRYSTAL_HEIGHT = 1.03F;
+    private static final float ORBIT_HEIGHT = 1.035F;
+    private static final float CRYSTAL_SCALE = 0.9F;
+    private static final float ORBIT_SCALE = 0.42F;
+    private static final float ORBIT_RADIUS = 0.42F;
+
     public GatewayWorkbenchBlockEntityRenderer(BlockEntityRendererProvider.Context context) {
     }
 
@@ -39,13 +45,12 @@ public final class GatewayWorkbenchBlockEntityRenderer implements BlockEntityRen
     private void renderCrystal(GatewayWorkbenchBlockEntity blockEntity, ItemStack crystal, float time, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
         Minecraft minecraft = Minecraft.getInstance();
         poseStack.pushPose();
-        poseStack.translate(0.5D, 1.15D, 0.5D);
-        poseStack.mulPose(Axis.YP.rotationDegrees((time * 2.8F) % 360.0F));
-        poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
-        poseStack.scale(0.9F, 0.9F, 0.9F);
+        poseStack.translate(0.5D, CRYSTAL_HEIGHT + (Mth.sin(time * 0.09F) * 0.01F), 0.5D);
+        poseStack.mulPose(Axis.YP.rotationDegrees((time * 1.8F) % 360.0F));
+        poseStack.scale(CRYSTAL_SCALE, CRYSTAL_SCALE, CRYSTAL_SCALE);
         minecraft.getItemRenderer().renderStatic(
                 crystal,
-                ItemDisplayContext.FIXED,
+                ItemDisplayContext.GROUND,
                 packedLight,
                 OverlayTexture.NO_OVERLAY,
                 poseStack,
@@ -58,29 +63,24 @@ public final class GatewayWorkbenchBlockEntityRenderer implements BlockEntityRen
 
     private void renderOrbitItems(GatewayWorkbenchBlockEntity blockEntity, float time, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
         Minecraft minecraft = Minecraft.getInstance();
-        List<ItemStack> orbitStacks = new ArrayList<>();
-        orbitStacks.addAll(GatewayWorkbenchSlots.collectCatalysts(blockEntity));
-        orbitStacks.addAll(GatewayWorkbenchSlots.collectAugments(blockEntity));
+        List<ItemStack> orbitStacks = buildInterleavedOrbitStacks(blockEntity);
         if (orbitStacks.isEmpty()) {
             return;
         }
 
-        float radius = 0.42F;
         for (int i = 0; i < orbitStacks.size(); i++) {
             ItemStack stack = orbitStacks.get(i);
             double angle = ((Math.PI * 2D) / orbitStacks.size()) * i + (time * 0.045D);
-            float x = 0.5F + (float) Math.cos(angle) * radius;
-            float z = 0.5F + (float) Math.sin(angle) * radius;
-            float bob = 0.015F * Mth.sin((time * 0.12F) + i);
+            float x = 0.5F + (float) Math.cos(angle) * ORBIT_RADIUS;
+            float z = 0.5F + (float) Math.sin(angle) * ORBIT_RADIUS;
 
             poseStack.pushPose();
-            poseStack.translate(x, 1.02F + bob, z);
-            poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-            poseStack.mulPose(Axis.ZP.rotationDegrees((time * 4.0F) + (i * 35.0F)));
-            poseStack.scale(0.36F, 0.36F, 0.36F);
+            poseStack.translate(x, ORBIT_HEIGHT, z);
+            poseStack.mulPose(Axis.YP.rotationDegrees((float) (-Math.toDegrees(angle)) + 90.0F));
+            poseStack.scale(ORBIT_SCALE, ORBIT_SCALE, ORBIT_SCALE);
             minecraft.getItemRenderer().renderStatic(
                     stack,
-                    ItemDisplayContext.FIXED,
+                    ItemDisplayContext.GROUND,
                     packedLight,
                     OverlayTexture.NO_OVERLAY,
                     poseStack,
@@ -90,5 +90,21 @@ public final class GatewayWorkbenchBlockEntityRenderer implements BlockEntityRen
             );
             poseStack.popPose();
         }
+    }
+
+    private List<ItemStack> buildInterleavedOrbitStacks(GatewayWorkbenchBlockEntity blockEntity) {
+        List<ItemStack> catalysts = GatewayWorkbenchSlots.collectCatalysts(blockEntity);
+        List<ItemStack> augments = GatewayWorkbenchSlots.collectAugments(blockEntity);
+        List<ItemStack> orbitStacks = new ArrayList<>(catalysts.size() + augments.size());
+        int max = Math.max(catalysts.size(), augments.size());
+        for (int index = 0; index < max; index++) {
+            if (index < catalysts.size()) {
+                orbitStacks.add(catalysts.get(index));
+            }
+            if (index < augments.size()) {
+                orbitStacks.add(augments.get(index));
+            }
+        }
+        return orbitStacks;
     }
 }

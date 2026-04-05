@@ -20,6 +20,12 @@ public final class ModAttachments {
                     .copyOnDeath()
                     .sync(ByteBufCodecs.VAR_INT)
                     .build());
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<Float>> COIN_MULTIPLIER =
+            ATTACHMENTS.register("coin_multiplier", () -> AttachmentType.builder(() -> 1.0F)
+                    .serialize(Codec.FLOAT)
+                    .copyOnDeath()
+                    .sync(ByteBufCodecs.FLOAT)
+                    .build());
 
     private ModAttachments() {
     }

@@ -3,10 +3,10 @@
   "category": "misc",
   "key": {
     "D": {
-      "item": "minecraft:diamond"
+      "item": "gatewayexpansion:prismatic_diamond"
     },
     "C": {
-      "item": "gatewayexpansion:tier_4_crystal"
+      "item": "gatewayexpansion:prismatic_core"
     }
   },
   "pattern": [

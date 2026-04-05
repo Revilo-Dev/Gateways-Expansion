@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:emerald_block", "weight": 7, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2.0, "max": 5.0 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:totem_of_undying", "weight": 3 },
+        { "type": "minecraft:item", "name": "minecraft:crossbow", "weight": 7, "functions": [ { "function": "minecraft:set_enchantments", "enchantments": { "minecraft:multishot": 1, "minecraft:quick_charge": 3, "minecraft:piercing": 4 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:diamond_block", "weight": 2 }
+      ]
+    }
+  ]
+}

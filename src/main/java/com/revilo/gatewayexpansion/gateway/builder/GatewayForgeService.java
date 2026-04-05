@@ -62,6 +62,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
@@ -89,7 +90,9 @@ public final class GatewayForgeService {
     private static final String OVERLEVELED_KEY = "overleveled";
     private static final String SUMMARY_KEY = "summary";
     private static final String DISPLAY_NAME_KEY = "display_name";
+    private static final String TIER_KEY = "tier";
     private static final Map<ResourceLocation, String> GENERATED_GATEWAY_NAMES = new HashMap<>();
+    private static final Map<ResourceLocation, Integer> GENERATED_GATEWAY_TIERS = new HashMap<>();
 
     private GatewayForgeService() {
     }
@@ -182,6 +185,8 @@ public final class GatewayForgeService {
         GatewayBuildResult result = generateGateway(state, playerLevel, overleveled);
         registerGeneratedGateway(result.gatewayId(), result.gateway());
         GENERATED_GATEWAY_NAMES.put(result.gatewayId(), result.name());
+        GENERATED_GATEWAY_TIERS.put(result.gatewayId(), result.crystalTier());
+        persistGeneratedGateway(player.serverLevel(), result.gatewayId(), result.gatewayJson(), result.name(), result.crystalTier());
         syncGatewayRegistry(player);
 
         ItemStack pearl = createPearl(result);
@@ -194,23 +199,24 @@ public final class GatewayForgeService {
     }
 
     public static boolean restoreGatewayFromPearl(ItemStack stack) {
+        return restoreGatewayFromPearl(stack, null);
+    }
+
+    public static boolean restoreGatewayFromPearl(ItemStack stack, ServerLevel serverLevel) {
         CompoundTag root = getRootTag(stack);
         if (!root.contains(GATEWAY_ID_KEY) || !root.contains(GATEWAY_JSON_KEY)) {
             return false;
         }
 
         ResourceLocation gatewayId = ResourceLocation.parse(root.getString(GATEWAY_ID_KEY));
-        if (GatewayRegistry.INSTANCE.getValue(gatewayId) != null) {
-            return false;
+        int crystalLevel = root.contains(LEVEL_KEY) ? root.getInt(LEVEL_KEY) : 0;
+        int crystalTier = root.contains(TIER_KEY) ? root.getInt(TIER_KEY) : inferCrystalTierFromLevel(crystalLevel);
+        String displayName = root.contains(DISPLAY_NAME_KEY) ? root.getString(DISPLAY_NAME_KEY) : "Lv " + crystalLevel + " Gateway";
+        String gatewayJson = root.getString(GATEWAY_JSON_KEY);
+        if (serverLevel != null) {
+            persistGeneratedGateway(serverLevel, gatewayId, gatewayJson, displayName, crystalTier);
         }
-
-        JsonElement json = JsonParser.parseString(root.getString(GATEWAY_JSON_KEY));
-        NormalGateway gateway = NormalGateway.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow(IllegalStateException::new);
-        registerGeneratedGateway(gatewayId, gateway);
-        int level = root.contains(LEVEL_KEY) ? root.getInt(LEVEL_KEY) : 0;
-        String displayName = root.contains(DISPLAY_NAME_KEY) ? root.getString(DISPLAY_NAME_KEY) : "Lv " + level + " Gateway";
-        GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
-        return true;
+        return restoreGeneratedGateway(gatewayId, gatewayJson, displayName, crystalTier);
     }
 
     public static void syncGatewayRegistry(ServerPlayer player) {
@@ -270,6 +276,9 @@ public final class GatewayForgeService {
                 case NETHER -> random.nextBoolean()
                         ? ForgeEffect.ref(ForgeEffectType.MOB_EFFECT, ResourceLocation.withDefaultNamespace("fire_resistance"), 0, 0.0D, "Final roll: infernal resilience")
                         : ForgeEffect.of(ForgeEffectType.DAMAGE_MULTIPLIER, 0.08D, "Final roll: hellfire damage");
+                case RAIDER -> random.nextBoolean()
+                        ? ForgeEffect.of(ForgeEffectType.RANGED_PACKS, 1, "Final roll: coordinated volley")
+                        : ForgeEffect.ref(ForgeEffectType.MOB_EFFECT, ResourceLocation.withDefaultNamespace("hero_of_the_village"), 0, 0.0D, "Final roll: raider momentum");
             };
             applyEffect(state, effect, false);
             state.finalRollSummary.add(effect.description());
@@ -651,6 +660,7 @@ public final class GatewayForgeService {
             root.putString(DIFFICULTY_KEY, difficultyLabel(result.difficultyEstimate()));
             root.putString(THEME_KEY, result.theme().name());
             root.putInt(LEVEL_KEY, result.crystalLevel());
+            root.putInt(TIER_KEY, result.crystalTier());
             root.putInt(PLAYER_LEVEL_KEY, result.playerLevel());
             root.putBoolean(OVERLEVELED_KEY, result.overleveled());
             root.putString(SUMMARY_KEY, String.join(" | ", result.debugLines()));
@@ -661,6 +671,12 @@ public final class GatewayForgeService {
 
     private static CompoundTag getRootTag(ItemStack stack) {
         return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getCompound(ROOT_KEY);
+    }
+
+    public static void restorePersistedGateways(ServerLevel level) {
+        for (Map.Entry<ResourceLocation, GeneratedGatewayStorage.StoredGateway> entry : GeneratedGatewayStorage.get(level).entries().entrySet()) {
+            restoreGeneratedGateway(entry.getKey(), entry.getValue().json(), entry.getValue().displayName(), entry.getValue().crystalTier());
+        }
     }
 
     private static ResourceLocation registerGeneratedGateway(ResourceLocation gatewayId, NormalGateway gateway) {
@@ -675,6 +691,14 @@ public final class GatewayForgeService {
             return null;
         }
         return GENERATED_GATEWAY_NAMES.get(id);
+    }
+
+    public static int getGatewayCrystalTier(Gateway gateway) {
+        ResourceLocation id = GatewayRegistry.INSTANCE.getKey(gateway);
+        if (id == null) {
+            return 0;
+        }
+        return GENERATED_GATEWAY_TIERS.getOrDefault(id, 0);
     }
 
     private static void consumeInputs(Container container) {
@@ -709,6 +733,33 @@ public final class GatewayForgeService {
     private static String serializeGateway(NormalGateway gateway) {
         JsonElement element = NormalGateway.CODEC.encodeStart(JsonOps.INSTANCE, gateway).getOrThrow(IllegalStateException::new);
         return GSON.toJson(element);
+    }
+
+    private static boolean restoreGeneratedGateway(ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier) {
+        if (GatewayRegistry.INSTANCE.getValue(gatewayId) != null) {
+            GENERATED_GATEWAY_NAMES.putIfAbsent(gatewayId, displayName);
+            GENERATED_GATEWAY_TIERS.putIfAbsent(gatewayId, crystalTier);
+            return false;
+        }
+
+        JsonElement json = JsonParser.parseString(gatewayJson);
+        NormalGateway gateway = NormalGateway.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow(IllegalStateException::new);
+        registerGeneratedGateway(gatewayId, gateway);
+        GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
+        GENERATED_GATEWAY_TIERS.put(gatewayId, crystalTier);
+        return true;
+    }
+
+    private static void persistGeneratedGateway(ServerLevel level, ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier) {
+        GeneratedGatewayStorage.get(level).put(gatewayId, gatewayJson, displayName, crystalTier);
+    }
+
+    private static int inferCrystalTierFromLevel(int crystalLevel) {
+        if (crystalLevel >= 90) return 5;
+        if (crystalLevel >= 70) return 4;
+        if (crystalLevel >= 50) return 3;
+        if (crystalLevel >= 20) return 2;
+        return crystalLevel > 0 ? 1 : 0;
     }
 
     private static Gateway.Size gatewaySize(int tier) {

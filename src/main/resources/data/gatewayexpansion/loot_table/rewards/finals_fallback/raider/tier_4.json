@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:emerald", "weight": 10, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 20.0, "max": 30.0 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:diamond", "weight": 6, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 3.0, "max": 6.0 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:crossbow", "weight": 5, "functions": [ { "function": "minecraft:set_enchantments", "enchantments": { "minecraft:multishot": 1, "minecraft:quick_charge": 2 }, "add": false } ] },
+        { "type": "minecraft:item", "name": "minecraft:enchanted_golden_apple", "weight": 1 }
+      ]
+    }
+  ]
+}

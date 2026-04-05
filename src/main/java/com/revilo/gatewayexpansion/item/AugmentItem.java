@@ -3,6 +3,7 @@ package com.revilo.gatewayexpansion.item;
 import com.revilo.gatewayexpansion.augment.AugmentDefinition;
 import com.revilo.gatewayexpansion.augment.AugmentStackData;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
+import com.revilo.gatewayexpansion.shop.GatewaySellValues;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -38,6 +39,7 @@ public class AugmentItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         AugmentDefinition definition = this.definition(stack);
+        GatewaySellValues.appendSellValueTooltip(stack, tooltipComponents);
         tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.augment.type").withStyle(ChatFormatting.AQUA));
         tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.augment.difficulty", this.difficultyTier.displayName()).withStyle(ChatFormatting.GRAY));
         if (definition == null) {

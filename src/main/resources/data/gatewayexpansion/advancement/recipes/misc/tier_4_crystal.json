@@ -1,13 +1,13 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_tier_3_crystal": {
+    "has_dark_essence": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
             "items": [
-              "gatewayexpansion:tier_3_crystal"
+              "gatewayexpansion:dark_essence"
             ]
           }
         ]
@@ -22,7 +22,7 @@
   },
   "requirements": [
     [
-      "has_tier_3_crystal",
+      "has_dark_essence",
       "has_the_recipe"
     ]
   ],

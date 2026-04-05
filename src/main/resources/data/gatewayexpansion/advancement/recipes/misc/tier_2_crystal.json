@@ -1,13 +1,13 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_tier_1_crystal": {
+    "has_mystic_essence": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
             "items": [
-              "gatewayexpansion:tier_1_crystal"
+              "gatewayexpansion:mystic_essence"
             ]
           }
         ]
@@ -22,7 +22,7 @@
   },
   "requirements": [
     [
-      "has_tier_1_crystal",
+      "has_mystic_essence",
       "has_the_recipe"
     ]
   ],

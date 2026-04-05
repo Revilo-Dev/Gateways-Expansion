@@ -3,10 +3,10 @@
   "category": "misc",
   "key": {
     "G": {
-      "item": "minecraft:gold_ingot"
+      "item": "gatewayexpansion:grimstone"
     },
     "C": {
-      "item": "gatewayexpansion:tier_1_crystal"
+      "item": "gatewayexpansion:mystic_essence"
     }
   },
   "pattern": [

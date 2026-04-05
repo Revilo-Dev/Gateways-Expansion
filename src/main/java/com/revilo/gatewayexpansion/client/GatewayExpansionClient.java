@@ -1,10 +1,13 @@
 package com.revilo.gatewayexpansion.client;
 
+import com.revilo.gatewayexpansion.client.model.GatekeeperModel;
+import com.revilo.gatewayexpansion.client.render.GatekeeperRenderer;
 import com.revilo.gatewayexpansion.client.screen.ShopkeeperScreen;
 import com.revilo.gatewayexpansion.client.render.GatewayWorkbenchBlockEntityRenderer;
 import com.revilo.gatewayexpansion.client.screen.GatewayWorkbenchScreen;
 import com.revilo.gatewayexpansion.gateway.GatewayHudOverlay;
 import com.revilo.gatewayexpansion.registry.ModBlockEntities;
+import com.revilo.gatewayexpansion.registry.ModEntities;
 import com.revilo.gatewayexpansion.registry.ModMenus;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -40,6 +43,12 @@ public final class GatewayExpansionClient {
         @SubscribeEvent
         public static void registerBlockEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerBlockEntityRenderer(ModBlockEntities.GATEWAY_WORKBENCH.get(), GatewayWorkbenchBlockEntityRenderer::new);
+            event.registerEntityRenderer(ModEntities.GATEKEEPER.get(), GatekeeperRenderer::new);
+        }
+
+        @SubscribeEvent
+        public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
+            event.registerLayerDefinition(GatekeeperModel.LAYER_LOCATION, GatekeeperModel::createBodyLayer);
         }
     }
 }

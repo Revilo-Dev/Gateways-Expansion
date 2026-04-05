@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.item;
 
 import com.revilo.gatewayexpansion.GatewayExpansion;
+import com.revilo.gatewayexpansion.shop.GatewaySellValues;
 import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.gate.Gateway;
@@ -13,10 +14,12 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import java.util.List;
 
 public class ShopGatewayPearlItem extends Item {
 
@@ -78,5 +81,10 @@ public class ShopGatewayPearlItem extends Item {
             stack.shrink(1);
         }
         return InteractionResult.CONSUME;
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
+        GatewaySellValues.appendSellValueTooltip(stack, tooltipComponents);
     }
 }

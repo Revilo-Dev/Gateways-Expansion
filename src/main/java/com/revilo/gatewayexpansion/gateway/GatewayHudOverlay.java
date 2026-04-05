@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.gateway;
 
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
+import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -19,12 +20,24 @@ public final class GatewayHudOverlay {
             return;
         }
 
-        GatewayEntity gateway = minecraft.level.getEntitiesOfClass(GatewayEntity.class, player.getBoundingBox().inflate(96.0D))
-                .stream()
-                .filter(GatewayEntity::isValid)
-                .min(java.util.Comparator.comparingDouble(player::distanceToSqr))
-                .orElse(null);
+        GatewayEntity gateway = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (GatewayEntity candidate : minecraft.level.getEntitiesOfClass(GatewayEntity.class, player.getBoundingBox().inflate(96.0D))) {
+            if (!candidate.isValid()) {
+                continue;
+            }
+
+            double distance = player.distanceToSqr(candidate);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                gateway = candidate;
+            }
+        }
         if (gateway == null) {
+            return;
+        }
+
+        if (ShopkeeperManager.isGatewayAnimation(gateway)) {
             return;
         }
 

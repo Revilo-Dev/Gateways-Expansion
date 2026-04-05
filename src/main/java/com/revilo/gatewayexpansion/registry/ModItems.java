@@ -5,9 +5,11 @@ import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.item.AugmentItem;
 import com.revilo.gatewayexpansion.item.CatalystItem;
 import com.revilo.gatewayexpansion.item.CrystalItem;
+import com.revilo.gatewayexpansion.item.LootMaterialItem;
 import com.revilo.gatewayexpansion.item.MythicCoinItem;
 import com.revilo.gatewayexpansion.item.ShopGatewayPearlItem;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
+import com.revilo.gatewayexpansion.item.data.LootRarity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
@@ -48,6 +50,26 @@ public final class ModItems {
             () -> new CatalystItem(CatalystArchetype.VOLATILE, new Item.Properties().stacksTo(16)));
     public static final DeferredHolder<Item, MythicCoinItem> MYTHIC_COIN = ITEMS.register("mythic_coin",
             () -> new MythicCoinItem(new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> GRIMSTONE = ITEMS.register("grimstone",
+            () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> MYSTIC_ESSENCE = ITEMS.register("mystic_essence",
+            () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> DARK_ESSENCE = ITEMS.register("dark_essence",
+            () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> ARCANE_ESSENCE = ITEMS.register("arcane_essence",
+            () -> new LootMaterialItem(LootRarity.UNCOMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> MANASTONES = ITEMS.register("manastones",
+            () -> new LootMaterialItem(LootRarity.UNCOMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> MANA_GEMS = ITEMS.register("mana_gems",
+            () -> new LootMaterialItem(LootRarity.UNCOMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> SCRAP_METAL = ITEMS.register("scrap_metal",
+            () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> PRISMATIC_CORE = ITEMS.register("prismatic_core",
+            () -> new LootMaterialItem(LootRarity.LEGENDARY, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> SOLAR_CRYSTAL = ITEMS.register("solar_crystal",
+            () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> PRISMATIC_DIAMOND = ITEMS.register("prismatic_diamond",
+            () -> new LootMaterialItem(LootRarity.EPIC, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, ShopGatewayPearlItem> SHOP_GATEWAY = ITEMS.register("shop_gateway",
             () -> new ShopGatewayPearlItem(new Item.Properties().stacksTo(16)));
 

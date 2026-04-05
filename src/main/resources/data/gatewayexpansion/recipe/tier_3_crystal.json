@@ -3,10 +3,10 @@
   "category": "misc",
   "key": {
     "E": {
-      "item": "minecraft:emerald"
+      "item": "gatewayexpansion:manastones"
     },
     "C": {
-      "item": "gatewayexpansion:tier_2_crystal"
+      "item": "gatewayexpansion:arcane_essence"
     }
   },
   "pattern": [

@@ -3,6 +3,7 @@ package com.revilo.gatewayexpansion.item;
 import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.catalyst.CatalystDefinition;
 import com.revilo.gatewayexpansion.catalyst.CatalystStackData;
+import com.revilo.gatewayexpansion.shop.GatewaySellValues;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -38,6 +39,7 @@ public class CatalystItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         CatalystDefinition definition = this.definition(stack);
+        GatewaySellValues.appendSellValueTooltip(stack, tooltipComponents);
         if (definition == null) {
             return;
         }

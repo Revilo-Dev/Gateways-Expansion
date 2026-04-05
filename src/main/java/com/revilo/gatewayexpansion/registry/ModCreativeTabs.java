@@ -33,6 +33,16 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.LOOT_CATALYST.get());
                         output.accept(ModItems.HIGHRISK_CATALYST.get());
                         output.accept(ModItems.MYTHIC_COIN.get());
+                        output.accept(ModItems.GRIMSTONE.get());
+                        output.accept(ModItems.MYSTIC_ESSENCE.get());
+                        output.accept(ModItems.DARK_ESSENCE.get());
+                        output.accept(ModItems.ARCANE_ESSENCE.get());
+                        output.accept(ModItems.MANASTONES.get());
+                        output.accept(ModItems.MANA_GEMS.get());
+                        output.accept(ModItems.SCRAP_METAL.get());
+                        output.accept(ModItems.PRISMATIC_CORE.get());
+                        output.accept(ModItems.SOLAR_CRYSTAL.get());
+                        output.accept(ModItems.PRISMATIC_DIAMOND.get());
                         output.accept(ModItems.SHOP_GATEWAY.get());
                     })
                     .build());
