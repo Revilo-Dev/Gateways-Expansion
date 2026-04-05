@@ -3,6 +3,8 @@ package com.revilo.gatewayexpansion.shop;
 import com.revilo.gatewayexpansion.currency.MythicCoinWallet;
 import com.revilo.gatewayexpansion.entity.GatekeeperEntity;
 import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
+import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
+import com.revilo.gatewayexpansion.integration.ModCompat;
 import com.revilo.gatewayexpansion.item.LootMaterialItem;
 import com.revilo.gatewayexpansion.item.data.LootRarity;
 import com.revilo.gatewayexpansion.menu.ShopkeeperMenu;
@@ -11,10 +13,12 @@ import com.revilo.gatewayexpansion.registry.ModItems;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.event.GateEvent;
 import dev.shadowsoffire.gateways.GatewayObjects;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -27,6 +31,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -57,8 +62,10 @@ public final class ShopkeeperManager {
             ModItems.MYSTIC_ESSENCE,
             ModItems.SCRAP_METAL,
             ModItems.MANA_GEMS,
+            ModItems.MANA_STEEL_SCRAP,
             ModItems.ARCANE_ESSENCE,
             ModItems.MANASTONES,
+            ModItems.ELIXRITE_SCRAP,
             ModItems.SOLAR_CRYSTAL,
             ModItems.PRISMATIC_DIAMOND,
             ModItems.DARK_ESSENCE,
@@ -219,8 +226,9 @@ public final class ShopkeeperManager {
         trader.setCustomName(Component.translatable("entity.gatewayexpansion.shopkeeper").withStyle(ChatFormatting.GOLD));
         trader.setCustomNameVisible(true);
         trader.setPersistenceRequired();
+        trader.setHealth(1.0F);
         trader.getPersistentData().putBoolean(SHOPKEEPER_KEY, true);
-        rollVisibleOffers(trader, serverLevel.random);
+        rollVisibleOffers(trader, serverLevel.random, getPlayerLevel(summoner));
         return serverLevel.addFreshEntity(trader) ? trader : null;
     }
 
@@ -283,7 +291,7 @@ public final class ShopkeeperManager {
             return false;
         }
 
-        rollVisibleOffers(trader, player.getRandom());
+        rollVisibleOffers(trader, player.getRandom(), getPlayerLevel(player));
         CompoundTag tag = trader.getPersistentData();
         tag.putInt(REROLL_COUNT_KEY, rerollCount + 1);
         return true;
@@ -356,15 +364,14 @@ public final class ShopkeeperManager {
 
     private static LootMaterialItem rollGatewayLoot(GatewayEntity gate, RandomSource random) {
         LootMaterialItem[] pool = getDropPoolForGate(gate);
-        int totalWeight = java.util.Arrays.stream(pool).mapToInt(item -> item.rarity().weight()).sum();
+        int totalWeight = java.util.Arrays.stream(pool).mapToInt(item -> getGatewayDropWeight(item, gate)).sum();
         if (totalWeight <= 0) {
             return null;
         }
 
         int roll = random.nextInt(totalWeight);
         for (LootMaterialItem item : pool) {
-            LootRarity rarity = item.rarity();
-            roll -= rarity.weight();
+            roll -= getGatewayDropWeight(item, gate);
             if (roll < 0) {
                 return item;
             }
@@ -373,9 +380,9 @@ public final class ShopkeeperManager {
         return pool[0];
     }
 
-    private static void rollVisibleOffers(GatekeeperEntity trader, RandomSource random) {
+    private static void rollVisibleOffers(GatekeeperEntity trader, RandomSource random, int playerLevel) {
         int tempCount = Math.min(ShopkeeperMenu.GRID_SLOT_COUNT, ShopOfferDefinition.ALL_OFFERS.size());
-        int[] picks = pickTempOfferIndexes(random, tempCount);
+        int[] picks = pickTempOfferIndexes(random, tempCount, playerLevel);
         trader.getPersistentData().putIntArray(TEMP_TRADE_KEY, picks);
         trader.getPersistentData().putIntArray(STOCK_KEY, rollStocks(buildOffers(picks), random));
     }
@@ -397,6 +404,27 @@ public final class ShopkeeperManager {
         ItemStack preview = offer.previewStack();
         if (preview.is(ModItems.GRIMSTONE.get()) || preview.is(ModItems.MYSTIC_ESSENCE.get()) || preview.is(ModItems.SCRAP_METAL.get())) {
             return 32 + random.nextInt(17);
+        }
+        if (preview.is(ModItems.MANA_STEEL_SCRAP.get()) || preview.is(ModItems.ELIXRITE_SCRAP.get())) {
+            return 1 + random.nextInt(7);
+        }
+        if (preview.is(ModItems.MANA_STEEL_INGOT.get()) || preview.is(ModItems.ELIXRITE_INGOT.get())) {
+            return 1 + random.nextInt(2);
+        }
+        if (preview.is(Items.IRON_INGOT) || preview.is(Items.GOLD_INGOT)) {
+            return 6 + random.nextInt(7);
+        }
+        if (preview.is(Items.DIAMOND)) {
+            return 2 + random.nextInt(4);
+        }
+        if (preview.is(Items.GOLDEN_APPLE)) {
+            return 1 + random.nextInt(3);
+        }
+        if (preview.is(Items.NETHERITE_SCRAP)) {
+            return 1 + random.nextInt(2);
+        }
+        if (isRunicOffer(preview)) {
+            return preview.is(runicItem("enhanced_rune")) ? 1 + random.nextInt(2) : 1;
         }
         if (preview.is(ModItems.MANA_GEMS.get()) || preview.is(ModItems.ARCANE_ESSENCE.get()) || preview.is(ModItems.MANASTONES.get())) {
             return 18 + random.nextInt(11);
@@ -429,20 +457,29 @@ public final class ShopkeeperManager {
         return offers;
     }
 
-    private static int[] pickTempOfferIndexes(RandomSource random, int tempCount) {
-        int poolSize = ShopOfferDefinition.ALL_OFFERS.size();
-        int[] pool = new int[poolSize];
-        for (int index = 0; index < poolSize; index++) {
-            pool[index] = index;
+    private static int[] pickTempOfferIndexes(RandomSource random, int tempCount, int playerLevel) {
+        int[] eligible = ShopOfferDefinition.ALL_OFFERS.stream()
+                .filter(offer -> offer.requiredLevel() <= playerLevel)
+                .mapToInt(ShopOfferDefinition.ALL_OFFERS::indexOf)
+                .toArray();
+        int poolSize = eligible.length;
+        if (poolSize == 0) {
+            return new int[0];
         }
 
-        for (int index = 0; index < tempCount; index++) {
+        int[] pool = new int[poolSize];
+        for (int index = 0; index < poolSize; index++) {
+            pool[index] = eligible[index];
+        }
+
+        int pickCount = Math.min(tempCount, poolSize);
+        for (int index = 0; index < pickCount; index++) {
             int swapIndex = index + random.nextInt(poolSize - index);
             int selected = pool[swapIndex];
             pool[swapIndex] = pool[index];
             pool[index] = selected;
         }
-        return java.util.Arrays.copyOf(pool, tempCount);
+        return java.util.Arrays.copyOf(pool, pickCount);
     }
 
     private static LootMaterialItem[] getDropPoolForGate(GatewayEntity gate) {
@@ -453,5 +490,35 @@ public final class ShopkeeperManager {
         return java.util.Arrays.stream(GATEWAY_DROP_POOL)
                 .filter(item -> item != ModItems.PRISMATIC_CORE.get())
                 .toArray(LootMaterialItem[]::new);
+    }
+
+    private static int getGatewayDropWeight(LootMaterialItem item, GatewayEntity gate) {
+        if (item == ModItems.MANA_STEEL_SCRAP.get()) {
+            return isLevel20PlusGate(gate) ? LootRarity.COMMON.weight() : LootRarity.UNCOMMON.weight();
+        }
+        if (item == ModItems.ELIXRITE_SCRAP.get()) {
+            return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : LootRarity.RARE.weight();
+        }
+        return item.rarity().weight();
+    }
+
+    private static boolean isLevel20PlusGate(GatewayEntity gate) {
+        return gate != null && GatewayForgeService.getGatewayCrystalTier(gate.getGateway()) >= 2;
+    }
+
+    private static boolean isRunicOffer(ItemStack stack) {
+        return ModCompat.isAnyLoaded("runic") && stack.getItem().builtInRegistryHolder().key().location().getNamespace().equals("runic");
+    }
+
+    private static net.minecraft.world.item.Item runicItem(String path) {
+        return BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("runic", path));
+    }
+
+    private static int getPlayerLevel(Player player) {
+        if (player == null) {
+            return 0;
+        }
+        int integratedLevel = LevelUpIntegration.getPlayerLevel(player);
+        return integratedLevel >= 0 ? integratedLevel : player.experienceLevel;
     }
 }

@@ -59,6 +59,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -71,6 +72,7 @@ import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.ItemLore;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -93,6 +95,7 @@ public final class GatewayForgeService {
     private static final String TIER_KEY = "tier";
     private static final Map<ResourceLocation, String> GENERATED_GATEWAY_NAMES = new HashMap<>();
     private static final Map<ResourceLocation, Integer> GENERATED_GATEWAY_TIERS = new HashMap<>();
+    private static final Map<ResourceLocation, Integer> GENERATED_GATEWAY_LEVELS = new HashMap<>();
 
     private GatewayForgeService() {
     }
@@ -186,7 +189,8 @@ public final class GatewayForgeService {
         registerGeneratedGateway(result.gatewayId(), result.gateway());
         GENERATED_GATEWAY_NAMES.put(result.gatewayId(), result.name());
         GENERATED_GATEWAY_TIERS.put(result.gatewayId(), result.crystalTier());
-        persistGeneratedGateway(player.serverLevel(), result.gatewayId(), result.gatewayJson(), result.name(), result.crystalTier());
+        GENERATED_GATEWAY_LEVELS.put(result.gatewayId(), result.crystalLevel());
+        persistGeneratedGateway(player.serverLevel(), result.gatewayId(), result.gatewayJson(), result.name(), result.crystalTier(), result.crystalLevel());
         syncGatewayRegistry(player);
 
         ItemStack pearl = createPearl(result);
@@ -214,9 +218,9 @@ public final class GatewayForgeService {
         String displayName = root.contains(DISPLAY_NAME_KEY) ? root.getString(DISPLAY_NAME_KEY) : "Lv " + crystalLevel + " Gateway";
         String gatewayJson = root.getString(GATEWAY_JSON_KEY);
         if (serverLevel != null) {
-            persistGeneratedGateway(serverLevel, gatewayId, gatewayJson, displayName, crystalTier);
+            persistGeneratedGateway(serverLevel, gatewayId, gatewayJson, displayName, crystalTier, crystalLevel);
         }
-        return restoreGeneratedGateway(gatewayId, gatewayJson, displayName, crystalTier);
+        return restoreGeneratedGateway(gatewayId, gatewayJson, displayName, crystalTier, crystalLevel);
     }
 
     public static void syncGatewayRegistry(ServerPlayer player) {
@@ -319,30 +323,30 @@ public final class GatewayForgeService {
             int packs = 1 + waveIndex / 2 + state.densePacks + (waveIndex >= waveCount - 2 ? 1 : 0);
             for (int pack = 0; pack < packs; pack++) {
                 EntityType<?> primary = pickEnemy(enemyPools, random, EnemyPoolRole.THEME, EnemyPoolRole.MELEE);
-                builder.entity(StandardWaveEntity.builder(primary).count(Mth.clamp(baseCount(state, waveIndex, random), 1, 64)).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(primary), state).count(Mth.clamp(baseCount(state, waveIndex, random), 1, 64)).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
             }
             if (state.supportInterval > 0 && ((waveIndex + 1) % state.supportInterval == 0)) {
                 for (int i = 0; i < state.supportCount; i++) {
-                    builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.SUPPORT, EnemyPoolRole.MELEE)).count(1).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                    builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.SUPPORT, EnemyPoolRole.MELEE)), state).count(1).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
                 }
             }
             if (state.rangedPacks > 0 && random.nextFloat() < 0.45F + (0.10F * state.rangedPacks)) {
-                builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.RANGED, EnemyPoolRole.MELEE)).count(1 + state.rangedPacks).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.RANGED, EnemyPoolRole.MELEE)), state).count(1 + state.rangedPacks).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
             }
             if (state.mixedPackCount > 0 && random.nextFloat() < 0.35F) {
-                builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.FAST, EnemyPoolRole.SUPPORT)).count(state.mixedPackCount).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.FAST, EnemyPoolRole.SUPPORT)), state).count(state.mixedPackCount).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
             }
             if (state.reinforcementRolls > 0 && random.nextFloat() < 0.25F * state.reinforcementRolls) {
-                builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.TANK, EnemyPoolRole.MELEE)).count(2 + state.reinforcementRolls).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.TANK, EnemyPoolRole.MELEE)), state).count(2 + state.reinforcementRolls).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
             }
             if (shouldAddElite(state, waveIndex, random)) {
                 int eliteCount = 1 + (waveIndex == waveCount - 1 ? state.finalWaveEliteCount : 0);
                 for (int i = 0; i < eliteCount; i++) {
-                    builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.MELEE)).count(1).addModifiers(eliteModifiers(state, random)).finalizeSpawn(true).build());
+                    builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.MELEE)), state).count(1).addModifiers(eliteModifiers(state, random)).finalizeSpawn(true).build());
                 }
             }
             if (waveIndex >= waveCount - 2 && random.nextFloat() < state.minibossChance) {
-                builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.TANK)).count(1).addModifiers(minibossModifiers(state)).finalizeSpawn(true).build());
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.TANK)), state).count(1).addModifiers(minibossModifiers(state)).finalizeSpawn(true).build());
             }
             for (WaveModifier modifier : globalWaveModifiers(state)) {
                 builder.modifier(modifier);
@@ -353,7 +357,7 @@ public final class GatewayForgeService {
             addWaveRewardDrops(builder, state, theme, waveIndex, waveCount, random);
             builder.reward(new Reward.ExperienceReward(waveExperienceReward(state), 5));
             builder.maxWaveTime(Mth.clamp(1020 + state.profile.level() * 6 + state.waveTimeDelta + (waveIndex >= waveCount - 2 ? state.lateWaveTimeBonus : 0), 220, 1800));
-            builder.setupTime(waveIndex == waveCount - 1 ? 20 : Mth.clamp(100 + state.setupTimeDelta - (state.shorterDenser ? 20 : 0), 20, 260));
+            builder.setupTime(computeSetupTime(state));
             waves.add(builder.build());
         }
 
@@ -416,10 +420,15 @@ public final class GatewayForgeService {
 
     private static List<Reward> buildRewards(ForgeState state, GatewayThemeProfile theme, GatewayThemeProfile.GateTypeProfile gateType, boolean bossWaveEnabled) {
         List<Reward> rewards = new ArrayList<>();
+        RandomSource random = RandomSource.create(state.profile.seed() ^ 0xA661L);
         int bossBonus = bossWaveEnabled ? 2 : 0;
         int baseRolls = Math.max(1, 1 + state.finalRewardRolls + bossBonus + (int) Math.floor(Math.max(0.0D, (state.rewardMultiplier - 1.0D) * 3.5D)));
         rewards.add(new Reward.LootTableReward(theme.commonLoot(), baseRolls, theme.finalDescKey()));
         rewards.add(new Reward.LootTableReward(gateType.bonusLoot(), 1 + state.crystalTier.tier() / 3, gateType.descKey()));
+        rewards.add(new Reward.StackReward(createAugmentRewardStack(state, Math.max(0, state.waveCount() - 1), random)));
+        if (state.crystalTier.tier() >= 3 || state.profile.level() >= 30) {
+            rewards.add(new Reward.StackReward(createAugmentRewardStack(state, state.waveCount(), random)));
+        }
         if (state.rewardMultiplier > 1.0D && state.lootTableBonusChance > 0.0D) {
             rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.commonLoot(), 1, theme.finalDescKey()), (float) state.lootTableBonusChance));
         }
@@ -427,9 +436,6 @@ public final class GatewayForgeService {
             rewards.add(new Reward.ChancedReward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()), 0.35F + (state.profile.level() / 180.0F)));
         }
         rewards.add(new Reward.ExperienceReward(finalExperienceReward(state), 5));
-        if (LevelUpIntegration.isLoaded()) {
-            rewards.add(new Reward.CommandReward("levelup spawnorb " + levelUpOrbCount(state, bossWaveEnabled), "rewards.gatewayexpansion.levelup_orbs"));
-        }
         return rewards;
     }
 
@@ -443,13 +449,13 @@ public final class GatewayForgeService {
     private static Wave buildBossWave(ForgeState state, GatewayThemeProfile theme, EnemyPoolSet enemyPools, RandomSource random, int waveCount) {
         Wave.Builder builder = Wave.builder();
         EntityType<?> boss = enemyPools.pickBoss(random);
-        builder.entity(StandardWaveEntity.builder(boss).count(1).addModifiers(bossModifiers(state)).finalizeSpawn(true).build());
+        builder.entity(configureWaveEntity(StandardWaveEntity.builder(boss), state).count(1).addModifiers(bossModifiers(state)).finalizeSpawn(true).build());
 
         if (random.nextFloat() < 0.65F) {
-            builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.SUPPORT, EnemyPoolRole.RANGED)).count(2 + state.crystalTier.tier() / 2).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+            builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.SUPPORT, EnemyPoolRole.RANGED)), state).count(2 + state.crystalTier.tier() / 2).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
         }
         if (random.nextFloat() < 0.45F) {
-            builder.entity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.MELEE, EnemyPoolRole.THEME)).count(3 + state.crystalTier.tier()).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+            builder.entity(configureWaveEntity(StandardWaveEntity.builder(pickEnemy(enemyPools, random, EnemyPoolRole.MELEE, EnemyPoolRole.THEME)), state).count(3 + state.crystalTier.tier()).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
         }
 
         for (WaveModifier modifier : globalWaveModifiers(state)) {
@@ -460,8 +466,35 @@ public final class GatewayForgeService {
         builder.reward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()));
         builder.reward(new Reward.ExperienceReward(waveExperienceReward(state), 5));
         builder.maxWaveTime(Mth.clamp(7200 + state.profile.level() * 20 + state.waveTimeDelta, 3600, 12000));
-        builder.setupTime(20);
+        builder.setupTime(computeSetupTime(state));
         return builder.build();
+    }
+
+    private static StandardWaveEntity.Builder configureWaveEntity(StandardWaveEntity.Builder builder, ForgeState state) {
+        if (state.profile.theme() != CrystalTheme.UNDEAD) {
+            return builder;
+        }
+        return builder.nbt(GatewayForgeService::applyUndeadEquipment);
+    }
+
+    private static CompoundTag applyUndeadEquipment(CompoundTag tag) {
+        ListTag armorItems = new ListTag();
+        armorItems.add(new CompoundTag());
+        armorItems.add(new CompoundTag());
+        armorItems.add(new CompoundTag());
+        armorItems.add(ItemStack.OPTIONAL_CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, new ItemStack(Items.LEATHER_HELMET))
+                .result()
+                .filter(CompoundTag.class::isInstance)
+                .map(CompoundTag.class::cast)
+                .orElseGet(CompoundTag::new));
+        tag.put("ArmorItems", armorItems);
+
+        ListTag armorDropChances = new ListTag();
+        for (int i = 0; i < 4; i++) {
+            armorDropChances.add(net.minecraft.nbt.FloatTag.valueOf(0.0F));
+        }
+        tag.put("ArmorDropChances", armorDropChances);
+        return tag;
     }
 
     private static List<Failure> buildFailures(ForgeState state) {
@@ -473,8 +506,10 @@ public final class GatewayForgeService {
         return failures;
     }
 
-    private static int levelUpOrbCount(ForgeState state, boolean bossWaveEnabled) {
-        return 24 + state.profile.level() + state.crystalTier.tier() * 12 + state.finalRewardRolls * 4 + (bossWaveEnabled ? 20 : 0);
+    private static int computeSetupTime(ForgeState state) {
+        int baseSetupTime = 100 + state.profile.level() * 40;
+        int adjustedSetupTime = baseSetupTime + state.setupTimeDelta - (state.shorterDenser ? 20 : 0);
+        return Math.max(100, adjustedSetupTime);
     }
 
     private static int finalExperienceReward(ForgeState state) {
@@ -487,11 +522,11 @@ public final class GatewayForgeService {
 
     private static void addWaveRewardDrops(Wave.Builder builder, ForgeState state, GatewayThemeProfile theme, int waveIndex, int waveCount, RandomSource random) {
         float levelBoost = Math.min(0.30F, state.profile.level() * 0.006F);
-        float augmentChance = Math.min(0.95F, 0.18F + state.crystalTier.tier() * 0.08F + waveIndex * 0.07F + levelBoost);
+        float augmentChance = Math.min(0.98F, 0.40F + state.crystalTier.tier() * 0.09F + waveIndex * 0.08F + levelBoost);
         if (random.nextFloat() < augmentChance) {
             builder.reward(new Reward.StackReward(createAugmentRewardStack(state, waveIndex, random)));
         }
-        if (state.profile.level() >= 35 && random.nextFloat() < Math.min(0.55F, levelBoost * 0.8F + waveIndex * 0.03F)) {
+        if ((state.crystalTier.tier() >= 3 || state.profile.level() >= 25) && random.nextFloat() < Math.min(0.75F, 0.18F + levelBoost * 0.9F + waveIndex * 0.05F)) {
             builder.reward(new Reward.StackReward(createAugmentRewardStack(state, waveIndex + 1, random)));
         }
 
@@ -675,7 +710,7 @@ public final class GatewayForgeService {
 
     public static void restorePersistedGateways(ServerLevel level) {
         for (Map.Entry<ResourceLocation, GeneratedGatewayStorage.StoredGateway> entry : GeneratedGatewayStorage.get(level).entries().entrySet()) {
-            restoreGeneratedGateway(entry.getKey(), entry.getValue().json(), entry.getValue().displayName(), entry.getValue().crystalTier());
+            restoreGeneratedGateway(entry.getKey(), entry.getValue().json(), entry.getValue().displayName(), entry.getValue().crystalTier(), entry.getValue().crystalLevel());
         }
     }
 
@@ -699,6 +734,14 @@ public final class GatewayForgeService {
             return 0;
         }
         return GENERATED_GATEWAY_TIERS.getOrDefault(id, 0);
+    }
+
+    public static int getGatewayLevel(Gateway gateway) {
+        ResourceLocation id = GatewayRegistry.INSTANCE.getKey(gateway);
+        if (id == null) {
+            return 0;
+        }
+        return GENERATED_GATEWAY_LEVELS.getOrDefault(id, 0);
     }
 
     private static void consumeInputs(Container container) {
@@ -735,10 +778,11 @@ public final class GatewayForgeService {
         return GSON.toJson(element);
     }
 
-    private static boolean restoreGeneratedGateway(ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier) {
+    private static boolean restoreGeneratedGateway(ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier, int crystalLevel) {
         if (GatewayRegistry.INSTANCE.getValue(gatewayId) != null) {
             GENERATED_GATEWAY_NAMES.putIfAbsent(gatewayId, displayName);
             GENERATED_GATEWAY_TIERS.putIfAbsent(gatewayId, crystalTier);
+            GENERATED_GATEWAY_LEVELS.putIfAbsent(gatewayId, crystalLevel);
             return false;
         }
 
@@ -747,11 +791,12 @@ public final class GatewayForgeService {
         registerGeneratedGateway(gatewayId, gateway);
         GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
         GENERATED_GATEWAY_TIERS.put(gatewayId, crystalTier);
+        GENERATED_GATEWAY_LEVELS.put(gatewayId, crystalLevel);
         return true;
     }
 
-    private static void persistGeneratedGateway(ServerLevel level, ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier) {
-        GeneratedGatewayStorage.get(level).put(gatewayId, gatewayJson, displayName, crystalTier);
+    private static void persistGeneratedGateway(ServerLevel level, ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier, int crystalLevel) {
+        GeneratedGatewayStorage.get(level).put(gatewayId, gatewayJson, displayName, crystalTier, crystalLevel);
     }
 
     private static int inferCrystalTierFromLevel(int crystalLevel) {
@@ -933,9 +978,6 @@ public final class GatewayForgeService {
             this.profile = profile;
             this.healthMultiplier = naturalHealthMultiplier(profile.level());
             this.damageMultiplier = naturalDamageMultiplier(profile.level());
-            if (profile.theme() == CrystalTheme.UNDEAD) {
-                this.mobEffects.add(ResourceLocation.withDefaultNamespace("fire_resistance"));
-            }
             this.difficultyEstimate = crystalTier.tier() * 8 + profile.level();
         }
 

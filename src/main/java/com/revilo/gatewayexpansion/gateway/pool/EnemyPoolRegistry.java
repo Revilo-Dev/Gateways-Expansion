@@ -85,8 +85,8 @@ public final class EnemyPoolRegistry {
                 pools.pool(EnemyPoolRole.RANGED).add(EntityType.PILLAGER, 8, "vanilla").add(EntityType.BLAZE, 5, "vanilla").add(EntityType.WITCH, 4, "vanilla");
                 pools.pool(EnemyPoolRole.TANK).add(EntityType.ENDERMAN, 5, "vanilla");
                 pools.pool(EnemyPoolRole.FAST).add(EntityType.VEX, 8, "vanilla").add(EntityType.ENDERMITE, 4, "vanilla");
-                pools.pool(EnemyPoolRole.ELITE).add(EntityType.EVOKER, 6, "vanilla").add(EntityType.ENDERMAN, 5, "vanilla").add(EntityType.ILLUSIONER, 3, "vanilla");
-                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 6, "vanilla").add(EntityType.EVOKER, 4, "vanilla");
+                pools.pool(EnemyPoolRole.ELITE).add(EntityType.EVOKER, 2, "vanilla").add(EntityType.ENDERMAN, 5, "vanilla").add(EntityType.ILLUSIONER, 3, "vanilla");
+                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 6, "vanilla").add(EntityType.EVOKER, 1, "vanilla");
                 pools.pool(EnemyPoolRole.THEME).add(EntityType.VEX, 7, "vanilla").add(EntityType.ENDERMAN, 6, "vanilla");
                 if (level >= 20) {
                     pools.pool(EnemyPoolRole.RANGED).add(EntityType.BREEZE, 4, "vanilla");
@@ -132,11 +132,10 @@ public final class EnemyPoolRegistry {
                 pools.pool(EnemyPoolRole.RANGED).add(EntityType.PILLAGER, 8, "vanilla").add(EntityType.ILLUSIONER, 4, "vanilla");
                 pools.pool(EnemyPoolRole.TANK).add(EntityType.RAVAGER, 6, "vanilla").add(EntityType.IRON_GOLEM, 2, "vanilla");
                 pools.pool(EnemyPoolRole.FAST).add(EntityType.VEX, 5, "vanilla").add(EntityType.PILLAGER, 4, "vanilla");
-                pools.pool(EnemyPoolRole.ELITE).add(EntityType.EVOKER, 6, "vanilla").add(EntityType.VINDICATOR, 5, "vanilla").add(EntityType.RAVAGER, 4, "vanilla");
-                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 6, "vanilla").add(EntityType.EVOKER, 4, "vanilla").add(EntityType.ILLUSIONER, 3, "vanilla");
-                pools.pool(EnemyPoolRole.THEME).add(EntityType.PILLAGER, 8, "vanilla").add(EntityType.VINDICATOR, 7, "vanilla").add(EntityType.EVOKER, 4, "vanilla").add(EntityType.VILLAGER, 2, "vanilla");
+                pools.pool(EnemyPoolRole.ELITE).add(EntityType.EVOKER, 2, "vanilla").add(EntityType.VINDICATOR, 5, "vanilla").add(EntityType.RAVAGER, 4, "vanilla");
+                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITCH, 6, "vanilla").add(EntityType.EVOKER, 1, "vanilla").add(EntityType.ILLUSIONER, 3, "vanilla");
+                pools.pool(EnemyPoolRole.THEME).add(EntityType.PILLAGER, 8, "vanilla").add(EntityType.VINDICATOR, 7, "vanilla").add(EntityType.EVOKER, 1, "vanilla");
                 if (level >= 20) {
-                    pools.pool(EnemyPoolRole.MELEE).add(EntityType.VILLAGER, 2, "vanilla");
                     pools.pool(EnemyPoolRole.THEME).add(EntityType.ZOMBIE_VILLAGER, 4, "vanilla").add(EntityType.IRON_GOLEM, 2, "vanilla");
                 }
                 if (level >= 35) {
@@ -296,15 +295,6 @@ public final class EnemyPoolRegistry {
         if (level < 20 || !ModCompat.isAnyLoaded(VILLAGERS_IDS)) {
             return;
         }
-        List<EntityType<?>> illagers = ModCompat.findEntitiesMatching(VILLAGERS_IDS, "pillager", "illager", "vindicator", "evoker", "ravager");
-        if (theme == CrystalTheme.ARCANE || theme == CrystalTheme.RAIDER) {
-            pools.pool(EnemyPoolRole.RANGED).addAll(illagers, 2, "villagersandpillagers");
-            if (level >= 35) {
-                pools.pool(EnemyPoolRole.ELITE).addAll(illagers, 2, "villagersandpillagers");
-                pools.pool(EnemyPoolRole.SUPPORT).addAll(illagers, 1, "villagersandpillagers");
-            }
-        } else if (theme == CrystalTheme.BEAST) {
-            pools.pool(EnemyPoolRole.ELITE).addAll(ModCompat.findEntitiesMatching(VILLAGERS_IDS, "ravager"), 3, "villagersandpillagers");
-        }
+        // Disabled to keep raider/arcane pools from overloading on illager casters.
     }
 }

@@ -55,6 +55,7 @@ public final class InventoryWalletOverlay {
                     minecraft.font,
                     List.of(
                             Component.literal("Mythic Coins"),
+                            Component.literal(Integer.toString(MythicCoinWallet.get(minecraft.player))).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE),
                             Component.empty(),
                             Component.literal("Multiplier " + MULTIPLIER_FORMAT.format(MythicCoinWallet.getTotalMultiplier(minecraft.player)) + "x")
                     ),
@@ -77,6 +78,10 @@ public final class InventoryWalletOverlay {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(layout.textX(), layout.textY(), 250.0F);
         guiGraphics.pose().scale(layout.textScale() * hoverScale, layout.textScale() * hoverScale, 1.0F);
+        guiGraphics.drawString(minecraft.font, layout.text(), -1, 0, 0x101010, false);
+        guiGraphics.drawString(minecraft.font, layout.text(), 1, 0, 0x101010, false);
+        guiGraphics.drawString(minecraft.font, layout.text(), 0, -1, 0x101010, false);
+        guiGraphics.drawString(minecraft.font, layout.text(), 0, 1, 0x101010, false);
         guiGraphics.drawString(minecraft.font, layout.text(), 0, 0, 0xB06CFF, false);
         guiGraphics.pose().popPose();
     }
@@ -84,15 +89,15 @@ public final class InventoryWalletOverlay {
     private record WalletLayout(String text, float textScale, int iconX, int iconY, float textX, float textY, int hoverLeft, int hoverTop, int hoverRight, int hoverBottom) {
 
         private static WalletLayout create(Minecraft minecraft, AbstractContainerScreen<?> screen) {
-            String text = Integer.toString(MythicCoinWallet.get(minecraft.player));
+            String text = formatCompactValue(MythicCoinWallet.get(minecraft.player));
             int digits = text.length();
             int extraDigits = Math.max(0, digits - 4);
             float textScale = Math.max(0.42F, BASE_TEXT_SCALE - (extraDigits * 0.08F));
             float textWidth = minecraft.font.width(text) * textScale;
-            float gap = 4.0F + (extraDigits * 1.5F);
+            float gap = 3.0F + (extraDigits * 1.5F);
             float groupWidth = ICON_SIZE + gap + textWidth;
             float centerX = screen.getGuiLeft() + PLAYER_BOX_CENTER_X;
-            float centerY = screen.getGuiTop() + PLAYER_BOX_CENTER_Y;
+            float centerY = screen.getGuiTop() + PLAYER_BOX_CENTER_Y + 5.0F;
             float groupLeft = centerX - (groupWidth / 2.0F);
             int iconX = Mth.floor(groupLeft);
             int iconY = Mth.floor(centerY - 8.0F);
@@ -108,5 +113,24 @@ public final class InventoryWalletOverlay {
         private boolean isMouseOver(double mouseX, double mouseY) {
             return mouseX >= this.hoverLeft && mouseX <= this.hoverRight && mouseY >= this.hoverTop && mouseY <= this.hoverBottom;
         }
+    }
+
+    private static String formatCompactValue(int value) {
+        if (value < 1000) {
+            return Integer.toString(value);
+        }
+        if (value < 1_000_000) {
+            return trimCompactDecimal(value / 1000.0D, value < 10_000 ? 1 : 2) + "k";
+        }
+        return trimCompactDecimal(value / 1_000_000.0D, value < 100_000_000 ? 1 : 2) + "M";
+    }
+
+    private static String trimCompactDecimal(double value, int maxDecimals) {
+        String format = "%." + maxDecimals + "f";
+        String text = String.format(java.util.Locale.ROOT, format, value);
+        while (text.contains(".") && (text.endsWith("0") || text.endsWith("."))) {
+            text = text.substring(0, text.length() - 1);
+        }
+        return text;
     }
 }

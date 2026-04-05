@@ -5,6 +5,8 @@ import com.revilo.gatewayexpansion.client.GatewayExpansionClient;
 import com.revilo.gatewayexpansion.gateway.GatewayDisplayManager;
 import com.revilo.gatewayexpansion.integration.GatewayFailureEvents;
 import com.revilo.gatewayexpansion.integration.GeneratedGatewayPearlTracker;
+import com.revilo.gatewayexpansion.integration.LevelUpGatewayIntegration;
+import com.revilo.gatewayexpansion.integration.LevelUpGatewayXpRewards;
 import com.revilo.gatewayexpansion.registry.ModAttachments;
 import com.revilo.gatewayexpansion.registry.ModAttributes;
 import com.revilo.gatewayexpansion.registry.ModBlockEntities;
@@ -39,6 +41,8 @@ public final class GatewayExpansion {
         NeoForge.EVENT_BUS.register(CoinCommands.class);
         NeoForge.EVENT_BUS.register(GatewayFailureEvents.class);
         NeoForge.EVENT_BUS.register(GeneratedGatewayPearlTracker.class);
+        NeoForge.EVENT_BUS.register(LevelUpGatewayIntegration.class);
+        NeoForge.EVENT_BUS.register(LevelUpGatewayXpRewards.class);
         NeoForge.EVENT_BUS.register(GatewayDisplayManager.class);
         NeoForge.EVENT_BUS.register(ShopkeeperManager.class);
     }

@@ -39,7 +39,13 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.ARCANE_ESSENCE.get());
                         output.accept(ModItems.MANASTONES.get());
                         output.accept(ModItems.MANA_GEMS.get());
+                        output.accept(ModItems.MANA_STEEL_SCRAP.get());
+                        output.accept(ModItems.MANA_STEEL_INGOT.get());
+                        output.accept(ModItems.MANA_STEEL_PAXEL.get());
                         output.accept(ModItems.SCRAP_METAL.get());
+                        output.accept(ModItems.ELIXRITE_SCRAP.get());
+                        output.accept(ModItems.ELIXRITE_INGOT.get());
+                        output.accept(ModItems.ELIXRITE_PAXEL.get());
                         output.accept(ModItems.PRISMATIC_CORE.get());
                         output.accept(ModItems.SOLAR_CRYSTAL.get());
                         output.accept(ModItems.PRISMATIC_DIAMOND.get());

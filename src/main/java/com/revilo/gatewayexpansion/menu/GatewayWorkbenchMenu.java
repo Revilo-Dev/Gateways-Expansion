@@ -198,6 +198,10 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         return GatewayWorkbenchForgeLogic.buildPreview(this.player, this.container);
     }
 
+    private boolean canAcceptWorkbenchInput() {
+        return this.container.getItem(OUTPUT_SLOT).isEmpty();
+    }
+
     public int getPlayerLevel() {
         return LevelUpIntegration.getPlayerLevel(this.player);
     }
@@ -212,7 +216,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
         return slot instanceof ProgressionSlot progressionSlot ? progressionSlot.requiredLevel() : 0;
     }
 
-    private static class FilteredSlot extends Slot {
+    private class FilteredSlot extends Slot {
 
         private final Predicate<ItemStack> predicate;
 
@@ -223,7 +227,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            return this.predicate.test(stack);
+            return GatewayWorkbenchMenu.this.canAcceptWorkbenchInput() && this.predicate.test(stack);
         }
 
         @Override

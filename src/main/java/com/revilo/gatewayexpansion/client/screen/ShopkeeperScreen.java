@@ -43,17 +43,17 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     private static final int SLOT_SPACING_Y = 25;
     private static final int SLOT_SIZE = 24;
     private static final int SLOT_ITEM_SIZE = 16;
-    private static final int SELECTED_ITEM_X = 149;
+    private static final int SELECTED_ITEM_X = 146;
     private static final int SELECTED_ITEM_Y = 24;
-    private static final int BUY_BUTTON_X = 141;
+    private static final int BUY_BUTTON_X = 137;
     private static final int BUY_BUTTON_Y = 56;
-    private static final int BUY_BUTTON_WIDTH = 30;
+    private static final int BUY_BUTTON_WIDTH = 34;
     private static final int BUY_BUTTON_HEIGHT = 17;
-    private static final int BUY_PRICE_X = 151;
+    private static final int BUY_PRICE_X = 148;
     private static final int BUY_PRICE_Y = 44;
     private static final int BUY_PRICE_ICON_SHIFT_X = -10;
-    private static final int REROLL_X = 129;
-    private static final int REROLL_Y = 2;
+    private static final int REROLL_X = 123;
+    private static final int REROLL_Y = 68;
     private static final int REROLL_RENDER_SIZE = 12;
     private static final int TAB_X = -32;
     private static final int TAB_BUY_Y = 9;
@@ -114,7 +114,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     @Override
     protected void containerTick() {
         super.containerTick();
-        if (this.getSelectedOffer() == null) {
+        if (this.menu.getOfferDefinition(this.selectedSlot) == null) {
             this.selectedSlot = this.findInitialSelection();
         }
 
@@ -164,6 +164,10 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         this.renderCoinFlights(guiGraphics, partialTick);
 
         if (this.activePage == Page.BUY && this.renderOfferTooltip(guiGraphics, mouseX, mouseY)) {
+            return;
+        }
+
+        if (this.renderWalletTooltip(guiGraphics, mouseX, mouseY)) {
             return;
         }
 
@@ -249,7 +253,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
             guiGraphics.blit(slotTexture, slotX, slotY, 0, 0, SLOT_SIZE, SLOT_SIZE, SLOT_SIZE, SLOT_SIZE);
 
             if (slotIndex == this.selectedSlot && offer != null) {
-                guiGraphics.fill(slotX + 1, slotY + 1, slotX + SLOT_SIZE - 1, slotY + SLOT_SIZE - 1, 0x33FFF1C1);
+                guiGraphics.fill(slotX + 1, slotY + 1, slotX + SLOT_SIZE - 1, slotY + SLOT_SIZE - 1, 0x55FFFFFF);
             }
 
             if (offer == null || !unlocked) {
@@ -298,19 +302,23 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
 
     private void renderWallet(GuiGraphics guiGraphics) {
         WalletLayout walletLayout = this.getWalletLayout();
-        String walletText = walletLayout.text();
+        boolean hovered = walletLayout.isMouseOver(this.lastMouseX, this.lastMouseY);
         float pulse = 1.0F + (this.walletPulseTicks > 0 ? 0.1F * Mth.sin((8 - this.walletPulseTicks) / 8.0F * Mth.PI) : 0.0F);
-        float scale = 0.75F * pulse;
-        int y = this.topPos + 1;
+        float hoverScale = hovered ? 1.1F : 1.0F;
+        float scale = 0.75F * pulse * hoverScale;
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(walletLayout.iconX(), y + 2, 0.0F);
-        guiGraphics.pose().scale(0.5F, 0.5F, 1.0F);
+        guiGraphics.pose().translate(walletLayout.iconX(), walletLayout.iconY(), 0.0F);
+        guiGraphics.pose().scale(0.5F * hoverScale, 0.5F * hoverScale, 1.0F);
         guiGraphics.renderItem(COIN_STACK, 0, 0);
         guiGraphics.pose().popPose();
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(walletLayout.textX() + 3, y + 3, 0.0F);
+        guiGraphics.pose().translate(walletLayout.textX(), walletLayout.textY(), 0.0F);
         guiGraphics.pose().scale(scale, scale, 1.0F);
-        guiGraphics.drawString(this.font, walletText, 0, 0, 0xB06CFF, false);
+        guiGraphics.drawString(this.font, walletLayout.text(), -1, 0, 0x101010, false);
+        guiGraphics.drawString(this.font, walletLayout.text(), 1, 0, 0x101010, false);
+        guiGraphics.drawString(this.font, walletLayout.text(), 0, -1, 0x101010, false);
+        guiGraphics.drawString(this.font, walletLayout.text(), 0, 1, 0x101010, false);
+        guiGraphics.drawString(this.font, walletLayout.text(), 0, 0, 0xB06CFF, false);
         guiGraphics.pose().popPose();
     }
 
@@ -341,7 +349,12 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         guiGraphics.pose().translate(x, y, 200.0F);
         guiGraphics.pose().scale(scale, scale, 1.0F);
         guiGraphics.renderItem(COIN_STACK, iconShiftX, 0);
-        guiGraphics.drawString(this.font, Integer.toString(price), 10, 4, textColor, false);
+        String text = formatCompactValue(price);
+        guiGraphics.drawString(this.font, text, 9, 4, 0x101010, false);
+        guiGraphics.drawString(this.font, text, 11, 4, 0x101010, false);
+        guiGraphics.drawString(this.font, text, 10, 3, 0x101010, false);
+        guiGraphics.drawString(this.font, text, 10, 5, 0x101010, false);
+        guiGraphics.drawString(this.font, text, 10, 4, textColor, false);
         guiGraphics.pose().popPose();
     }
 
@@ -420,6 +433,25 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         }
 
         return false;
+    }
+
+    private boolean renderWalletTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        WalletLayout walletLayout = this.getWalletLayout();
+        if (!walletLayout.isMouseOver(mouseX, mouseY)) {
+            return false;
+        }
+
+        guiGraphics.renderTooltip(
+                this.font,
+                List.of(
+                        Component.literal("Mythic Coins"),
+                        Component.literal(Integer.toString(this.menu.getWalletBalance())).withStyle(ChatFormatting.LIGHT_PURPLE)
+                ),
+                COIN_STACK.getTooltipImage(),
+                COIN_STACK,
+                mouseX,
+                mouseY);
+        return true;
     }
 
     private void renderItemTooltip(GuiGraphics guiGraphics, ItemStack stack, int mouseX, int mouseY, Component description) {
@@ -595,7 +627,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
                 continue;
             }
 
-            guiGraphics.fill(this.leftPos + slot.x, this.topPos + slot.y, this.leftPos + slot.x + 16, this.topPos + slot.y + 16, 0x88707070);
+            guiGraphics.fill(this.leftPos + slot.x, this.topPos + slot.y, this.leftPos + slot.x + 16, this.topPos + slot.y + 16, 0xCC303030);
         }
     }
 
@@ -696,10 +728,36 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     }
 
     private WalletLayout getWalletLayout() {
-        String walletText = Integer.toString(this.menu.getWalletBalance());
+        String walletText = formatCompactValue(this.menu.getWalletBalance());
         int textWidth = Math.round(this.font.width(walletText) * 0.75F);
         int textX = this.leftPos + this.imageWidth - 8 - textWidth;
-        return new WalletLayout(walletText, textX, textX - 6);
+        int iconX = textX - 5;
+        int iconY = this.topPos + 4;
+        int textY = this.topPos + 5;
+        int hoverLeft = iconX - 2;
+        int hoverRight = textX + textWidth + 2;
+        int hoverTop = this.topPos + 2;
+        int hoverBottom = this.topPos + 15;
+        return new WalletLayout(walletText, textX + 3, textY, iconX, iconY, hoverLeft, hoverTop, hoverRight, hoverBottom);
+    }
+
+    private static String formatCompactValue(int value) {
+        if (value < 1000) {
+            return Integer.toString(value);
+        }
+        if (value < 1_000_000) {
+            return trimCompactDecimal(value / 1000.0D, value < 10_000 ? 1 : 2) + "k";
+        }
+        return trimCompactDecimal(value / 1_000_000.0D, value < 100_000_000 ? 1 : 2) + "M";
+    }
+
+    private static String trimCompactDecimal(double value, int maxDecimals) {
+        String format = "%." + maxDecimals + "f";
+        String text = String.format(java.util.Locale.ROOT, format, value);
+        while (text.contains(".") && (text.endsWith("0") || text.endsWith("."))) {
+            text = text.substring(0, text.length() - 1);
+        }
+        return text;
     }
 
     private void playDing(float pitch) {
@@ -743,6 +801,9 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         }
     }
 
-    private record WalletLayout(String text, int textX, int iconX) {
+    private record WalletLayout(String text, int textX, int textY, int iconX, int iconY, int hoverLeft, int hoverTop, int hoverRight, int hoverBottom) {
+        private boolean isMouseOver(double mouseX, double mouseY) {
+            return mouseX >= this.hoverLeft && mouseX <= this.hoverRight && mouseY >= this.hoverTop && mouseY <= this.hoverBottom;
+        }
     }
 }

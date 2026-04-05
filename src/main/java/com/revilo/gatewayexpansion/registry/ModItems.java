@@ -7,6 +7,7 @@ import com.revilo.gatewayexpansion.item.CatalystItem;
 import com.revilo.gatewayexpansion.item.CrystalItem;
 import com.revilo.gatewayexpansion.item.LootMaterialItem;
 import com.revilo.gatewayexpansion.item.MythicCoinItem;
+import com.revilo.gatewayexpansion.item.PaxelItem;
 import com.revilo.gatewayexpansion.item.ShopGatewayPearlItem;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import com.revilo.gatewayexpansion.item.data.LootRarity;
@@ -62,14 +63,26 @@ public final class ModItems {
             () -> new LootMaterialItem(LootRarity.UNCOMMON, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> MANA_GEMS = ITEMS.register("mana_gems",
             () -> new LootMaterialItem(LootRarity.UNCOMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> MANA_STEEL_SCRAP = ITEMS.register("mana_steel_scrap",
+            () -> new LootMaterialItem(LootRarity.UNCOMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> MANA_STEEL_INGOT = ITEMS.register("mana_steel_ingot",
+            () -> new LootMaterialItem(LootRarity.UNCOMMON, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> SCRAP_METAL = ITEMS.register("scrap_metal",
             () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> ELIXRITE_SCRAP = ITEMS.register("elixrite_scrap",
+            () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> ELIXRITE_INGOT = ITEMS.register("elixrite_ingot",
+            () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> PRISMATIC_CORE = ITEMS.register("prismatic_core",
             () -> new LootMaterialItem(LootRarity.LEGENDARY, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> SOLAR_CRYSTAL = ITEMS.register("solar_crystal",
             () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> PRISMATIC_DIAMOND = ITEMS.register("prismatic_diamond",
             () -> new LootMaterialItem(LootRarity.EPIC, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, PaxelItem> MANA_STEEL_PAXEL = ITEMS.register("mana_steel_paxel",
+            () -> new PaxelItem(ModToolTiers.MANA_STEEL, new Item.Properties(), 4.0F, -2.9F));
+    public static final DeferredHolder<Item, PaxelItem> ELIXRITE_PAXEL = ITEMS.register("elixrite_paxel",
+            () -> new PaxelItem(ModToolTiers.ELIXRITE, new Item.Properties(), 5.0F, -2.8F));
     public static final DeferredHolder<Item, ShopGatewayPearlItem> SHOP_GATEWAY = ITEMS.register("shop_gateway",
             () -> new ShopGatewayPearlItem(new Item.Properties().stacksTo(16)));
 
