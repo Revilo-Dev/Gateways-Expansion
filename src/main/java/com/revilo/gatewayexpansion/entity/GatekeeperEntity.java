@@ -16,6 +16,7 @@ public class GatekeeperEntity extends PathfinderMob {
         super(entityType, level);
         this.setPersistenceRequired();
         this.setNoAi(true);
+        this.setNoGravity(false);
     }
 
     public static AttributeSupplier.Builder createAttributes() {

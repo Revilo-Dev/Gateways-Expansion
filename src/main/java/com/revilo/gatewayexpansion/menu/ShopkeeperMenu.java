@@ -204,6 +204,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     }
 
     public java.util.List<ShopOfferDefinition> getOffers() {
+        this.refreshOffersFromData();
         return this.cachedOffers;
     }
 
@@ -217,8 +218,11 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     }
 
     public int getRequiredLevelForSlot(int slotIndex) {
+        this.refreshOffersFromData();
         ShopOfferDefinition offer = this.getOfferDefinition(slotIndex);
-        return offer == null ? 0 : offer.requiredLevel();
+        int slotRequirement = slotIndex <= 1 ? 0 : (slotIndex - 1) * 10;
+        int itemRequirement = offer == null ? 0 : offer.requiredLevel();
+        return Math.max(slotRequirement, itemRequirement);
     }
 
     public ShopOfferDefinition getOfferForSlot(int slotIndex) {
@@ -230,6 +234,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     }
 
     public ShopOfferDefinition getOfferDefinition(int slotIndex) {
+        this.refreshOffersFromData();
         if (slotIndex < 0 || slotIndex >= this.cachedOffers.size() || slotIndex >= GRID_SLOT_COUNT) {
             return null;
         }

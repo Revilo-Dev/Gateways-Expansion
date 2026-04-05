@@ -16,6 +16,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
@@ -31,14 +32,15 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     private static final ResourceLocation REROLL_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/shop/re-roll.png");
     private static final ResourceLocation REROLL_DISABLED_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/shop/re-roll-disabled.png");
     private static final ResourceLocation SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/shop/slot.png");
+    private static final ResourceLocation UNPURCHASABLE_SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/shop/slot-unpurchaseable.png");
     private static final ResourceLocation LOCKED_SLOT_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/shop/slot-locked.png");
     private static final ResourceLocation TAB_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/shop/tab.png");
     private static final ResourceLocation TAB_SELECTED_TEXTURE = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "textures/gui/shop/tab_selected.png");
     private static final int GRID_COLUMNS = 5;
     private static final int GRID_START_X = 9;
     private static final int GRID_START_Y = 16;
-    private static final int SLOT_SPACING_X = 26;
-    private static final int SLOT_SPACING_Y = 26;
+    private static final int SLOT_SPACING_X = 25;
+    private static final int SLOT_SPACING_Y = 25;
     private static final int SLOT_SIZE = 24;
     private static final int SLOT_ITEM_SIZE = 16;
     private static final int SELECTED_ITEM_X = 149;
@@ -233,21 +235,28 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
             int slotY = this.topPos + GRID_START_Y + (slotIndex / GRID_COLUMNS) * SLOT_SPACING_Y;
             boolean unlocked = this.menu.isOfferSlotUnlocked(slotIndex);
             ShopOfferDefinition offer = this.menu.getOfferDefinition(slotIndex);
+            boolean outOfStock = offer == null || this.menu.getOfferStock(slotIndex) <= 0;
+            boolean unaffordable = offer != null && !this.menu.canAfford(offer);
 
-            guiGraphics.blit(unlocked ? SLOT_TEXTURE : LOCKED_SLOT_TEXTURE, slotX, slotY, 0, 0, SLOT_SIZE, SLOT_SIZE, SLOT_SIZE, SLOT_SIZE);
+            ResourceLocation slotTexture = SLOT_TEXTURE;
+            if (!unlocked) {
+                slotTexture = LOCKED_SLOT_TEXTURE;
+            }
+            else if (outOfStock || unaffordable) {
+                slotTexture = UNPURCHASABLE_SLOT_TEXTURE;
+            }
+
+            guiGraphics.blit(slotTexture, slotX, slotY, 0, 0, SLOT_SIZE, SLOT_SIZE, SLOT_SIZE, SLOT_SIZE);
 
             if (slotIndex == this.selectedSlot && offer != null) {
                 guiGraphics.fill(slotX + 1, slotY + 1, slotX + SLOT_SIZE - 1, slotY + SLOT_SIZE - 1, 0x33FFF1C1);
             }
 
-            if (offer == null || this.menu.getOfferStock(slotIndex) <= 0) {
+            if (offer == null || !unlocked) {
                 continue;
             }
 
             guiGraphics.renderItem(offer.previewStack(), slotX + (SLOT_SIZE - SLOT_ITEM_SIZE) / 2, slotY + 4);
-            if (!unlocked) {
-                guiGraphics.fill(slotX + 1, slotY + 1, slotX + SLOT_SIZE - 1, slotY + SLOT_SIZE - 1, 0x88404040);
-            }
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(slotX + 15, slotY + 15, 220.0F);
             guiGraphics.pose().scale(0.5F, 0.5F, 1.0F);
@@ -426,13 +435,17 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         }
 
         ShopOfferDefinition offer = this.getSelectedOffer();
-        boolean canBuy = this.activePage == Page.BUY
+        boolean canBuy = offer != null
                 && offer != null
                 && this.menu.isOfferSlotUnlocked(this.selectedSlot)
                 && this.menu.getOfferStock(this.selectedSlot) > 0
                 && this.menu.canAfford(offer);
-        this.buyButton.visible = canBuy;
-        this.buyButton.active = canBuy;
+        boolean tooExpensive = offer != null && this.menu.isOfferSlotUnlocked(this.selectedSlot) && this.menu.getOfferStock(this.selectedSlot) > 0 && !this.menu.canAfford(offer);
+        this.buyButton.visible = this.activePage == Page.BUY;
+        this.buyButton.active = this.activePage == Page.BUY && canBuy;
+        this.buyButton.setMessage(tooExpensive
+                ? Component.translatable("screen.gatewayexpansion.shopkeeper.buy").setStyle(Style.EMPTY.withColor(0xD05050))
+                : Component.translatable("screen.gatewayexpansion.shopkeeper.buy"));
     }
 
     private void buySelectedOffer() {
