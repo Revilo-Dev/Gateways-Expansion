@@ -45,9 +45,6 @@ public class CatalystItem extends Item {
         }
         tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.positive", definition.positiveEffect().description()).withStyle(ChatFormatting.GREEN));
         tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.catalyst.negative", definition.negativeEffect().description()).withStyle(ChatFormatting.RED));
-        if (!definition.tags().isEmpty()) {
-            tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.common.tags", String.join(", ", definition.tags())).withStyle(ChatFormatting.DARK_GRAY));
-        }
     }
 
     @Override

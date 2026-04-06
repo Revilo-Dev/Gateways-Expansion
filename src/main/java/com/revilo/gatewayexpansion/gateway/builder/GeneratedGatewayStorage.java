@@ -19,6 +19,9 @@ final class GeneratedGatewayStorage extends SavedData {
     private static final String DISPLAY_NAME_KEY = "display_name";
     private static final String TIER_KEY = "tier";
     private static final String LEVEL_KEY = "level";
+    private static final String COIN_MULTIPLIER_KEY = "coin_multiplier";
+    private static final String LEVEL_XP_MULTIPLIER_KEY = "level_xp_multiplier";
+    private static final String EXPERIENCE_MULTIPLIER_KEY = "experience_multiplier";
     private static final Factory<GeneratedGatewayStorage> FACTORY = new Factory<>(GeneratedGatewayStorage::new, GeneratedGatewayStorage::load);
 
     private final Map<ResourceLocation, StoredGateway> gateways = new LinkedHashMap<>();
@@ -40,14 +43,21 @@ final class GeneratedGatewayStorage extends SavedData {
             if (id == null) {
                 continue;
             }
-            storage.gateways.put(id, new StoredGateway(entry.getString(JSON_KEY), entry.getString(DISPLAY_NAME_KEY), entry.getInt(TIER_KEY), entry.getInt(LEVEL_KEY)));
+            storage.gateways.put(id, new StoredGateway(
+                    entry.getString(JSON_KEY),
+                    entry.getString(DISPLAY_NAME_KEY),
+                    entry.getInt(TIER_KEY),
+                    entry.getInt(LEVEL_KEY),
+                    entry.contains(COIN_MULTIPLIER_KEY) ? entry.getDouble(COIN_MULTIPLIER_KEY) : 1.0D,
+                    entry.contains(LEVEL_XP_MULTIPLIER_KEY) ? entry.getDouble(LEVEL_XP_MULTIPLIER_KEY) : 1.0D,
+                    entry.contains(EXPERIENCE_MULTIPLIER_KEY) ? entry.getDouble(EXPERIENCE_MULTIPLIER_KEY) : 1.0D));
         }
         return storage;
     }
 
-    void put(ResourceLocation id, String json, String displayName, int crystalTier, int crystalLevel) {
+    void put(ResourceLocation id, String json, String displayName, int crystalTier, int crystalLevel, double coinRewardMultiplier, double levelXpMultiplier, double experienceRewardMultiplier) {
         StoredGateway existing = this.gateways.get(id);
-        StoredGateway updated = new StoredGateway(json, displayName, crystalTier, crystalLevel);
+        StoredGateway updated = new StoredGateway(json, displayName, crystalTier, crystalLevel, coinRewardMultiplier, levelXpMultiplier, experienceRewardMultiplier);
         if (!updated.equals(existing)) {
             this.gateways.put(id, updated);
             this.setDirty();
@@ -68,12 +78,15 @@ final class GeneratedGatewayStorage extends SavedData {
             gateway.putString(DISPLAY_NAME_KEY, entry.getValue().displayName());
             gateway.putInt(TIER_KEY, entry.getValue().crystalTier());
             gateway.putInt(LEVEL_KEY, entry.getValue().crystalLevel());
+            gateway.putDouble(COIN_MULTIPLIER_KEY, entry.getValue().coinRewardMultiplier());
+            gateway.putDouble(LEVEL_XP_MULTIPLIER_KEY, entry.getValue().levelXpMultiplier());
+            gateway.putDouble(EXPERIENCE_MULTIPLIER_KEY, entry.getValue().experienceRewardMultiplier());
             gateways.add(gateway);
         }
         tag.put(GATEWAYS_KEY, gateways);
         return tag;
     }
 
-    record StoredGateway(String json, String displayName, int crystalTier, int crystalLevel) {
+    record StoredGateway(String json, String displayName, int crystalTier, int crystalLevel, double coinRewardMultiplier, double levelXpMultiplier, double experienceRewardMultiplier) {
     }
 }

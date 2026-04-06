@@ -8,6 +8,8 @@ public final class ModToolTiers {
 
     public static final Tier MANA_STEEL = new DerivedTier(Tiers.IRON, 0.95F, () -> Ingredient.of(ModItems.MANA_STEEL_INGOT.get()));
     public static final Tier ELIXRITE = new DerivedTier(Tiers.DIAMOND, 0.95F, () -> Ingredient.of(ModItems.ELIXRITE_INGOT.get()));
+    public static final Tier ASTRITE = new DerivedTier(Tiers.DIAMOND, 1.0F, () -> Ingredient.of(ModItems.ASTRITE_INGOT.get()));
+    public static final Tier LUNARIUM = new DerivedTier(Tiers.NETHERITE, 1.0F, () -> Ingredient.of(ModItems.LUNARIUM_INGOT.get()));
 
     private ModToolTiers() {
     }

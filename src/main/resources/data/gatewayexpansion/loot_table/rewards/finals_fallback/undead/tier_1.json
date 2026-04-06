@@ -85,15 +85,15 @@
                                       },
                                       {
                                           "type":  "minecraft:item",
-                                          "name":  "minecraft:lapis_lazuli",
+                                          "name":  "gatewayexpansion:mystic_essence",
                                           "weight":  8,
                                           "functions":  [
                                                             {
                                                                 "function":  "minecraft:set_count",
                                                                 "count":  {
                                                                               "type":  "minecraft:uniform",
-                                                                              "min":  4,
-                                                                              "max":  8
+                                                                              "min":  2,
+                                                                              "max":  4
                                                                           },
                                                                 "add":  false
                                                             }

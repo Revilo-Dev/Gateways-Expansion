@@ -390,8 +390,9 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         java.util.ArrayList<ShopOfferDefinition> offers = new java.util.ArrayList<>(TEMP_OFFER_COUNT);
         for (int index = 0; index < TEMP_OFFER_COUNT; index++) {
             int offerIndex = this.syncedData.get(DATA_TEMP_START + index);
-            if (offerIndex >= 0 && offerIndex < ShopOfferDefinition.ALL_OFFERS.size()) {
-                offers.add(ShopOfferDefinition.ALL_OFFERS.get(offerIndex));
+            List<ShopOfferDefinition> allOffers = ShopOfferDefinition.allOffers();
+            if (offerIndex >= 0 && offerIndex < allOffers.size()) {
+                offers.add(allOffers.get(offerIndex));
             }
         }
         this.cachedOffers = List.copyOf(offers);

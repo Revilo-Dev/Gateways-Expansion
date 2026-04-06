@@ -45,6 +45,11 @@ public class GatekeeperEntity extends PathfinderMob {
     }
 
     @Override
+    public boolean shouldDropExperience() {
+        return false;
+    }
+
+    @Override
     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
         return InteractionResult.PASS;
     }

@@ -75,7 +75,6 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     private static final ResourceLocation BUTTON_TEXTURE = ResourceLocation.withDefaultNamespace("widget/button");
     private static final ResourceLocation BUTTON_HIGHLIGHTED_TEXTURE = ResourceLocation.withDefaultNamespace("widget/button_highlighted");
     private static final ResourceLocation BUTTON_DISABLED_TEXTURE = ResourceLocation.withDefaultNamespace("widget/button_disabled");
-    private static final ItemStack COIN_STACK = new ItemStack(ModItems.MYTHIC_COIN.get());
     private float selectedItemHoverScale = 1.0F;
 
     private final List<CoinFlight> coinFlights = new ArrayList<>();
@@ -282,7 +281,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         this.coinHoveredLastFrame = coinHovered;
 
         float hoverScale = coinHovered ? 1.1F : 1.0F;
-        WorkbenchCrystalRenderer.render(guiGraphics, COIN_STACK, this.leftPos + SELL_COIN_X, this.topPos + SELL_COIN_Y, partialTick, hoverScale * 0.9F, WorkbenchCrystalRenderer.BASE_SPIN_SPEED);
+        WorkbenchCrystalRenderer.render(guiGraphics, coinStack(), this.leftPos + SELL_COIN_X, this.topPos + SELL_COIN_Y, partialTick, hoverScale * 0.9F, WorkbenchCrystalRenderer.BASE_SPIN_SPEED);
 
         this.renderCoinPrice(guiGraphics, this.leftPos + SELL_TOTAL_X, this.topPos + SELL_TOTAL_Y, this.menu.getSellValue(), 0.75F, this.menu.getSellValue() > 0 ? 0xB06CFF : 0x7B6A8D, SELL_PRICE_ICON_SHIFT_X);
 
@@ -309,7 +308,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(walletLayout.iconX(), walletLayout.iconY(), 0.0F);
         guiGraphics.pose().scale(0.5F * hoverScale, 0.5F * hoverScale, 1.0F);
-        guiGraphics.renderItem(COIN_STACK, 0, 0);
+        guiGraphics.renderItem(coinStack(), 0, 0);
         guiGraphics.pose().popPose();
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(walletLayout.textX(), walletLayout.textY(), 0.0F);
@@ -348,7 +347,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(x, y, 200.0F);
         guiGraphics.pose().scale(scale, scale, 1.0F);
-        guiGraphics.renderItem(COIN_STACK, iconShiftX, 0);
+        guiGraphics.renderItem(coinStack(), iconShiftX, 0);
         String text = formatCompactValue(price);
         guiGraphics.drawString(this.font, text, 9, 4, 0x101010, false);
         guiGraphics.drawString(this.font, text, 11, 4, 0x101010, false);
@@ -359,10 +358,13 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     }
 
     private void renderRerollButton(GuiGraphics guiGraphics) {
-        ResourceLocation texture = this.menu.hasRerollsRemaining() ? REROLL_TEXTURE : REROLL_DISABLED_TEXTURE;
+        boolean active = this.menu.hasRerollsRemaining() && this.menu.canAffordReroll();
+        boolean hovered = this.isHoveringReroll(this.lastMouseX, this.lastMouseY);
+        float scale = hovered ? 1.1F : 1.0F;
+        ResourceLocation texture = active ? REROLL_TEXTURE : REROLL_DISABLED_TEXTURE;
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(this.leftPos + REROLL_X, this.topPos + REROLL_Y, 150.0F);
-        guiGraphics.pose().scale(REROLL_RENDER_SIZE / 16.0F, REROLL_RENDER_SIZE / 16.0F, 1.0F);
+        guiGraphics.pose().translate(this.leftPos + REROLL_X + (REROLL_RENDER_SIZE * (1.0F - scale) * 0.5F), this.topPos + REROLL_Y + (REROLL_RENDER_SIZE * (1.0F - scale) * 0.5F), 150.0F);
+        guiGraphics.pose().scale((REROLL_RENDER_SIZE / 16.0F) * scale, (REROLL_RENDER_SIZE / 16.0F) * scale, 1.0F);
         guiGraphics.blit(texture, 0, 0, 0, 0, 16, 16, 16, 16);
         guiGraphics.pose().popPose();
     }
@@ -441,21 +443,23 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
             return false;
         }
 
+        ItemStack coinStack = coinStack();
         guiGraphics.renderTooltip(
                 this.font,
                 List.of(
                         Component.literal("Mythic Coins"),
                         Component.literal(Integer.toString(this.menu.getWalletBalance())).withStyle(ChatFormatting.LIGHT_PURPLE)
                 ),
-                COIN_STACK.getTooltipImage(),
-                COIN_STACK,
+                coinStack.getTooltipImage(),
+                coinStack,
                 mouseX,
                 mouseY);
         return true;
     }
 
     private void renderItemTooltip(GuiGraphics guiGraphics, ItemStack stack, int mouseX, int mouseY, Component description) {
-        List<Component> tooltip = Screen.getTooltipFromItem(this.minecraft, stack);
+        List<Component> tooltip = new ArrayList<>(Screen.getTooltipFromItem(this.minecraft, stack));
+        GatewaySellValues.appendShopRuneSellValueTooltip(stack, tooltip);
         tooltip.add(Component.empty());
         tooltip.add(description.copy().withStyle(ChatFormatting.GRAY));
         guiGraphics.renderTooltip(this.font, tooltip, stack.getTooltipImage(), stack, mouseX, mouseY);
@@ -588,7 +592,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(x, y, 260.0F);
             guiGraphics.pose().scale(0.6F, 0.6F, 1.0F);
-            guiGraphics.renderItem(COIN_STACK, 0, 0);
+            guiGraphics.renderItem(coinStack(), 0, 0);
             guiGraphics.pose().popPose();
         }
     }
@@ -673,7 +677,9 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     private boolean isHoveringReroll(double mouseX, double mouseY) {
         int x = this.leftPos + REROLL_X;
         int y = this.topPos + REROLL_Y;
-        return mouseX >= x && mouseX < x + REROLL_RENDER_SIZE && mouseY >= y && mouseY < y + REROLL_RENDER_SIZE;
+        int expandedSize = Math.round(REROLL_RENDER_SIZE * 1.1F);
+        int offset = (expandedSize - REROLL_RENDER_SIZE) / 2;
+        return mouseX >= x - offset && mouseX < x - offset + expandedSize && mouseY >= y - offset && mouseY < y - offset + expandedSize;
     }
 
     private boolean isHoveringSellButton(double mouseX, double mouseY) {
@@ -805,5 +811,9 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         private boolean isMouseOver(double mouseX, double mouseY) {
             return mouseX >= this.hoverLeft && mouseX <= this.hoverRight && mouseY >= this.hoverTop && mouseY <= this.hoverBottom;
         }
+    }
+
+    private static ItemStack coinStack() {
+        return new ItemStack(ModItems.MYTHIC_COIN.get());
     }
 }

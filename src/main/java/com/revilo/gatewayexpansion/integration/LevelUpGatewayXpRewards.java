@@ -1,5 +1,6 @@
 package com.revilo.gatewayexpansion.integration;
 
+import com.revilo.gatewayexpansion.GatewayExpansion;
 import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.event.GateEvent;
@@ -12,9 +13,12 @@ import net.neoforged.bus.api.SubscribeEvent;
 public final class LevelUpGatewayXpRewards {
 
     private static final String API_CLASS = "com.revilo.levelup.api.LevelUpApi";
-    private static final ResourceLocation GATEWAY_COMPLETE_SOURCE = ResourceLocation.fromNamespaceAndPath("levelup", "gateway_complete");
-    private static final ResourceLocation OBJECTIVE_COMPLETE_SOURCE = ResourceLocation.fromNamespaceAndPath("levelup", "objective_complete");
+    private static final String SOURCES_CLASS = "com.revilo.levelup.api.LevelUpSources";
+    private static final ResourceLocation GATEWAY_COMPLETE_SOURCE_FALLBACK = ResourceLocation.fromNamespaceAndPath("levelup", "gateway_complete");
+    private static final ResourceLocation OBJECTIVE_COMPLETE_SOURCE_FALLBACK = ResourceLocation.fromNamespaceAndPath("levelup", "objective_complete");
     private static Method awardXpMethod;
+    private static ResourceLocation gatewayCompleteSource = GATEWAY_COMPLETE_SOURCE_FALLBACK;
+    private static ResourceLocation objectiveCompleteSource = OBJECTIVE_COMPLETE_SOURCE_FALLBACK;
     private static boolean initialized;
 
     private LevelUpGatewayXpRewards() {
@@ -22,25 +26,27 @@ public final class LevelUpGatewayXpRewards {
 
     @SubscribeEvent
     public static void onWaveCompleted(GateEvent.WaveEnd event) {
-        if (!(event.getEntity().summonerOrClosest() instanceof ServerPlayer player) || !LevelUpIntegration.isLoaded()) {
+        ServerPlayer player = findRewardPlayer(event.getEntity());
+        if (player == null || !LevelUpIntegration.isLoaded()) {
             return;
         }
 
         int xp = computeWaveXp(event.getEntity());
         if (xp > 0) {
-            awardXp(player, xp, OBJECTIVE_COMPLETE_SOURCE);
+            awardXp(player, xp, objectiveCompleteSource);
         }
     }
 
     @SubscribeEvent
     public static void onGatewayCompleted(GateEvent.Completed event) {
-        if (!(event.getEntity().summonerOrClosest() instanceof ServerPlayer player) || !LevelUpIntegration.isLoaded()) {
+        ServerPlayer player = findRewardPlayer(event.getEntity());
+        if (player == null || !LevelUpIntegration.isLoaded()) {
             return;
         }
 
         int xp = computeCompletionXp(event.getEntity());
         if (xp > 0) {
-            awardXp(player, xp, GATEWAY_COMPLETE_SOURCE);
+            awardXp(player, xp, gatewayCompleteSource);
         }
     }
 
@@ -51,7 +57,8 @@ public final class LevelUpGatewayXpRewards {
         if (level <= 0) {
             level = tier * 20;
         }
-        return Math.max(6, (level / 2) + (tier * 8));
+        int baseXp = Math.max(24, level * 6 + tier * 18);
+        return Math.max(24, (int) Math.round(baseXp * GatewayForgeService.getGatewayLevelXpMultiplier(gateway)));
     }
 
     private static int computeCompletionXp(GatewayEntity gatewayEntity) {
@@ -61,7 +68,8 @@ public final class LevelUpGatewayXpRewards {
         if (level <= 0) {
             level = tier * 20;
         }
-        return Math.max(24, level * 3 + tier * 20);
+        int baseXp = Math.max(96, level * 18 + tier * 60);
+        return Math.max(96, (int) Math.round(baseXp * GatewayForgeService.getGatewayLevelXpMultiplier(gateway)));
     }
 
     private static void awardXp(ServerPlayer player, long amount, ResourceLocation source) {
@@ -71,7 +79,8 @@ public final class LevelUpGatewayXpRewards {
         }
         try {
             awardXpMethod.invoke(null, player, amount, source);
-        } catch (ReflectiveOperationException ignored) {
+        } catch (ReflectiveOperationException ex) {
+            GatewayExpansion.LOGGER.warn("Failed to award LevelUp XP {} with source {}", amount, source, ex);
         }
     }
 
@@ -83,8 +92,20 @@ public final class LevelUpGatewayXpRewards {
         try {
             Class<?> apiClass = Class.forName(API_CLASS);
             awardXpMethod = apiClass.getMethod("awardXp", ServerPlayer.class, long.class, ResourceLocation.class);
+            Class<?> sourcesClass = Class.forName(SOURCES_CLASS);
+            gatewayCompleteSource = (ResourceLocation) sourcesClass.getField("GATEWAY_COMPLETE").get(null);
+            objectiveCompleteSource = (ResourceLocation) sourcesClass.getField("OBJECTIVE_COMPLETE").get(null);
         } catch (ReflectiveOperationException ignored) {
             awardXpMethod = null;
+            gatewayCompleteSource = GATEWAY_COMPLETE_SOURCE_FALLBACK;
+            objectiveCompleteSource = OBJECTIVE_COMPLETE_SOURCE_FALLBACK;
         }
+    }
+
+    private static ServerPlayer findRewardPlayer(GatewayEntity gatewayEntity) {
+        if (gatewayEntity.summonerOrClosest() instanceof ServerPlayer player) {
+            return player;
+        }
+        return gatewayEntity.level().getNearestPlayer(gatewayEntity, 64.0D) instanceof ServerPlayer player ? player : null;
     }
 }

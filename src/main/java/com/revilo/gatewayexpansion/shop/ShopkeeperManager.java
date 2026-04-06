@@ -42,6 +42,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
+import java.util.List;
+
 public final class ShopkeeperManager {
 
     private static final String SHOPKEEPER_KEY = "gatewayexpansion.shopkeeper";
@@ -57,7 +59,7 @@ public final class ShopkeeperManager {
     private static final int SHOP_GATEWAY_ANIMATION_TICKS = 50;
     private static final double COIN_ATTRACTION_RANGE = 7.5D;
     private static final double COIN_ATTRACTION_FORCE = 0.022D;
-    private static final java.util.List<DeferredHolder<net.minecraft.world.item.Item, LootMaterialItem>> GATEWAY_DROP_ITEMS = java.util.List.of(
+    private static final List<DeferredHolder<net.minecraft.world.item.Item, LootMaterialItem>> GATEWAY_DROP_ITEMS = List.of(
             ModItems.GRIMSTONE,
             ModItems.MYSTIC_ESSENCE,
             ModItems.SCRAP_METAL,
@@ -66,13 +68,14 @@ public final class ShopkeeperManager {
             ModItems.ARCANE_ESSENCE,
             ModItems.MANASTONES,
             ModItems.ELIXRITE_SCRAP,
+            ModItems.ASTRITE_SCRAP,
             ModItems.SOLAR_CRYSTAL,
             ModItems.PRISMATIC_DIAMOND,
+            ModItems.LUNARIUM_SCRAP,
             ModItems.DARK_ESSENCE,
             ModItems.PRISMATIC_CORE
     );
-    private static final LootMaterialItem[] GATEWAY_DROP_POOL = GATEWAY_DROP_ITEMS.stream().map(DeferredHolder::get).toArray(LootMaterialItem[]::new);
-    private static final int GATEWAY_DROP_TOTAL_WEIGHT = java.util.Arrays.stream(GATEWAY_DROP_POOL).mapToInt(item -> item.rarity().weight()).sum();
+    private static final float STABILITY_PEARL_DROP_CHANCE = 0.04F;
 
     private ShopkeeperManager() {
     }
@@ -84,9 +87,9 @@ public final class ShopkeeperManager {
             return;
         }
 
-        int completionBurst = 14 + serverLevel.random.nextInt(9) + (gate.getWave() * 3);
+        int completionBurst = computeCompletionCoinBurst(gate, serverLevel.random);
         spawnCoins(gate, completionBurst);
-        spawnGatewayLoot(gate, 2 + serverLevel.random.nextInt(2));
+        spawnGatewayLoot(gate, computeCompletionLootRolls(gate, serverLevel.random));
         Player summoner = gate.summonerOrClosest();
         spawnShopkeeper(serverLevel, gate.getX(), gate.getY() + 0.5D, gate.getZ(), summoner);
     }
@@ -95,9 +98,9 @@ public final class ShopkeeperManager {
     public static void onWaveCompleted(GateEvent.WaveEnd event) {
         GatewayEntity gate = event.getEntity();
         if (gate.level() instanceof ServerLevel serverLevel) {
-            int waveBurst = 8 + serverLevel.random.nextInt(5) + Math.max(0, gate.getWave());
+            int waveBurst = computeWaveCoinBurst(gate, serverLevel.random);
             spawnCoins(gate, waveBurst);
-            spawnGatewayLoot(gate, 1 + serverLevel.random.nextInt(2));
+            spawnGatewayLoot(gate, computeWaveLootRolls(gate, serverLevel.random));
         }
     }
 
@@ -324,7 +327,7 @@ public final class ShopkeeperManager {
 
     private static void spawnCoins(GatewayEntity gate, int amount) {
         RandomSource random = gate.level().random;
-        int remaining = Math.max(0, amount);
+        int remaining = Math.max(0, (int) Math.round(amount * GatewayForgeService.getGatewayCoinRewardMultiplier(gate.getGateway())));
         while (remaining > 0) {
             int stackSize = Math.min(remaining, 3 + random.nextInt(5));
             remaining -= stackSize;
@@ -341,25 +344,36 @@ public final class ShopkeeperManager {
     private static void spawnGatewayLoot(GatewayEntity gate, int rolls) {
         RandomSource random = gate.level().random;
         for (int index = 0; index < rolls; index++) {
+            if (random.nextFloat() < STABILITY_PEARL_DROP_CHANCE) {
+                spawnGatewayDrop(gate, new ItemStack(ModItems.STABILITY_PEARL.get()));
+                continue;
+            }
+
             LootMaterialItem item = rollGatewayLoot(gate, random);
             if (item == null) {
                 continue;
             }
 
             int stackSize = switch (item.rarity()) {
-                case COMMON -> 2 + random.nextInt(3);
-                case UNCOMMON -> 1 + random.nextInt(2);
-                case RARE, EPIC, LEGENDARY, UNIQUE -> 1;
+                case COMMON -> 4 + random.nextInt(5);
+                case UNCOMMON -> 2 + random.nextInt(4);
+                case RARE -> 1 + random.nextInt(2);
+                case EPIC, LEGENDARY, UNIQUE -> 1;
             };
 
-            ItemEntity itemEntity = new ItemEntity(gate.level(), gate.getX(), gate.getY() + 1.0D, gate.getZ(), new ItemStack(item, stackSize));
+            spawnGatewayDrop(gate, new ItemStack(item, stackSize));
+        }
+    }
+
+    private static void spawnGatewayDrop(GatewayEntity gate, ItemStack stack) {
+        RandomSource random = gate.level().random;
+        ItemEntity itemEntity = new ItemEntity(gate.level(), gate.getX(), gate.getY() + 1.0D, gate.getZ(), stack);
             itemEntity.setDeltaMovement(
                     random.nextDouble() * 0.24D - 0.12D,
                     0.22D + random.nextDouble() * 0.10D,
                     random.nextDouble() * 0.24D - 0.12D);
             itemEntity.setNoPickUpDelay();
             gate.level().addFreshEntity(itemEntity);
-        }
     }
 
     private static LootMaterialItem rollGatewayLoot(GatewayEntity gate, RandomSource random) {
@@ -381,7 +395,8 @@ public final class ShopkeeperManager {
     }
 
     private static void rollVisibleOffers(GatekeeperEntity trader, RandomSource random, int playerLevel) {
-        int tempCount = Math.min(ShopkeeperMenu.GRID_SLOT_COUNT, ShopOfferDefinition.ALL_OFFERS.size());
+        List<ShopOfferDefinition> allOffers = ShopOfferDefinition.allOffers();
+        int tempCount = Math.min(ShopkeeperMenu.GRID_SLOT_COUNT, allOffers.size());
         int[] picks = pickTempOfferIndexes(random, tempCount, playerLevel);
         trader.getPersistentData().putIntArray(TEMP_TRADE_KEY, picks);
         trader.getPersistentData().putIntArray(STOCK_KEY, rollStocks(buildOffers(picks), random));
@@ -402,13 +417,22 @@ public final class ShopkeeperManager {
 
     private static int rollStockForOffer(ShopOfferDefinition offer, RandomSource random) {
         ItemStack preview = offer.previewStack();
+        if (preview.is(ModItems.STABILITY_PEARL.get())) {
+            return 1 + random.nextInt(2);
+        }
         if (preview.is(ModItems.GRIMSTONE.get()) || preview.is(ModItems.MYSTIC_ESSENCE.get()) || preview.is(ModItems.SCRAP_METAL.get())) {
             return 32 + random.nextInt(17);
         }
         if (preview.is(ModItems.MANA_STEEL_SCRAP.get()) || preview.is(ModItems.ELIXRITE_SCRAP.get())) {
             return 1 + random.nextInt(7);
         }
+        if (preview.is(ModItems.ASTRITE_SCRAP.get())) {
+            return 1 + random.nextInt(5);
+        }
         if (preview.is(ModItems.MANA_STEEL_INGOT.get()) || preview.is(ModItems.ELIXRITE_INGOT.get())) {
+            return 1 + random.nextInt(2);
+        }
+        if (preview.is(ModItems.ASTRITE_INGOT.get())) {
             return 1 + random.nextInt(2);
         }
         if (preview.is(Items.IRON_INGOT) || preview.is(Items.GOLD_INGOT)) {
@@ -435,8 +459,17 @@ public final class ShopkeeperManager {
         if (preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
             return 6 + random.nextInt(5);
         }
+        if (preview.is(ModItems.LUNARIUM_SCRAP.get())) {
+            return 1 + random.nextInt(4);
+        }
+        if (preview.is(ModItems.LUNARIUM_INGOT.get())) {
+            return 1 + random.nextInt(2);
+        }
         if (preview.is(ModItems.PRISMATIC_CORE.get())) {
             return 3 + random.nextInt(3);
+        }
+        if (preview.is(ModItems.ASTRITE_PAXEL.get()) || preview.is(ModItems.LUNARIUM_PAXEL.get())) {
+            return 1;
         }
         if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem) {
             return 2 + random.nextInt(3);
@@ -449,46 +482,83 @@ public final class ShopkeeperManager {
 
     private static java.util.List<ShopOfferDefinition> buildOffers(int[] tempIndexes) {
         java.util.List<ShopOfferDefinition> offers = new java.util.ArrayList<>(tempIndexes.length);
+        List<ShopOfferDefinition> allOffers = ShopOfferDefinition.allOffers();
         for (int tempIndex : tempIndexes) {
-            if (tempIndex >= 0 && tempIndex < ShopOfferDefinition.ALL_OFFERS.size()) {
-                offers.add(ShopOfferDefinition.ALL_OFFERS.get(tempIndex));
+            if (tempIndex >= 0 && tempIndex < allOffers.size()) {
+                offers.add(allOffers.get(tempIndex));
             }
         }
         return offers;
     }
 
     private static int[] pickTempOfferIndexes(RandomSource random, int tempCount, int playerLevel) {
-        int[] eligible = ShopOfferDefinition.ALL_OFFERS.stream()
+        List<ShopOfferDefinition> allOffers = ShopOfferDefinition.allOffers();
+        java.util.List<Integer> eligible = allOffers.stream()
                 .filter(offer -> offer.requiredLevel() <= playerLevel)
-                .mapToInt(ShopOfferDefinition.ALL_OFFERS::indexOf)
-                .toArray();
-        int poolSize = eligible.length;
-        if (poolSize == 0) {
+                .map(allOffers::indexOf)
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+        if (eligible.isEmpty()) {
             return new int[0];
         }
 
-        int[] pool = new int[poolSize];
-        for (int index = 0; index < poolSize; index++) {
-            pool[index] = eligible[index];
-        }
-
-        int pickCount = Math.min(tempCount, poolSize);
+        int pickCount = Math.min(tempCount, eligible.size());
+        int[] picks = new int[pickCount];
         for (int index = 0; index < pickCount; index++) {
-            int swapIndex = index + random.nextInt(poolSize - index);
-            int selected = pool[swapIndex];
-            pool[swapIndex] = pool[index];
-            pool[index] = selected;
+            int totalWeight = eligible.stream().mapToInt(ShopkeeperManager::getOfferWeight).sum();
+            if (totalWeight <= 0) {
+                picks[index] = eligible.remove(random.nextInt(eligible.size()));
+                continue;
+            }
+
+            int roll = random.nextInt(totalWeight);
+            int selectedPos = 0;
+            for (int pos = 0; pos < eligible.size(); pos++) {
+                roll -= getOfferWeight(eligible.get(pos));
+                if (roll < 0) {
+                    selectedPos = pos;
+                    break;
+                }
+            }
+            picks[index] = eligible.remove(selectedPos);
         }
-        return java.util.Arrays.copyOf(pool, pickCount);
+        return picks;
+    }
+
+    private static int getOfferWeight(int offerIndex) {
+        ShopOfferDefinition offer = ShopOfferDefinition.allOffers().get(offerIndex);
+        ItemStack preview = offer.previewStack();
+        if (preview.is(ModItems.STABILITY_PEARL.get())) {
+            return 1;
+        }
+        if (preview.is(ModItems.PRISMATIC_CORE.get()) || preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
+            return 2;
+        }
+        if (preview.is(ModItems.LUNARIUM_SCRAP.get()) || preview.is(ModItems.LUNARIUM_INGOT.get()) || preview.is(ModItems.LUNARIUM_PAXEL.get())) {
+            return 1;
+        }
+        if (preview.is(ModItems.SOLAR_CRYSTAL.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
+            return 3;
+        }
+        if (preview.is(ModItems.ASTRITE_SCRAP.get()) || preview.is(ModItems.ASTRITE_INGOT.get()) || preview.is(ModItems.ASTRITE_PAXEL.get())) {
+            return 2;
+        }
+        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem
+                || preview.getItem() instanceof com.revilo.gatewayexpansion.item.AugmentItem
+                || preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
+            return 5;
+        }
+        return 9;
     }
 
     private static LootMaterialItem[] getDropPoolForGate(GatewayEntity gate) {
+        LootMaterialItem[] gatewayDropPool = GATEWAY_DROP_ITEMS.stream().map(DeferredHolder::get).toArray(LootMaterialItem[]::new);
         if (gate == null || GatewayForgeService.getGatewayCrystalTier(gate.getGateway()) >= 4) {
-            return GATEWAY_DROP_POOL;
+            return gatewayDropPool;
         }
 
-        return java.util.Arrays.stream(GATEWAY_DROP_POOL)
+        return java.util.Arrays.stream(gatewayDropPool)
                 .filter(item -> item != ModItems.PRISMATIC_CORE.get())
+                .filter(item -> item != ModItems.LUNARIUM_SCRAP.get())
                 .toArray(LootMaterialItem[]::new);
     }
 
@@ -499,11 +569,47 @@ public final class ShopkeeperManager {
         if (item == ModItems.ELIXRITE_SCRAP.get()) {
             return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : LootRarity.RARE.weight();
         }
+        if (item == ModItems.ASTRITE_SCRAP.get()) {
+            return isLevel20PlusGate(gate) ? LootRarity.RARE.weight() : 0;
+        }
+        if (item == ModItems.LUNARIUM_SCRAP.get()) {
+            return isLevel20PlusGate(gate) ? LootRarity.EPIC.weight() : 0;
+        }
         return item.rarity().weight();
     }
 
     private static boolean isLevel20PlusGate(GatewayEntity gate) {
         return gate != null && GatewayForgeService.getGatewayCrystalTier(gate.getGateway()) >= 2;
+    }
+
+    private static int computeWaveCoinBurst(GatewayEntity gate, RandomSource random) {
+        int level = Math.max(1, GatewayForgeService.getGatewayLevel(gate.getGateway()));
+        int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
+        int wave = Math.max(1, gate.getWave());
+        int base = 4 + level + tier * 3 + wave * 2;
+        return base + random.nextInt(7);
+    }
+
+    private static int computeCompletionCoinBurst(GatewayEntity gate, RandomSource random) {
+        int level = Math.max(1, GatewayForgeService.getGatewayLevel(gate.getGateway()));
+        int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
+        int wave = Math.max(1, gate.getWave());
+        int base = 18 + (level * 2) + tier * 8 + wave * 4;
+        return base + random.nextInt(13);
+    }
+
+    private static int computeWaveLootRolls(GatewayEntity gate, RandomSource random) {
+        int level = Math.max(1, GatewayForgeService.getGatewayLevel(gate.getGateway()));
+        int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
+        int base = 2 + tier + Math.max(0, level / 12);
+        return base + random.nextInt(2 + tier);
+    }
+
+    private static int computeCompletionLootRolls(GatewayEntity gate, RandomSource random) {
+        int level = Math.max(1, GatewayForgeService.getGatewayLevel(gate.getGateway()));
+        int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
+        int base = 6 + tier * 2 + Math.max(0, level / 8);
+        return base + random.nextInt(3 + tier);
     }
 
     private static boolean isRunicOffer(ItemStack stack) {

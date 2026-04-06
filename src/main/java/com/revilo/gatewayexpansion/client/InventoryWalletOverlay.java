@@ -8,9 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -18,13 +16,12 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 
 public final class InventoryWalletOverlay {
 
-    private static final ItemStack COIN_STACK = new ItemStack(ModItems.MYTHIC_COIN.get());
     private static final DecimalFormat MULTIPLIER_FORMAT = new DecimalFormat("0.0##");
     private static final int PLAYER_BOX_CENTER_X = 51;
     private static final int PLAYER_BOX_CENTER_Y = 66;
     private static final int ICON_SIZE = 16;
     private static final float BASE_TEXT_SCALE = 0.75F;
-    private static boolean hoveredLastFrame;
+    private static final float WALLET_Z = 500.0F;
 
     private InventoryWalletOverlay() {
     }
@@ -43,14 +40,13 @@ public final class InventoryWalletOverlay {
         AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) event.getScreen();
         WalletLayout layout = WalletLayout.create(minecraft, screen);
         boolean hovered = layout.isMouseOver(event.getMouseX(), event.getMouseY());
-        if (hovered && !hoveredLastFrame) {
-            minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.EXPERIENCE_ORB_PICKUP, 1.15F));
-        }
-        hoveredLastFrame = hovered;
 
         renderWallet(event.getGuiGraphics(), minecraft, layout, hovered);
 
         if (hovered) {
+            ItemStack coinStack = coinStack();
+            event.getGuiGraphics().pose().pushPose();
+            event.getGuiGraphics().pose().translate(0.0F, 0.0F, WALLET_Z);
             event.getGuiGraphics().renderTooltip(
                     minecraft.font,
                     List.of(
@@ -59,24 +55,26 @@ public final class InventoryWalletOverlay {
                             Component.empty(),
                             Component.literal("Multiplier " + MULTIPLIER_FORMAT.format(MythicCoinWallet.getTotalMultiplier(minecraft.player)) + "x")
                     ),
-                    COIN_STACK.getTooltipImage(),
-                    COIN_STACK,
+                    coinStack.getTooltipImage(),
+                    coinStack,
                     event.getMouseX(),
                     event.getMouseY());
+            event.getGuiGraphics().pose().popPose();
         }
     }
 
     private static void renderWallet(GuiGraphics guiGraphics, Minecraft minecraft, WalletLayout layout, boolean hovered) {
         float hoverScale = hovered ? 1.1F : 1.0F;
 
+        ItemStack coinStack = coinStack();
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(layout.iconX(), layout.iconY(), 250.0F);
+        guiGraphics.pose().translate(layout.iconX(), layout.iconY(), WALLET_Z);
         guiGraphics.pose().scale(hoverScale, hoverScale, 1.0F);
-        guiGraphics.renderItem(COIN_STACK, 0, 0);
+        guiGraphics.renderItem(coinStack, 0, 0);
         guiGraphics.pose().popPose();
 
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(layout.textX(), layout.textY(), 250.0F);
+        guiGraphics.pose().translate(layout.textX(), layout.textY(), WALLET_Z);
         guiGraphics.pose().scale(layout.textScale() * hoverScale, layout.textScale() * hoverScale, 1.0F);
         guiGraphics.drawString(minecraft.font, layout.text(), -1, 0, 0x101010, false);
         guiGraphics.drawString(minecraft.font, layout.text(), 1, 0, 0x101010, false);
@@ -132,5 +130,9 @@ public final class InventoryWalletOverlay {
             text = text.substring(0, text.length() - 1);
         }
         return text;
+    }
+
+    private static ItemStack coinStack() {
+        return new ItemStack(ModItems.MYTHIC_COIN.get());
     }
 }

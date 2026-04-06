@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "EEE",
+    "EEE",
+    "EEE"
+  ],
+  "key": {
+    "E": {
+      "item": "gatewayexpansion:astrite_scrap"
+    }
+  },
+  "result": {
+    "id": "gatewayexpansion:astrite_ingot",
+    "count": 1
+  }
+}

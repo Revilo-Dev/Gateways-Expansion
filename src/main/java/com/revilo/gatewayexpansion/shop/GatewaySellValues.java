@@ -3,8 +3,11 @@ package com.revilo.gatewayexpansion.shop;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import java.util.List;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.ItemStack;
 
 public final class GatewaySellValues {
@@ -32,19 +35,45 @@ public final class GatewaySellValues {
         if (item == ModItems.MANASTONES.get()) return 75;
         if (item == ModItems.ELIXRITE_SCRAP.get()) return 68;
         if (item == ModItems.ELIXRITE_INGOT.get()) return 612;
+        if (item == ModItems.ASTRITE_SCRAP.get()) return 96;
+        if (item == ModItems.ASTRITE_INGOT.get()) return 864;
         if (item == ModItems.SOLAR_CRYSTAL.get()) return 140;
         if (item == ModItems.PRISMATIC_DIAMOND.get()) return 260;
+        if (item == ModItems.LUNARIUM_SCRAP.get()) return 180;
+        if (item == ModItems.LUNARIUM_INGOT.get()) return 1620;
         if (item == ModItems.DARK_ESSENCE.get()) return 210;
         if (item == ModItems.PRISMATIC_CORE.get()) return 540;
-        if (item == ModItems.EASY_AUGMENT.get()) return 27;
-        if (item == ModItems.MEDIUM_AUGMENT.get()) return 50;
-        if (item == ModItems.HARD_AUGMENT.get()) return 60;
-        if (item == ModItems.EXTREME_AUGMENT.get()) return 180;
-        if (item == ModItems.TIME_CATALYST.get()) return 72;
-        if (item == ModItems.STAT_CATALYST.get()) return 112;
-        if (item == ModItems.LOOT_CATALYST.get()) return 92;
-        if (item == ModItems.HIGHRISK_CATALYST.get()) return 245;
+        if (item == ModItems.TIER_1_CRYSTAL.get()) return 0;
+        if (item == ModItems.TIER_2_CRYSTAL.get()) return 0;
+        if (item == ModItems.TIER_3_CRYSTAL.get()) return 0;
+        if (item == ModItems.TIER_4_CRYSTAL.get()) return 0;
+        if (item == ModItems.TIER_5_CRYSTAL.get()) return 0;
+        if (item == ModItems.EASY_AUGMENT.get()) return 6;
+        if (item == ModItems.MEDIUM_AUGMENT.get()) return 12;
+        if (item == ModItems.HARD_AUGMENT.get()) return 18;
+        if (item == ModItems.EXTREME_AUGMENT.get()) return 54;
+        if (item == ModItems.TIME_CATALYST.get()) return 15;
+        if (item == ModItems.LOOT_CATALYST.get()) return 19;
+        if (item == ModItems.STAT_CATALYST.get()) return 23;
+        if (item == ModItems.HIGHRISK_CATALYST.get()) return 49;
+        if (item == ModItems.STABILITY_PEARL.get()) return 42;
+        if (item == ModItems.MANA_STEEL_PAXEL.get()) return 980;
+        if (item == ModItems.ELIXRITE_PAXEL.get()) return 1840;
+        if (item == ModItems.ASTRITE_PAXEL.get()) return 2480;
+        if (item == ModItems.LUNARIUM_PAXEL.get()) return 4860;
+        if (item == ModItems.SHOP_GATEWAY.get()) return 260;
+        if (item == ModItems.GATEWAY_WORKBENCH.get()) return 420;
+        int runicValue = getRunicUnitValue(item);
+        if (runicValue > 0) {
+            return runicValue;
+        }
+
         return 0;
+    }
+
+    public static int getSuggestedBuyPrice(ItemStack stack) {
+        int unitValue = getUnitValue(stack);
+        return unitValue <= 0 ? 0 : Math.max(1, (int) Math.ceil(unitValue * rarityBuyMultiplier(stack)));
     }
 
     public static int getStackValue(ItemStack stack) {
@@ -57,6 +86,48 @@ public final class GatewaySellValues {
             return;
         }
 
-        tooltipComponents.add(Component.literal("◎ " + value + " Sell Value").withStyle(ChatFormatting.LIGHT_PURPLE));
+        tooltipComponents.add(Component.literal("o " + value + " Sell Value").withStyle(ChatFormatting.LIGHT_PURPLE));
+    }
+
+    public static void appendShopRuneSellValueTooltip(ItemStack stack, List<Component> tooltipComponents) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (id == null || !"runic".equals(id.getNamespace())) {
+            return;
+        }
+        appendSellValueTooltip(stack, tooltipComponents);
+    }
+
+    private static int getRunicUnitValue(Item item) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        if (id == null || !"runic".equals(id.getNamespace())) {
+            return 0;
+        }
+
+        return switch (id.getPath()) {
+            case "blank_etching" -> 22;
+            case "etching" -> 34;
+            case "blank_inscription" -> 26;
+            case "repair_rune" -> 34;
+            case "enhanced_rune" -> 52;
+            case "reroll_inscription" -> 78;
+            case "expansion_rune" -> 92;
+            case "nullification_rune" -> 104;
+            case "upgrade_rune" -> 118;
+            case "wild_inscription" -> 126;
+            case "extraction_inscription" -> 142;
+            case "cursed_inscription" -> 168;
+            case "artisans_workbench" -> 180;
+            case "etching_table" -> 220;
+            default -> 0;
+        };
+    }
+
+    private static double rarityBuyMultiplier(ItemStack stack) {
+        return switch (stack.getRarity()) {
+            case COMMON -> 2.5D;
+            case UNCOMMON -> 4.5D;
+            case RARE -> 6.5D;
+            case EPIC -> 9.0D;
+        };
     }
 }

@@ -49,9 +49,6 @@ public class AugmentItem extends Item {
             tooltipComponents.add(Component.literal(effect.description()).withStyle(ChatFormatting.GRAY));
         }
         tooltipComponents.add(Component.literal(definition.rewardEffect().description()).withStyle(ChatFormatting.GOLD));
-        if (!definition.tags().isEmpty()) {
-            tooltipComponents.add(Component.translatable("tooltip.gatewayexpansion.common.tags", String.join(", ", definition.tags())).withStyle(ChatFormatting.DARK_GRAY));
-        }
     }
 
     @Override

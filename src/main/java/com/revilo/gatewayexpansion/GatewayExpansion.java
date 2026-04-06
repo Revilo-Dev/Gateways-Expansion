@@ -15,6 +15,7 @@ import com.revilo.gatewayexpansion.registry.ModCreativeTabs;
 import com.revilo.gatewayexpansion.registry.ModEntities;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import com.revilo.gatewayexpansion.registry.ModMenus;
+import com.revilo.gatewayexpansion.registry.ModMobEffects;
 import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
@@ -36,6 +37,7 @@ public final class GatewayExpansion {
         ModAttachments.register(modEventBus);
         ModAttributes.register(modEventBus);
         ModMenus.register(modEventBus);
+        ModMobEffects.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
         GatewayExpansionClient.register(modEventBus);
         NeoForge.EVENT_BUS.register(CoinCommands.class);

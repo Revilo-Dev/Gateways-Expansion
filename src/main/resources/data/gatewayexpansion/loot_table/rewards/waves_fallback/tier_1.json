@@ -11,8 +11,56 @@
                                       },
                                       {
                                           "type":  "minecraft:item",
-                                          "name":  "minecraft:iron_ingot",
+                                          "name":  "gatewayexpansion:grimstone",
+                                          "weight":  9,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  2.0,
+                                                                              "max":  5.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "gatewayexpansion:mystic_essence",
+                                          "weight":  9,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  2.0,
+                                                                              "max":  5.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "gatewayexpansion:scrap_metal",
                                           "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  2.0,
+                                                                              "max":  6.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "gatewayexpansion:mana_gems",
+                                          "weight":  6,
                                           "functions":  [
                                                             {
                                                                 "function":  "minecraft:set_count",
@@ -20,54 +68,6 @@
                                                                               "type":  "minecraft:uniform",
                                                                               "min":  1.0,
                                                                               "max":  3.0
-                                                                          },
-                                                                "add":  false
-                                                            }
-                                                        ]
-                                      },
-                                      {
-                                          "type":  "minecraft:item",
-                                          "name":  "minecraft:lapis_lazuli",
-                                          "weight":  8,
-                                          "functions":  [
-                                                            {
-                                                                "function":  "minecraft:set_count",
-                                                                "count":  {
-                                                                              "type":  "minecraft:uniform",
-                                                                              "min":  3.0,
-                                                                              "max":  7.0
-                                                                          },
-                                                                "add":  false
-                                                            }
-                                                        ]
-                                      },
-                                      {
-                                          "type":  "minecraft:item",
-                                          "name":  "minecraft:redstone",
-                                          "weight":  8,
-                                          "functions":  [
-                                                            {
-                                                                "function":  "minecraft:set_count",
-                                                                "count":  {
-                                                                              "type":  "minecraft:uniform",
-                                                                              "min":  3.0,
-                                                                              "max":  8.0
-                                                                          },
-                                                                "add":  false
-                                                            }
-                                                        ]
-                                      },
-                                      {
-                                          "type":  "minecraft:item",
-                                          "name":  "minecraft:coal",
-                                          "weight":  7,
-                                          "functions":  [
-                                                            {
-                                                                "function":  "minecraft:set_count",
-                                                                "count":  {
-                                                                              "type":  "minecraft:uniform",
-                                                                              "min":  4.0,
-                                                                              "max":  10.0
                                                                           },
                                                                 "add":  false
                                                             }
@@ -107,15 +107,15 @@
                       "entries":  [
                                       {
                                           "type":  "minecraft:item",
-                                          "name":  "minecraft:iron_ingot",
+                                          "name":  "gatewayexpansion:mana_steel_scrap",
                                           "weight":  8,
                                           "functions":  [
                                                             {
                                                                 "function":  "minecraft:set_count",
                                                                 "count":  {
                                                                               "type":  "minecraft:uniform",
-                                                                              "min":  2,
-                                                                              "max":  5
+                                                                              "min":  1,
+                                                                              "max":  3
                                                                           },
                                                                 "add":  false
                                                             }
@@ -123,15 +123,15 @@
                                       },
                                       {
                                           "type":  "minecraft:item",
-                                          "name":  "minecraft:lapis_lazuli",
+                                          "name":  "gatewayexpansion:arcane_essence",
                                           "weight":  8,
                                           "functions":  [
                                                             {
                                                                 "function":  "minecraft:set_count",
                                                                 "count":  {
                                                                               "type":  "minecraft:uniform",
-                                                                              "min":  4,
-                                                                              "max":  8
+                                                                              "min":  1,
+                                                                              "max":  3
                                                                           },
                                                                 "add":  false
                                                             }
