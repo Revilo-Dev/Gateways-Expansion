@@ -1,0 +1,13 @@
+{
+  "items": {
+    "gatewayexpansion:mana_steel_paxel": 3,
+    "gatewayexpansion:elixrite_paxel": 4,
+    "gatewayexpansion:astrite_paxel": 5,
+    "gatewayexpansion:lunarium_paxel": 6,
+    "gatewayexpansion:ignite_paxel": 7,
+    "gatewayexpansion:iridium_paxel": 8,
+    "gatewayexpansion:mythril_paxel": 9,
+    "gatewayexpansion:arcanium_paxel": 10,
+    "gatewayexpansion:prismatic_steel_paxel": 11
+  }
+}

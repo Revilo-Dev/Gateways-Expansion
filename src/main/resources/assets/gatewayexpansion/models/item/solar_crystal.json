@@ -2,5 +2,6 @@
   "parent": "minecraft:item/generated",
   "textures": {
     "layer0": "gatewayexpansion:item/loot/solar_shard"
-  }
+  },
+  "gui_light": "front"
 }

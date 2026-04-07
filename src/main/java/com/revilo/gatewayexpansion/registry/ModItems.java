@@ -99,6 +99,36 @@ public final class ModItems {
             () -> new PaxelItem(ModToolTiers.ASTRITE, new Item.Properties().rarity(Rarity.RARE), 5.0F, -2.8F));
     public static final DeferredHolder<Item, PaxelItem> LUNARIUM_PAXEL = ITEMS.register("lunarium_paxel",
             () -> new PaxelItem(ModToolTiers.LUNARIUM, new Item.Properties().rarity(Rarity.EPIC), 6.0F, -2.8F));
+    public static final DeferredHolder<Item, LootMaterialItem> IGNITE_SCRAP = ITEMS.register("ignite_scrap",
+            () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, LootMaterialItem> IGNITE_INGOT = ITEMS.register("ignite_ingot",
+            () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, PaxelItem> IGNITE_PAXEL = ITEMS.register("ignite_paxel",
+            () -> new PaxelItem(ModToolTiers.IGNITE, new Item.Properties().rarity(Rarity.RARE), 6.5F, -2.75F));
+    public static final DeferredHolder<Item, LootMaterialItem> IRIDIUM_SCRAP = ITEMS.register("iridium_scrap",
+            () -> new LootMaterialItem(LootRarity.EPIC, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, LootMaterialItem> IRIDIUM_INGOT = ITEMS.register("iridium_ingot",
+            () -> new LootMaterialItem(LootRarity.EPIC, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, PaxelItem> IRIDIUM_PAXEL = ITEMS.register("iridium_paxel",
+            () -> new PaxelItem(ModToolTiers.IRIDIUM, new Item.Properties().rarity(Rarity.EPIC), 7.0F, -2.7F));
+    public static final DeferredHolder<Item, LootMaterialItem> MYTHRIL_SCRAP = ITEMS.register("mythril_scrap",
+            () -> new LootMaterialItem(LootRarity.EPIC, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, LootMaterialItem> MYTHRIL_INGOT = ITEMS.register("mythril_ingot",
+            () -> new LootMaterialItem(LootRarity.EPIC, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, PaxelItem> MYTHRIL_PAXEL = ITEMS.register("mythril_paxel",
+            () -> new PaxelItem(ModToolTiers.MYTHRIL, new Item.Properties().rarity(Rarity.EPIC), 7.5F, -2.7F));
+    public static final DeferredHolder<Item, LootMaterialItem> ARCANIUM_SCRAP = ITEMS.register("arcanium_scrap",
+            () -> new LootMaterialItem(LootRarity.LEGENDARY, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, LootMaterialItem> ARCANIUM_INGOT = ITEMS.register("arcanium_ingot",
+            () -> new LootMaterialItem(LootRarity.LEGENDARY, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, PaxelItem> ARCANIUM_PAXEL = ITEMS.register("arcanium_paxel",
+            () -> new PaxelItem(ModToolTiers.ARCANIUM, new Item.Properties().rarity(Rarity.EPIC), 8.0F, -2.65F));
+    public static final DeferredHolder<Item, LootMaterialItem> PRISMATIC_STEEL_SCRAP = ITEMS.register("prismatic_steel_scrap",
+            () -> new LootMaterialItem(LootRarity.LEGENDARY, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, LootMaterialItem> PRISMATIC_STEEL_INGOT = ITEMS.register("prismatic_steel_ingot",
+            () -> new LootMaterialItem(LootRarity.LEGENDARY, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
+    public static final DeferredHolder<Item, PaxelItem> PRISMATIC_STEEL_PAXEL = ITEMS.register("prismatic_steel_paxel",
+            () -> new PaxelItem(ModToolTiers.PRISMATIC_STEEL, new Item.Properties().rarity(Rarity.EPIC), 9.0F, -2.6F));
     public static final DeferredHolder<Item, ShopGatewayPearlItem> SHOP_GATEWAY = ITEMS.register("shop_gateway",
             () -> new ShopGatewayPearlItem(new Item.Properties().stacksTo(16)));
 

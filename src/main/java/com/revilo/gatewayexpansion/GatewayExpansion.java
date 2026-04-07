@@ -3,6 +3,7 @@ package com.revilo.gatewayexpansion;
 import com.revilo.gatewayexpansion.command.CoinCommands;
 import com.revilo.gatewayexpansion.client.GatewayExpansionClient;
 import com.revilo.gatewayexpansion.gateway.GatewayDisplayManager;
+import com.revilo.gatewayexpansion.gateway.GatewayPartyScaling;
 import com.revilo.gatewayexpansion.integration.GatewayFailureEvents;
 import com.revilo.gatewayexpansion.integration.GeneratedGatewayPearlTracker;
 import com.revilo.gatewayexpansion.integration.LevelUpGatewayIntegration;
@@ -46,6 +47,7 @@ public final class GatewayExpansion {
         NeoForge.EVENT_BUS.register(LevelUpGatewayIntegration.class);
         NeoForge.EVENT_BUS.register(LevelUpGatewayXpRewards.class);
         NeoForge.EVENT_BUS.register(GatewayDisplayManager.class);
+        NeoForge.EVENT_BUS.register(GatewayPartyScaling.class);
         NeoForge.EVENT_BUS.register(ShopkeeperManager.class);
     }
 }

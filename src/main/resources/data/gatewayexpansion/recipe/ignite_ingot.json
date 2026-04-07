@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "gatewayexpansion:ignite_scrap"
+    }
+  },
+  "result": {
+    "id": "gatewayexpansion:ignite_ingot",
+    "count": 1
+  }
+}

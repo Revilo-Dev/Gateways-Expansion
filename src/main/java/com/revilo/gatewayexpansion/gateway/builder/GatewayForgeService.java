@@ -214,11 +214,14 @@ public final class GatewayForgeService {
 
     public static boolean restoreGatewayFromPearl(ItemStack stack, ServerLevel serverLevel) {
         CompoundTag root = getRootTag(stack);
-        if (!root.contains(GATEWAY_ID_KEY) || !root.contains(GATEWAY_JSON_KEY)) {
+        if (!root.contains(GATEWAY_ID_KEY)) {
             return false;
         }
 
         ResourceLocation gatewayId = ResourceLocation.parse(root.getString(GATEWAY_ID_KEY));
+        if (!root.contains(GATEWAY_JSON_KEY)) {
+            return GatewayRegistry.INSTANCE.getValue(gatewayId) != null;
+        }
         int crystalLevel = root.contains(LEVEL_KEY) ? root.getInt(LEVEL_KEY) : 0;
         int crystalTier = root.contains(TIER_KEY) ? root.getInt(TIER_KEY) : inferCrystalTierFromLevel(crystalLevel);
         double coinRewardMultiplier = root.contains(COIN_REWARD_MULTIPLIER_KEY) ? root.getDouble(COIN_REWARD_MULTIPLIER_KEY) : 1.0D;
@@ -884,7 +887,6 @@ public final class GatewayForgeService {
         CustomData.update(DataComponents.CUSTOM_DATA, pearl, tag -> {
             CompoundTag root = tag.getCompound(ROOT_KEY);
             root.putString(GATEWAY_ID_KEY, result.gatewayId().toString());
-            root.putString(GATEWAY_JSON_KEY, result.gatewayJson());
             root.putString(DISPLAY_NAME_KEY, result.name());
             root.putString(DIFFICULTY_KEY, difficultyLabel(result.difficultyEstimate()));
             root.putString(THEME_KEY, result.theme().name());
@@ -895,7 +897,6 @@ public final class GatewayForgeService {
             root.putDouble(COIN_REWARD_MULTIPLIER_KEY, result.coinRewardMultiplier());
             root.putDouble(LEVEL_XP_MULTIPLIER_KEY, result.levelXpMultiplier());
             root.putDouble(EXPERIENCE_REWARD_MULTIPLIER_KEY, result.experienceRewardMultiplier());
-            root.putString(SUMMARY_KEY, String.join(" | ", result.debugLines()));
             tag.put(ROOT_KEY, root);
         });
         return pearl;

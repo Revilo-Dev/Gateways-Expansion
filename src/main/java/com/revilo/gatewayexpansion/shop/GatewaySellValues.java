@@ -41,6 +41,16 @@ public final class GatewaySellValues {
         if (item == ModItems.PRISMATIC_DIAMOND.get()) return 260;
         if (item == ModItems.LUNARIUM_SCRAP.get()) return 180;
         if (item == ModItems.LUNARIUM_INGOT.get()) return 1620;
+        if (item == ModItems.IGNITE_SCRAP.get()) return 220;
+        if (item == ModItems.IGNITE_INGOT.get()) return 1980;
+        if (item == ModItems.IRIDIUM_SCRAP.get()) return 280;
+        if (item == ModItems.IRIDIUM_INGOT.get()) return 2520;
+        if (item == ModItems.MYTHRIL_SCRAP.get()) return 340;
+        if (item == ModItems.MYTHRIL_INGOT.get()) return 3060;
+        if (item == ModItems.ARCANIUM_SCRAP.get()) return 440;
+        if (item == ModItems.ARCANIUM_INGOT.get()) return 3960;
+        if (item == ModItems.PRISMATIC_STEEL_SCRAP.get()) return 560;
+        if (item == ModItems.PRISMATIC_STEEL_INGOT.get()) return 5040;
         if (item == ModItems.DARK_ESSENCE.get()) return 210;
         if (item == ModItems.PRISMATIC_CORE.get()) return 540;
         if (item == ModItems.TIER_1_CRYSTAL.get()) return 0;
@@ -61,6 +71,11 @@ public final class GatewaySellValues {
         if (item == ModItems.ELIXRITE_PAXEL.get()) return 1840;
         if (item == ModItems.ASTRITE_PAXEL.get()) return 2480;
         if (item == ModItems.LUNARIUM_PAXEL.get()) return 4860;
+        if (item == ModItems.IGNITE_PAXEL.get()) return 5920;
+        if (item == ModItems.IRIDIUM_PAXEL.get()) return 7240;
+        if (item == ModItems.MYTHRIL_PAXEL.get()) return 8680;
+        if (item == ModItems.ARCANIUM_PAXEL.get()) return 10360;
+        if (item == ModItems.PRISMATIC_STEEL_PAXEL.get()) return 12600;
         if (item == ModItems.SHOP_GATEWAY.get()) return 260;
         if (item == ModItems.GATEWAY_WORKBENCH.get()) return 420;
         int runicValue = getRunicUnitValue(item);

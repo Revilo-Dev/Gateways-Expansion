@@ -56,6 +56,21 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.LUNARIUM_SCRAP.get());
                         output.accept(ModItems.LUNARIUM_INGOT.get());
                         output.accept(ModItems.LUNARIUM_PAXEL.get());
+                        output.accept(ModItems.IGNITE_SCRAP.get());
+                        output.accept(ModItems.IGNITE_INGOT.get());
+                        output.accept(ModItems.IGNITE_PAXEL.get());
+                        output.accept(ModItems.IRIDIUM_SCRAP.get());
+                        output.accept(ModItems.IRIDIUM_INGOT.get());
+                        output.accept(ModItems.IRIDIUM_PAXEL.get());
+                        output.accept(ModItems.MYTHRIL_SCRAP.get());
+                        output.accept(ModItems.MYTHRIL_INGOT.get());
+                        output.accept(ModItems.MYTHRIL_PAXEL.get());
+                        output.accept(ModItems.ARCANIUM_SCRAP.get());
+                        output.accept(ModItems.ARCANIUM_INGOT.get());
+                        output.accept(ModItems.ARCANIUM_PAXEL.get());
+                        output.accept(ModItems.PRISMATIC_STEEL_SCRAP.get());
+                        output.accept(ModItems.PRISMATIC_STEEL_INGOT.get());
+                        output.accept(ModItems.PRISMATIC_STEEL_PAXEL.get());
                         output.accept(ModItems.SHOP_GATEWAY.get());
                     })
                     .build());

@@ -2,6 +2,7 @@ package com.revilo.gatewayexpansion.shop;
 
 import com.revilo.gatewayexpansion.currency.MythicCoinWallet;
 import com.revilo.gatewayexpansion.entity.GatekeeperEntity;
+import com.revilo.gatewayexpansion.gateway.GatewayPartyScaling;
 import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
 import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
 import com.revilo.gatewayexpansion.integration.ModCompat;
@@ -601,14 +602,16 @@ public final class ShopkeeperManager {
     private static int computeWaveLootRolls(GatewayEntity gate, RandomSource random) {
         int level = Math.max(1, GatewayForgeService.getGatewayLevel(gate.getGateway()));
         int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
-        int base = 2 + tier + Math.max(0, level / 12);
+        int extraPlayers = GatewayPartyScaling.getExtraPlayers(gate);
+        int base = 2 + tier + Math.max(0, level / 12) + extraPlayers * (1 + tier);
         return base + random.nextInt(2 + tier);
     }
 
     private static int computeCompletionLootRolls(GatewayEntity gate, RandomSource random) {
         int level = Math.max(1, GatewayForgeService.getGatewayLevel(gate.getGateway()));
         int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
-        int base = 6 + tier * 2 + Math.max(0, level / 8);
+        int extraPlayers = GatewayPartyScaling.getExtraPlayers(gate);
+        int base = 6 + tier * 2 + Math.max(0, level / 8) + extraPlayers * (3 + tier * 2);
         return base + random.nextInt(3 + tier);
     }
 
