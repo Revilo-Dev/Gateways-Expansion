@@ -57,8 +57,10 @@ public final class LevelUpGatewayXpRewards {
         if (level <= 0) {
             level = tier * 20;
         }
-        int baseXp = Math.max(24, level * 6 + tier * 18);
-        return Math.max(24, (int) Math.round(baseXp * GatewayForgeService.getGatewayLevelXpMultiplier(gateway)));
+        double levelMultiplier = GatewayForgeService.getGatewayLevelXpMultiplier(gateway);
+        double experienceMultiplier = GatewayForgeService.getGatewayExperienceRewardMultiplier(gateway);
+        int baseXp = Math.max(24, level * 10 + tier * 28);
+        return Math.max(24, (int) Math.round(baseXp * levelMultiplier * experienceMultiplier));
     }
 
     private static int computeCompletionXp(GatewayEntity gatewayEntity) {
@@ -68,8 +70,10 @@ public final class LevelUpGatewayXpRewards {
         if (level <= 0) {
             level = tier * 20;
         }
-        int baseXp = Math.max(96, level * 18 + tier * 60);
-        return Math.max(96, (int) Math.round(baseXp * GatewayForgeService.getGatewayLevelXpMultiplier(gateway)));
+        double levelMultiplier = GatewayForgeService.getGatewayLevelXpMultiplier(gateway);
+        double experienceMultiplier = GatewayForgeService.getGatewayExperienceRewardMultiplier(gateway);
+        int baseXp = Math.max(96, level * 26 + tier * 84);
+        return Math.max(96, (int) Math.round(baseXp * levelMultiplier * experienceMultiplier));
     }
 
     private static void awardXp(ServerPlayer player, long amount, ResourceLocation source) {

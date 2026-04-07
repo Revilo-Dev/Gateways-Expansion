@@ -148,7 +148,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             return false;
         }
 
-        ItemStack reward = offer.createStack(serverPlayer.getRandom());
+        ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
         if (!serverPlayer.getInventory().add(reward)) {
             serverPlayer.drop(reward, false);
         }
@@ -176,7 +176,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
                 break;
             }
 
-            ItemStack reward = offer.createStack(serverPlayer.getRandom());
+            ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
             if (!serverPlayer.getInventory().add(reward)) {
                 serverPlayer.drop(reward, false);
             }

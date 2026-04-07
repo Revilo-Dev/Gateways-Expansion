@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "gateways:item/gate_pearl_med"
+    "layer0": "gatewayexpansion:item/crystal-5"
   }
 }

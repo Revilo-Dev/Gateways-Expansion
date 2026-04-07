@@ -43,8 +43,12 @@ final class GeneratedGatewayStorage extends SavedData {
             if (id == null) {
                 continue;
             }
+            String json = entry.getString(JSON_KEY);
+            if (json == null || json.isBlank() || "null".equals(json.trim())) {
+                continue;
+            }
             storage.gateways.put(id, new StoredGateway(
-                    entry.getString(JSON_KEY),
+                    json,
                     entry.getString(DISPLAY_NAME_KEY),
                     entry.getInt(TIER_KEY),
                     entry.getInt(LEVEL_KEY),
@@ -72,6 +76,9 @@ final class GeneratedGatewayStorage extends SavedData {
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         ListTag gateways = new ListTag();
         for (Map.Entry<ResourceLocation, StoredGateway> entry : this.gateways.entrySet()) {
+            if (entry.getValue().json() == null || entry.getValue().json().isBlank()) {
+                continue;
+            }
             CompoundTag gateway = new CompoundTag();
             gateway.putString(ID_KEY, entry.getKey().toString());
             gateway.putString(JSON_KEY, entry.getValue().json());

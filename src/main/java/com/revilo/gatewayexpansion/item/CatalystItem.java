@@ -3,11 +3,13 @@ package com.revilo.gatewayexpansion.item;
 import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.catalyst.CatalystDefinition;
 import com.revilo.gatewayexpansion.catalyst.CatalystStackData;
+import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
 import com.revilo.gatewayexpansion.shop.GatewaySellValues;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -50,7 +52,10 @@ public class CatalystItem extends Item {
     @Override
     public void inventoryTick(ItemStack stack, Level level, net.minecraft.world.entity.Entity entity, int slotId, boolean isSelected) {
         if (level instanceof ServerLevel serverLevel) {
-            CatalystStackData.ensureDefinition(stack, this.archetype, serverLevel.random);
+            int playerLevel = entity instanceof Player player
+                    ? Math.max(LevelUpIntegration.getPlayerLevel(player), player.experienceLevel)
+                    : -1;
+            CatalystStackData.ensureDefinition(stack, this.archetype, serverLevel.random, playerLevel);
         }
         super.inventoryTick(stack, level, entity, slotId, isSelected);
     }

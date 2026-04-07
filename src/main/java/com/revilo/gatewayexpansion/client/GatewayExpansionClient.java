@@ -27,6 +27,7 @@ public final class GatewayExpansionClient {
         if (FMLEnvironment.dist.isClient()) {
             modEventBus.register(ClientEvents.class);
             NeoForge.EVENT_BUS.register(GatewayHudOverlay.class);
+            NeoForge.EVENT_BUS.register(InventoryWalletOverlay.class);
         }
     }
 

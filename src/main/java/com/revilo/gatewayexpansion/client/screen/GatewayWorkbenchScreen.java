@@ -10,6 +10,7 @@ import java.util.Random;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -179,26 +180,62 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
         List<Component> tooltip = new ArrayList<>(Screen.getTooltipFromItem(this.minecraft, crystal));
         GatewayPreview previewData = this.menu.getPreviewData();
         tooltip.add(Component.empty());
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_label"));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_tier", previewData.crystalTier()));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_theme", previewData.crystalTheme()));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_level", previewData.crystalLevel()));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_augments", previewData.augmentCount()));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_catalysts", previewData.catalystCount()));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.difficulty", previewData.difficultyName()));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.reward", "+" + previewData.rewardBonusPercent() + "%"));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.waves", previewData.waves()));
-        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.time_pressure", previewData.timePressure()));
-        if (previewData.playerLevel() >= 0) {
-            tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.player_level", previewData.playerLevel()));
+        tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.preview_label").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        tooltip.add(Component.literal("  Augments: " + repeatSymbol("\u25cf", previewData.augmentCount(), "")).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.literal("  Catalysts: " + repeatSymbol("\u25a0", previewData.catalystCount(), " ")).withStyle(ChatFormatting.DARK_PURPLE));
+        tooltip.add(Component.literal("Difficulty:").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+        tooltip.add(Component.literal("  Rating: " + previewData.difficultyName()).withStyle(difficultyFormatting(previewData.difficultyName()), ChatFormatting.BOLD));
+        if (Screen.hasControlDown()) {
+            if (previewData.previewLines().isEmpty()) {
+                tooltip.add(Component.literal("  No active negatives").withStyle(ChatFormatting.DARK_GRAY));
+            } else {
+                for (String negative : previewData.previewLines()) {
+                    tooltip.add(Component.literal("  - " + negative).withStyle(ChatFormatting.RED));
+                }
+            }
+        } else {
+            tooltip.add(Component.literal("  Hold Ctrl to view negatives").withStyle(ChatFormatting.DARK_GRAY));
         }
+        tooltip.add(Component.literal("  Waves: " + previewData.waves()).withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.literal("Rewards:").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        tooltip.add(Component.literal("  Loot: +" + previewData.lootBonusPercent() + "%").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.literal("  Coin multiplier: " + trimMultiplier(previewData.coinMultiplier()) + "x").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.literal("  Item rarity: +" + previewData.rarityBonusPercent() + "%").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.literal("  Level gain: " + previewData.levelGainPercent() + "%").withStyle(ChatFormatting.GOLD));
+        tooltip.add(Component.literal("  +" + previewData.rareRewardDrops() + " rare drops").withStyle(ChatFormatting.GOLD));
         if (previewData.overleveled()) {
             tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.warning_detail", previewData.crystalLevel(), previewData.playerLevel()).withStyle(net.minecraft.ChatFormatting.RED));
         }
         if (this.menu.canForge()) {
-            tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.click_to_forge"));
+            tooltip.add(Component.translatable("screen.gatewayexpansion.gateway_workbench.click_to_forge").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         }
         guiGraphics.renderTooltip(this.font, tooltip, crystal.getTooltipImage(), crystal, mouseX, mouseY);
+    }
+
+    private static ChatFormatting difficultyFormatting(String difficultyName) {
+        return switch (difficultyName) {
+            case "Extreme" -> ChatFormatting.RED;
+            case "Hard" -> ChatFormatting.GOLD;
+            case "Medium" -> ChatFormatting.YELLOW;
+            default -> ChatFormatting.GREEN;
+        };
+    }
+
+    private static String trimMultiplier(double value) {
+        String text = String.format(java.util.Locale.ROOT, "%.2f", value);
+        while (text.contains(".") && (text.endsWith("0") || text.endsWith("."))) {
+            text = text.substring(0, text.length() - 1);
+        }
+        return text;
+    }
+
+    private static String repeatSymbol(String symbol, int count, String separator) {
+        if (count <= 0) {
+            return "-";
+        }
+        return java.util.stream.IntStream.range(0, count)
+                .mapToObj(index -> symbol)
+                .collect(java.util.stream.Collectors.joining(separator));
     }
 
     private void renderLevelWarning(GuiGraphics guiGraphics) {

@@ -11,9 +11,12 @@ public record GatewayPreview(
         int augmentCount,
         int catalystCount,
         String difficultyName,
-        int rewardBonusPercent,
+        int lootBonusPercent,
+        double coinMultiplier,
+        int rarityBonusPercent,
+        int levelGainPercent,
+        int rareRewardDrops,
         int waves,
-        String timePressure,
         List<String> previewLines
 ) {
     public GatewayPreview {

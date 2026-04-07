@@ -78,7 +78,7 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         offers.add(augmentOffer("easy_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EASY_AUGMENT.get())), 0, ModItems.EASY_AUGMENT.get(), AugmentDifficultyTier.EASY));
         offers.add(augmentOffer("medium_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MEDIUM_AUGMENT.get())), 20, ModItems.MEDIUM_AUGMENT.get(), AugmentDifficultyTier.MEDIUM));
         offers.add(augmentOffer("hard_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.HARD_AUGMENT.get())), 30, ModItems.HARD_AUGMENT.get(), AugmentDifficultyTier.HARD));
-        offers.add(augmentOffer("extreme_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EXTREME_AUGMENT.get())), 55, ModItems.EXTREME_AUGMENT.get(), AugmentDifficultyTier.EXTREME));
+        offers.add(augmentOffer("extreme_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EXTREME_AUGMENT.get())), 50, ModItems.EXTREME_AUGMENT.get(), AugmentDifficultyTier.EXTREME));
         offers.add(catalystOffer("time_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.TIME_CATALYST.get())), 15, ModItems.TIME_CATALYST.get(), CatalystArchetype.TIME));
         offers.add(simpleOffer("stability_pearl", "stability_pearl", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.STABILITY_PEARL.get())), 35, ModItems.STABILITY_PEARL.get()));
         offers.add(catalystOffer("loot_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LOOT_CATALYST.get())), 25, ModItems.LOOT_CATALYST.get(), CatalystArchetype.LOOT));
@@ -97,7 +97,7 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 previewStack,
                 previewStack.getHoverName(),
                 Component.translatable("shop.gatewayexpansion.offer." + descKey + ".desc"),
-                random -> new ItemStack(item)
+                (random, playerLevel) -> new ItemStack(item)
         );
     }
 
@@ -111,7 +111,7 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 previewStack,
                 previewStack.getHoverName(),
                 Component.literal(description),
-                random -> new ItemStack(item)
+                (random, playerLevel) -> new ItemStack(item)
         );
     }
 
@@ -129,7 +129,6 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         addOptionalRegistryOffer(offers, "runic:wild_inscription", 45, "A volatile inscription with broader outcomes.");
         addOptionalRegistryOffer(offers, "runic:extraction_inscription", 50, "Extracts existing runic power.");
         addOptionalRegistryOffer(offers, "runic:cursed_inscription", 55, "A risky inscription with stronger variance.");
-        addOptionalRegistryOffer(offers, "runic:etching_table", 28, "A station for extracting and applying etchings.");
     }
 
     private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int requiredLevel, String description) {
@@ -150,9 +149,9 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 new ItemStack(item),
                 Component.translatable("shop.gatewayexpansion.offer." + id),
                 Component.translatable("shop.gatewayexpansion.offer." + id + ".desc"),
-                random -> {
+                (random, playerLevel) -> {
                     ItemStack stack = new ItemStack(item);
-                    AugmentStackData.ensureDefinition(stack, difficultyTier, random);
+                    AugmentStackData.ensureDefinition(stack, difficultyTier, random, playerLevel);
                     return stack;
                 }
         );
@@ -167,9 +166,9 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 new ItemStack(item),
                 Component.translatable("shop.gatewayexpansion.offer." + id),
                 Component.translatable("shop.gatewayexpansion.offer." + id + ".desc"),
-                random -> {
+                (random, playerLevel) -> {
                     ItemStack stack = new ItemStack(item);
-                    CatalystStackData.ensureDefinition(stack, archetype, random);
+                    CatalystStackData.ensureDefinition(stack, archetype, random, playerLevel);
                     return stack;
                 }
         );
@@ -184,7 +183,7 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 new ItemStack(item),
                 Component.translatable("shop.gatewayexpansion.offer." + id),
                 Component.translatable("shop.gatewayexpansion.offer." + id + ".desc"),
-                random -> {
+                (random, playerLevel) -> {
                     ItemStack stack = new ItemStack(item);
                     CrystalForgeData.ensureProfile(stack, minLevel, maxLevel, random);
                     return stack;
@@ -192,12 +191,12 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         );
     }
 
-    public ItemStack createStack(RandomSource random) {
-        return this.factory.create(random);
+    public ItemStack createStack(RandomSource random, int playerLevel) {
+        return this.factory.create(random, playerLevel);
     }
 
     @FunctionalInterface
     public interface OfferFactory {
-        ItemStack create(RandomSource random);
+        ItemStack create(RandomSource random, int playerLevel);
     }
 }

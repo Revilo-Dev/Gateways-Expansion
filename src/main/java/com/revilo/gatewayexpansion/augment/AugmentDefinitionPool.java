@@ -144,8 +144,12 @@ public final class AugmentDefinitionPool {
     }
 
     public static AugmentDefinition random(AugmentDifficultyTier tier, RandomSource random) {
+        return random(tier, random, -1);
+    }
+
+    public static AugmentDefinition random(AugmentDifficultyTier tier, RandomSource random, int level) {
         List<AugmentDefinition> entries = BY_TIER.getOrDefault(tier, List.of());
-        return materialize(entries.get(random.nextInt(entries.size())), random);
+        return materialize(entries.get(random.nextInt(entries.size())), random, level);
     }
 
     public static AugmentDefinition fallback(AugmentDifficultyTier tier) {
@@ -156,13 +160,13 @@ public final class AugmentDefinitionPool {
         return List.copyOf(BY_TIER.getOrDefault(tier, List.of()));
     }
 
-    private static AugmentDefinition materialize(AugmentDefinition template, RandomSource random) {
+    private static AugmentDefinition materialize(AugmentDefinition template, RandomSource random, int level) {
         return new AugmentDefinition(
                 template.id(),
                 template.title(),
                 template.difficultyTier(),
                 template.modifierEffects(),
-                rollReward(template.rewardEffect(), template.difficultyTier(), random),
+                rollReward(template.rewardEffect(), template.difficultyTier(), random, level),
                 template.tags());
     }
 
@@ -187,16 +191,16 @@ public final class AugmentDefinitionPool {
         return ForgeEffect.ref(ForgeEffectType.MOB_EFFECT, ResourceLocation.parse(effectId), amplifier, 0.0D, description);
     }
 
-    private static ForgeEffect rollReward(ForgeEffect reward, AugmentDifficultyTier tier, RandomSource random) {
+    private static ForgeEffect rollReward(ForgeEffect reward, AugmentDifficultyTier tier, RandomSource random, int level) {
         return switch (reward.type()) {
-            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollRange(random, tier, 1.20D, 1.55D, 1.35D, 1.75D, 1.50D, 2.00D, 1.70D, 2.30D), "coin multiplier");
-            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), rollRange(random, tier, 1.40D, 1.90D, 1.55D, 2.10D, 1.70D, 2.30D, 1.85D, 2.50D), "level gain");
-            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollRange(random, tier, 1.45D, 2.00D, 1.60D, 2.20D, 1.80D, 2.45D, 2.00D, 2.80D), "experience");
+            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "coin multiplier");
+            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "level gain");
+            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "experience");
             case REWARD_MULTIPLIER -> {
-                double lootMultiplier = rollRange(random, tier, 1.18D, 1.40D, 1.25D, 1.52D, 1.35D, 1.68D, 1.45D, 1.85D);
+                double lootMultiplier = rollLevelRange(random, level);
                 yield rangedReward(reward.type(), lootMultiplier - 1.0D, "loot", lootMultiplier);
             }
-            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollRange(random, tier, 1.04D, 1.10D, 1.06D, 1.14D, 1.08D, 1.18D, 1.10D, 1.22D), "rarity");
+            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "rarity");
             default -> reward;
         };
     }
@@ -207,6 +211,31 @@ public final class AugmentDefinitionPool {
 
     private static ForgeEffect rangedReward(ForgeEffectType type, double storedValue, String noun, double displayedMultiplier) {
         return ForgeEffect.of(type, storedValue, "x" + trim(displayedMultiplier) + " " + noun);
+    }
+
+    private static double rollLevelRange(RandomSource random, int level) {
+        double min;
+        double max;
+        if (level >= 90) {
+            min = 10.0D;
+            max = 20.0D;
+        } else if (level >= 80) {
+            min = 6.0D;
+            max = 10.0D;
+        } else if (level >= 50) {
+            min = 5.0D;
+            max = 8.0D;
+        } else if (level >= 41) {
+            min = 3.0D;
+            max = 6.0D;
+        } else if (level >= 21) {
+            min = 2.0D;
+            max = 4.0D;
+        } else {
+            min = 1.5D;
+            max = 2.0D;
+        }
+        return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
     }
 
     private static double rollRange(RandomSource random, AugmentDifficultyTier tier, double easyMin, double easyMax, double mediumMin, double mediumMax, double hardMin, double hardMax, double extremeMin, double extremeMax) {

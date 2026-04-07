@@ -25,11 +25,15 @@ public final class AugmentStackData {
     }
 
     public static AugmentDefinition ensureDefinition(ItemStack stack, AugmentDifficultyTier tier, RandomSource random) {
+        return ensureDefinition(stack, tier, random, -1);
+    }
+
+    public static AugmentDefinition ensureDefinition(ItemStack stack, AugmentDifficultyTier tier, RandomSource random, int level) {
         AugmentDefinition existing = getDefinition(stack, tier);
         if (existing != null) {
             return existing;
         }
-        AugmentDefinition definition = AugmentDefinitionPool.random(tier, random);
+        AugmentDefinition definition = AugmentDefinitionPool.random(tier, random, level);
         setDefinition(stack, definition);
         return definition;
     }

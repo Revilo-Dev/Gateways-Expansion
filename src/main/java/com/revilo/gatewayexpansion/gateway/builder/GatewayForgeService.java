@@ -101,6 +101,7 @@ public final class GatewayForgeService {
     private static final Map<ResourceLocation, Integer> GENERATED_GATEWAY_LEVELS = new HashMap<>();
     private static final Map<ResourceLocation, Double> GENERATED_GATEWAY_COIN_MULTIPLIERS = new HashMap<>();
     private static final Map<ResourceLocation, Double> GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS = new HashMap<>();
+    private static final Map<ResourceLocation, Double> GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS = new HashMap<>();
     private static final ItemStack[] LEATHER_ARMOR_SET = createArmorSet(Items.LEATHER_BOOTS, Items.LEATHER_LEGGINGS, Items.LEATHER_CHESTPLATE, Items.LEATHER_HELMET);
     private static final ItemStack[] CHAINMAIL_ARMOR_SET = createArmorSet(Items.CHAINMAIL_BOOTS, Items.CHAINMAIL_LEGGINGS, Items.CHAINMAIL_CHESTPLATE, Items.CHAINMAIL_HELMET);
     private static final ItemStack[] IRON_ARMOR_SET = createArmorSet(Items.IRON_BOOTS, Items.IRON_LEGGINGS, Items.IRON_CHESTPLATE, Items.IRON_HELMET);
@@ -135,15 +136,13 @@ public final class GatewayForgeService {
     public static GatewayPreview buildPreview(net.minecraft.world.entity.player.Player player, Container container) {
         ItemStack crystalStack = container.getItem(GatewayWorkbenchSlots.CRYSTAL_SLOT);
         if (!(crystalStack.getItem() instanceof CrystalItem crystalItem)) {
-            return new GatewayPreview(0, "None", 0, -1, false, 0, 0, "Unavailable", 0, 0, "Unavailable", List.of());
+            return new GatewayPreview(0, "None", 0, -1, false, 0, 0, "Unavailable", 0, 1.0D, 0, 0, 0, 0, List.of());
         }
 
         CrystalForgeData.CrystalProfile profile = CrystalForgeData.getProfile(crystalStack, crystalItem.crystalTier().minLevel(), crystalItem.crystalTier().maxLevel());
         ForgeState state = buildState(container, crystalItem.crystalTier(), profile);
         int playerLevel = LevelUpIntegration.getPlayerLevel(player);
         boolean overleveled = playerLevel >= 0 && profile.level() > playerLevel;
-
-        List<String> previewLines = buildRewardSummary(state);
 
         return new GatewayPreview(
                 crystalItem.crystalTier().tier(),
@@ -153,11 +152,14 @@ public final class GatewayForgeService {
                 overleveled,
                 state.augmentSummary.size(),
                 state.catalystSummary.size(),
-                difficultyLabel(state.difficultyEstimate),
+                difficultyLabel(state.difficultyEstimate, profile.level()),
                 percent(state.rewardMultiplier - 1.0D),
+                state.coinRewardMultiplier,
+                percent(state.rarityRewardMultiplier - 1.0D),
+                percent(state.levelXpMultiplier - 1.0D),
+                Math.max(0, state.rareRewardRolls),
                 state.waveCount(),
-                state.timePressureLabel(),
-                previewLines
+                state.negativeSummary
         );
     }
 
@@ -255,6 +257,11 @@ public final class GatewayForgeService {
                 AugmentDefinition definition = AugmentStackData.getDefinition(stack, augmentItem.difficultyTier());
                 if (definition != null) {
                     state.augmentSummary.add(definition.title());
+                    for (ForgeEffect effect : definition.modifierEffects()) {
+                        if (isNegativePreviewEffect(effect)) {
+                            state.negativeSummary.add(effect.description());
+                        }
+                    }
                     applyEffects(state, definition.modifierEffects(), true);
                     applyEffect(state, definition.rewardEffect(), true);
                 }
@@ -266,6 +273,9 @@ public final class GatewayForgeService {
                 if (definition != null) {
                     state.catalystSummary.add(definition.title());
                     applyEffect(state, definition.positiveEffect(), false);
+                    if (isNegativePreviewEffect(definition.negativeEffect())) {
+                        state.negativeSummary.add(definition.negativeEffect().description());
+                    }
                     applyEffect(state, definition.negativeEffect(), false);
                 }
             }
@@ -406,7 +416,7 @@ public final class GatewayForgeService {
                 "theme=" + state.profile.theme(),
                 "gateType=" + gateType.id(),
                 "level=" + state.profile.level(),
-                "difficulty=" + difficultyLabel(state.difficultyEstimate),
+                "difficulty=" + difficultyLabel(state.difficultyEstimate, state.profile.level()),
                 "waves=" + waveCount,
                 "bossWave=" + bossWaveEnabled,
                 "rewardMultiplier=" + state.rewardMultiplier,
@@ -879,7 +889,7 @@ public final class GatewayForgeService {
         List<Component> lore = new ArrayList<>();
         lore.add(Component.literal("Theme: " + titleCase(result.theme().name())).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(result.color()))));
         lore.add(Component.literal("Crystal Level: " + result.crystalLevel()).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0x55FFFF))));
-        lore.add(Component.literal("Difficulty: " + difficultyLabel(result.difficultyEstimate())).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(difficultyColor(result.difficultyEstimate())))));
+        lore.add(Component.literal("Difficulty: " + difficultyLabel(result.difficultyEstimate(), result.crystalLevel())).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(difficultyColor(result.difficultyEstimate(), result.crystalLevel())))));
         for (String line : buildRewardSummary(result)) {
             lore.add(Component.literal(line).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xF0C24B))));
         }
@@ -888,7 +898,7 @@ public final class GatewayForgeService {
             CompoundTag root = tag.getCompound(ROOT_KEY);
             root.putString(GATEWAY_ID_KEY, result.gatewayId().toString());
             root.putString(DISPLAY_NAME_KEY, result.name());
-            root.putString(DIFFICULTY_KEY, difficultyLabel(result.difficultyEstimate()));
+            root.putString(DIFFICULTY_KEY, difficultyLabel(result.difficultyEstimate(), result.crystalLevel()));
             root.putString(THEME_KEY, result.theme().name());
             root.putInt(LEVEL_KEY, result.crystalLevel());
             root.putInt(TIER_KEY, result.crystalTier());
@@ -966,6 +976,14 @@ public final class GatewayForgeService {
         return GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.getOrDefault(id, 1.0D);
     }
 
+    public static double getGatewayExperienceRewardMultiplier(Gateway gateway) {
+        ResourceLocation id = GatewayRegistry.INSTANCE.getKey(gateway);
+        if (id == null) {
+            return 1.0D;
+        }
+        return GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.getOrDefault(id, 1.0D);
+    }
+
     private static void consumeInputs(Container container) {
         consumeSlot(container, GatewayWorkbenchSlots.CRYSTAL_SLOT);
         consumeRange(container, GatewayWorkbenchSlots.CATALYST_SLOT_START, GatewayWorkbenchSlots.CATALYST_SLOT_COUNT);
@@ -1007,18 +1025,35 @@ public final class GatewayForgeService {
             GENERATED_GATEWAY_LEVELS.putIfAbsent(gatewayId, crystalLevel);
             GENERATED_GATEWAY_COIN_MULTIPLIERS.putIfAbsent(gatewayId, coinRewardMultiplier);
             GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.putIfAbsent(gatewayId, levelXpMultiplier);
+            GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.putIfAbsent(gatewayId, experienceRewardMultiplier);
             return false;
         }
 
-        JsonElement json = JsonParser.parseString(gatewayJson);
-        NormalGateway gateway = NormalGateway.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow(IllegalStateException::new);
-        registerGeneratedGateway(gatewayId, gateway);
-        GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
-        GENERATED_GATEWAY_TIERS.put(gatewayId, crystalTier);
-        GENERATED_GATEWAY_LEVELS.put(gatewayId, crystalLevel);
-        GENERATED_GATEWAY_COIN_MULTIPLIERS.put(gatewayId, coinRewardMultiplier);
-        GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.put(gatewayId, levelXpMultiplier);
-        return true;
+        if (gatewayJson == null || gatewayJson.isBlank() || "null".equals(gatewayJson.trim())) {
+            GatewayExpansion.LOGGER.warn("Skipping persisted generated gateway {} because its saved JSON payload is missing.", gatewayId);
+            return false;
+        }
+
+        try {
+            JsonElement json = JsonParser.parseString(gatewayJson);
+            if (!json.isJsonObject()) {
+                GatewayExpansion.LOGGER.warn("Skipping persisted generated gateway {} because its saved JSON payload is not an object.", gatewayId);
+                return false;
+            }
+
+            NormalGateway gateway = NormalGateway.CODEC.parse(JsonOps.INSTANCE, json).getOrThrow(IllegalStateException::new);
+            registerGeneratedGateway(gatewayId, gateway);
+            GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
+            GENERATED_GATEWAY_TIERS.put(gatewayId, crystalTier);
+            GENERATED_GATEWAY_LEVELS.put(gatewayId, crystalLevel);
+            GENERATED_GATEWAY_COIN_MULTIPLIERS.put(gatewayId, coinRewardMultiplier);
+            GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.put(gatewayId, levelXpMultiplier);
+            GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.put(gatewayId, experienceRewardMultiplier);
+            return true;
+        } catch (Exception exception) {
+            GatewayExpansion.LOGGER.warn("Skipping persisted generated gateway {} because it could not be restored.", gatewayId, exception);
+            return false;
+        }
     }
 
     private static void persistGeneratedGateway(ServerLevel level, GatewayBuildResult result) {
@@ -1114,15 +1149,15 @@ public final class GatewayForgeService {
         state.difficultyEstimate += augment ? 8 : (effect.value() >= 0 ? 4 : -2);
     }
 
-    private static String difficultyLabel(int estimate) {
-        if (estimate >= 95) return "Extreme";
+    private static String difficultyLabel(int estimate, int level) {
+        if (estimate >= 95 && level >= 50) return "Extreme";
         if (estimate >= 70) return "Hard";
         if (estimate >= 40) return "Medium";
         return "Easy";
     }
 
-    private static int difficultyColor(int estimate) {
-        if (estimate >= 95) return 0xFF5555;
+    private static int difficultyColor(int estimate, int level) {
+        if (estimate >= 95 && level >= 50) return 0xFF5555;
         if (estimate >= 70) return 0xFFAA00;
         if (estimate >= 40) return 0xFFFF55;
         return 0x55FF55;
@@ -1146,6 +1181,12 @@ public final class GatewayForgeService {
 
     private static String joinedOrNone(List<String> values) {
         return values.isEmpty() ? "None" : String.join(", ", values);
+    }
+
+    private static boolean isNegativePreviewEffect(ForgeEffect effect) {
+        return effect.type() != ForgeEffectType.MOB_EFFECT
+                || effect.referenceId() == null
+                || !ResourceLocation.withDefaultNamespace("glowing").equals(effect.referenceId());
     }
 
     private static List<String> buildRewardSummary(ForgeState state) {
@@ -1241,6 +1282,7 @@ public final class GatewayForgeService {
         private final CrystalForgeData.CrystalProfile profile;
         private final List<String> augmentSummary = new ArrayList<>();
         private final List<String> catalystSummary = new ArrayList<>();
+        private final List<String> negativeSummary = new ArrayList<>();
         private final List<String> finalRollSummary = new ArrayList<>();
         private final Set<ResourceLocation> mobEffects = new LinkedHashSet<>();
         private int minionsPerWave;

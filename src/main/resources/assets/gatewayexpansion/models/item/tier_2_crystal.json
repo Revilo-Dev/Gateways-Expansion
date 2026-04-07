@@ -2,5 +2,19 @@
   "parent": "minecraft:item/generated",
   "textures": {
     "layer0": "gatewayexpansion:item/crystal-2"
-  }
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 2
+      },
+      "model": "gatewayexpansion:item/crystal_medium"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 3
+      },
+      "model": "gatewayexpansion:item/crystal_large"
+    }
+  ]
 }

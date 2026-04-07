@@ -125,8 +125,12 @@ public final class CatalystDefinitionPool {
     }
 
     public static CatalystDefinition random(CatalystArchetype archetype, RandomSource random) {
+        return random(archetype, random, -1);
+    }
+
+    public static CatalystDefinition random(CatalystArchetype archetype, RandomSource random, int level) {
         List<CatalystDefinition> entries = BY_ARCHETYPE.getOrDefault(archetype, List.of());
-        return entries.get(random.nextInt(entries.size()));
+        return materialize(entries.get(random.nextInt(entries.size())), random, level);
     }
 
     public static CatalystDefinition fallback(CatalystArchetype archetype) {
@@ -140,6 +144,15 @@ public final class CatalystDefinitionPool {
     private static void register(CatalystArchetype archetype, CatalystDefinition definition) {
         BY_ID.put(definition.id(), definition);
         BY_ARCHETYPE.computeIfAbsent(archetype, ignored -> new ArrayList<>()).add(definition);
+    }
+
+    private static CatalystDefinition materialize(CatalystDefinition template, RandomSource random, int level) {
+        return new CatalystDefinition(
+                template.id(),
+                template.title(),
+                rollPositive(template.positiveEffect(), random, level),
+                template.negativeEffect(),
+                template.tags());
     }
 
     private static CatalystDefinition c(String id, String title, Set<String> tags, ForgeEffect positive, ForgeEffect negative) {
@@ -197,5 +210,57 @@ public final class CatalystDefinitionPool {
 
     private static Set<String> tags(String... tags) {
         return Set.of(tags);
+    }
+
+    private static ForgeEffect rollPositive(ForgeEffect effect, RandomSource random, int level) {
+        return switch (effect.type()) {
+            case REWARD_MULTIPLIER -> {
+                double value = rollLevelRange(random, level);
+                yield ForgeEffect.of(effect.type(), value - 1.0D, "+" + trimPercent((value - 1.0D) * 100.0D) + "% item quantity");
+            }
+            case RARITY_REWARD_MULTIPLIER -> {
+                double value = rollLevelRange(random, level);
+                yield ForgeEffect.of(effect.type(), value, "+" + trimPercent((value - 1.0D) * 100.0D) + "% item rarity");
+            }
+            case LEVEL_XP_MULTIPLIER -> {
+                double value = rollLevelRange(random, level);
+                yield ForgeEffect.of(effect.type(), value, "+" + trimPercent((value - 1.0D) * 100.0D) + "% levels");
+            }
+            case EXPERIENCE_REWARD_MULTIPLIER -> {
+                double value = rollLevelRange(random, level);
+                yield ForgeEffect.of(effect.type(), value, "+" + trimPercent((value - 1.0D) * 100.0D) + "% XP");
+            }
+            default -> effect;
+        };
+    }
+
+    private static double rollLevelRange(RandomSource random, int level) {
+        double min;
+        double max;
+        if (level >= 90) {
+            min = 10.0D;
+            max = 20.0D;
+        } else if (level >= 80) {
+            min = 6.0D;
+            max = 10.0D;
+        } else if (level >= 50) {
+            min = 5.0D;
+            max = 8.0D;
+        } else if (level >= 41) {
+            min = 3.0D;
+            max = 6.0D;
+        } else if (level >= 21) {
+            min = 2.0D;
+            max = 4.0D;
+        } else {
+            min = 1.5D;
+            max = 2.0D;
+        }
+        return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
+    }
+
+    private static String trimPercent(double value) {
+        String text = String.format(java.util.Locale.ROOT, "%.0f", value);
+        return text;
     }
 }

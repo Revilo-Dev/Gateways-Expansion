@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.item.component.CustomData;
 
 public final class CrystalForgeData {
@@ -36,9 +37,12 @@ public final class CrystalForgeData {
                 updatedRoot.putLong(SEED_KEY, seed);
                 tag.put(ROOT_KEY, updatedRoot);
             });
+            syncModelData(stack, level);
             return new CrystalProfile(theme, level, seed);
         }
-        return readProfile(rootTag, minLevel, maxLevel);
+        CrystalProfile profile = readProfile(rootTag, minLevel, maxLevel);
+        syncModelData(stack, profile.level());
+        return profile;
     }
 
     public static CrystalProfile syncLevelToPlayer(ItemStack stack, int minLevel, int maxLevel, int playerLevel, RandomSource random) {
@@ -59,6 +63,7 @@ public final class CrystalForgeData {
             updatedRoot.putLong(SEED_KEY, profile.seed());
             tag.put(ROOT_KEY, updatedRoot);
         });
+        syncModelData(stack, level);
         return new CrystalProfile(profile.theme(), level, profile.seed());
     }
 
@@ -74,7 +79,7 @@ public final class CrystalForgeData {
             lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.theme", theme.displayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         if (rootTag.contains(LEVEL_KEY)) {
-            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.level", rootTag.getInt(LEVEL_KEY)).withStyle(ChatFormatting.GRAY));
+            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.level", rootTag.getInt(LEVEL_KEY)).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         }
         return lines;
     }
@@ -88,6 +93,24 @@ public final class CrystalForgeData {
         int level = rootTag.contains(LEVEL_KEY) ? Mth.clamp(rootTag.getInt(LEVEL_KEY), minLevel, maxLevel) : minLevel;
         long seed = rootTag.contains(SEED_KEY) ? rootTag.getLong(SEED_KEY) : level * 31L + theme.ordinal();
         return new CrystalProfile(theme, level, seed);
+    }
+
+    private static void syncModelData(ItemStack stack, int level) {
+        int modelData = modelDataForLevel(level);
+        CustomModelData existing = stack.get(DataComponents.CUSTOM_MODEL_DATA);
+        if (existing == null || existing.value() != modelData) {
+            stack.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(modelData));
+        }
+    }
+
+    private static int modelDataForLevel(int level) {
+        if (level >= 81) {
+            return 3;
+        }
+        if (level >= 51) {
+            return 2;
+        }
+        return 1;
     }
 
     public record CrystalProfile(CrystalTheme theme, int level, long seed) {
