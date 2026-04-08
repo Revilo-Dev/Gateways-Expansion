@@ -20,6 +20,7 @@ import com.revilo.gatewayexpansion.registry.ModEntities;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import com.revilo.gatewayexpansion.registry.ModMenus;
 import com.revilo.gatewayexpansion.registry.ModMobEffects;
+import com.revilo.gatewayexpansion.registry.ModRecipes;
 import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
@@ -45,6 +46,7 @@ public final class GatewayExpansion {
         ModAttributes.register(modEventBus);
         ModMenus.register(modEventBus);
         ModMobEffects.register(modEventBus);
+        ModRecipes.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
         GatewayExpansionClient.register(modEventBus);
         if (com.revilo.gatewayexpansion.integration.ModCompat.isAnyLoaded("curios")) {

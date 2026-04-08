@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    "gatewayexpansion:mana_steel_magnet",
+    "gatewayexpansion:elixrite_magnet",
+    "gatewayexpansion:astrite_magnet",
+    "gatewayexpansion:lunarium_magnet",
+    "gatewayexpansion:ignite_magnet",
+    "gatewayexpansion:iridium_magnet",
+    "gatewayexpansion:mythril_magnet",
+    "gatewayexpansion:arcanium_magnet",
+    "gatewayexpansion:prismatic_steel_magnet"
+  ]
+}

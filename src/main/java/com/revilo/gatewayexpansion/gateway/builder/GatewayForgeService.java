@@ -71,6 +71,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
@@ -526,6 +527,10 @@ public final class GatewayForgeService {
         int bossBonus = bossWaveEnabled ? 2 : 0;
         int baseRolls = Math.max(1, 1 + state.finalRewardRolls + bossBonus + (int) Math.floor(Math.max(0.0D, (state.rewardMultiplier - 1.0D) * 3.5D)));
         rewards.add(new Reward.LootTableReward(theme.commonLoot(), baseRolls, theme.finalDescKey()));
+        ItemStack themeJunkReward = createThemeJunkRewardStack(state, random, true);
+        if (!themeJunkReward.isEmpty()) {
+            rewards.add(new Reward.StackReward(themeJunkReward));
+        }
         rewards.add(new Reward.StackReward(createAugmentRewardStack(state, Math.max(0, state.waveCount() - 1), random)));
         if (state.crystalTier.tier() >= 3 || state.profile.level() >= 30) {
             rewards.add(new Reward.StackReward(createAugmentRewardStack(state, state.waveCount(), random)));
@@ -857,6 +862,10 @@ public final class GatewayForgeService {
                 tierRolls,
                 theme.waveDescKey()
         ));
+        ItemStack themeJunkReward = createThemeJunkRewardStack(state, random, false);
+        if (!themeJunkReward.isEmpty()) {
+            builder.reward(new Reward.StackReward(themeJunkReward));
+        }
         float catalystChance = Math.min(0.90F, 0.10F + state.crystalTier.tier() * 0.05F + waveIndex * 0.05F + (levelBoost * 0.75F));
         if (random.nextFloat() < catalystChance) {
             builder.reward(new Reward.StackReward(createCatalystRewardStack(random)));
@@ -901,6 +910,32 @@ public final class GatewayForgeService {
             case VOLATILE -> ModItems.HIGHRISK_CATALYST.get();
         });
         CatalystStackData.ensureDefinition(stack, archetype, random);
+        return stack;
+    }
+
+    private static ItemStack createThemeJunkRewardStack(ForgeState state, RandomSource random, boolean finalReward) {
+        Item item;
+        int minCount;
+        int maxCount;
+        switch (state.profile.theme()) {
+            case UNDEAD -> {
+                item = ModItems.HARDENED_FLESH.get();
+                minCount = finalReward ? 10 : 3;
+                maxCount = finalReward ? 22 : 8;
+            }
+            case RAIDER -> {
+                item = ModItems.RUSTY_COIN.get();
+                minCount = finalReward ? 8 : 2;
+                maxCount = finalReward ? 18 : 6;
+            }
+            default -> {
+                return ItemStack.EMPTY;
+            }
+        }
+
+        int levelBonus = Math.max(0, state.profile.level() / (finalReward ? 25 : 40));
+        ItemStack stack = new ItemStack(item);
+        stack.setCount(random.nextInt(minCount + levelBonus, maxCount + levelBonus + 1));
         return stack;
     }
 

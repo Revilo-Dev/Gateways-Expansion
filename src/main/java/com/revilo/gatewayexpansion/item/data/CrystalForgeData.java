@@ -16,15 +16,10 @@ import net.minecraft.world.item.component.CustomData;
 public final class CrystalForgeData {
 
     private static final String ROOT_KEY = GatewayExpansion.MOD_ID;
-    private static final CrystalTheme[] THEMES = {
-            CrystalTheme.UNDEAD,
-            CrystalTheme.ARCANE,
-            CrystalTheme.NETHER,
-            CrystalTheme.RAIDER
-    };
     private static final String THEME_KEY = "theme";
     private static final String LEVEL_KEY = "level";
     private static final String SEED_KEY = "seed";
+    private static final String ATTUNED_KEY = "attuned";
 
     private CrystalForgeData() {
     }
@@ -32,14 +27,15 @@ public final class CrystalForgeData {
     public static CrystalProfile ensureProfile(ItemStack stack, int minLevel, int maxLevel, RandomSource random) {
         CompoundTag rootTag = getRootTag(stack);
         if (!rootTag.contains(THEME_KEY) || !rootTag.contains(LEVEL_KEY) || !rootTag.contains(SEED_KEY)) {
-            CrystalTheme theme = THEMES[random.nextInt(THEMES.length)];
             int level = minLevel;
             long seed = random.nextLong();
+            CrystalTheme theme = randomThemeForLevel(level, seed);
             CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
                 CompoundTag updatedRoot = tag.getCompound(ROOT_KEY);
                 updatedRoot.putString(THEME_KEY, theme.name());
                 updatedRoot.putInt(LEVEL_KEY, level);
                 updatedRoot.putLong(SEED_KEY, seed);
+                updatedRoot.putBoolean(ATTUNED_KEY, false);
                 tag.put(ROOT_KEY, updatedRoot);
             });
             syncModelData(stack, level);
@@ -57,23 +53,42 @@ public final class CrystalForgeData {
         }
 
         int level = Mth.clamp(playerLevel, minLevel, maxLevel);
-        if (profile.level() == level) {
+        CompoundTag rootTag = getRootTag(stack);
+        boolean attuned = rootTag.contains(ATTUNED_KEY) && rootTag.getBoolean(ATTUNED_KEY);
+        CrystalTheme theme = attuned ? profile.theme() : randomThemeForLevel(level, profile.seed());
+        if (profile.level() == level && profile.theme() == theme) {
             return profile;
         }
 
         CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
             CompoundTag updatedRoot = tag.getCompound(ROOT_KEY);
-            updatedRoot.putString(THEME_KEY, profile.theme().name());
+            updatedRoot.putString(THEME_KEY, theme.name());
             updatedRoot.putInt(LEVEL_KEY, level);
             updatedRoot.putLong(SEED_KEY, profile.seed());
+            updatedRoot.putBoolean(ATTUNED_KEY, attuned);
             tag.put(ROOT_KEY, updatedRoot);
         });
         syncModelData(stack, level);
-        return new CrystalProfile(profile.theme(), level, profile.seed());
+        return new CrystalProfile(theme, level, profile.seed());
     }
 
     public static CrystalProfile getProfile(ItemStack stack, int minLevel, int maxLevel) {
         return readProfile(getRootTag(stack), minLevel, maxLevel);
+    }
+
+    public static void attuneTheme(ItemStack stack, CrystalTheme theme) {
+        CompoundTag rootTag = getRootTag(stack);
+        int level = rootTag.contains(LEVEL_KEY) ? rootTag.getInt(LEVEL_KEY) : 0;
+        long seed = rootTag.contains(SEED_KEY) ? rootTag.getLong(SEED_KEY) : (level * 31L + theme.ordinal());
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+            CompoundTag updatedRoot = tag.getCompound(ROOT_KEY);
+            updatedRoot.putString(THEME_KEY, theme.name());
+            updatedRoot.putInt(LEVEL_KEY, level);
+            updatedRoot.putLong(SEED_KEY, seed);
+            updatedRoot.putBoolean(ATTUNED_KEY, true);
+            tag.put(ROOT_KEY, updatedRoot);
+        });
+        syncModelData(stack, level);
     }
 
     public static List<Component> buildCrystalTooltip(ItemStack stack) {
@@ -94,10 +109,46 @@ public final class CrystalForgeData {
     }
 
     private static CrystalProfile readProfile(CompoundTag rootTag, int minLevel, int maxLevel) {
-        CrystalTheme theme = rootTag.contains(THEME_KEY) ? CrystalTheme.valueOf(rootTag.getString(THEME_KEY)) : CrystalTheme.UNDEAD;
         int level = rootTag.contains(LEVEL_KEY) ? Mth.clamp(rootTag.getInt(LEVEL_KEY), minLevel, maxLevel) : minLevel;
-        long seed = rootTag.contains(SEED_KEY) ? rootTag.getLong(SEED_KEY) : level * 31L + theme.ordinal();
+        long seed = rootTag.contains(SEED_KEY) ? rootTag.getLong(SEED_KEY) : level * 31L;
+        CrystalTheme theme = rootTag.contains(THEME_KEY) ? CrystalTheme.valueOf(rootTag.getString(THEME_KEY)) : randomThemeForLevel(level, seed);
         return new CrystalProfile(theme, level, seed);
+    }
+
+    private static CrystalTheme randomThemeForLevel(int level, long seed) {
+        RandomSource random = RandomSource.create(seed ^ ((long) level << 32) ^ 0x5F3759D5L);
+        int undeadWeight;
+        int netherWeight;
+        int raiderWeight;
+        int arcaneWeight;
+        if (level >= 50) {
+            undeadWeight = 45;
+            netherWeight = 25;
+            raiderWeight = 18;
+            arcaneWeight = 12;
+        } else if (level >= 30) {
+            undeadWeight = 60;
+            netherWeight = 25;
+            raiderWeight = 15;
+            arcaneWeight = 0;
+        } else {
+            undeadWeight = 75;
+            netherWeight = 25;
+            raiderWeight = 0;
+            arcaneWeight = 0;
+        }
+
+        int roll = random.nextInt(undeadWeight + netherWeight + raiderWeight + arcaneWeight);
+        if ((roll -= undeadWeight) < 0) {
+            return CrystalTheme.UNDEAD;
+        }
+        if ((roll -= netherWeight) < 0) {
+            return CrystalTheme.NETHER;
+        }
+        if ((roll -= raiderWeight) < 0) {
+            return CrystalTheme.RAIDER;
+        }
+        return CrystalTheme.ARCANE;
     }
 
     private static void syncModelData(ItemStack stack, int level) {

@@ -60,6 +60,8 @@ public final class ModItems {
             () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> MYSTIC_ESSENCE = ITEMS.register("mystic_essence",
             () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> HARDENED_FLESH = ITEMS.register("hardened_flesh",
+            () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> DARK_ESSENCE = ITEMS.register("dark_essence",
             () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> ARCANE_ESSENCE = ITEMS.register("arcane_essence",
@@ -79,6 +81,8 @@ public final class ModItems {
     public static final DeferredHolder<Item, MagnetItem> MANA_STEEL_MAGNET = ITEMS.register("mana_steel_magnet",
             () -> new MagnetItem(1, 0, new Item.Properties().stacksTo(1)));
     public static final DeferredHolder<Item, LootMaterialItem> SCRAP_METAL = ITEMS.register("scrap_metal",
+            () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
+    public static final DeferredHolder<Item, LootMaterialItem> RUSTY_COIN = ITEMS.register("rusty_coin",
             () -> new LootMaterialItem(LootRarity.COMMON, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> ELIXRITE_SCRAP = ITEMS.register("elixrite_scrap",
             () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64).rarity(Rarity.RARE)));

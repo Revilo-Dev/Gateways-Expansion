@@ -27,7 +27,9 @@ public final class GatewaySellValues {
         Item item = stack.getItem();
         if (item == ModItems.GRIMSTONE.get()) return 18;
         if (item == ModItems.MYSTIC_ESSENCE.get()) return 20;
+        if (item == ModItems.HARDENED_FLESH.get()) return 10;
         if (item == ModItems.SCRAP_METAL.get()) return 16;
+        if (item == ModItems.RUSTY_COIN.get()) return 12;
         if (item == ModItems.MANA_GEMS.get()) return 48;
         if (item == ModItems.MANA_STEEL_SCRAP.get()) return 36;
         if (item == ModItems.MANA_STEEL_INGOT.get()) return 324;

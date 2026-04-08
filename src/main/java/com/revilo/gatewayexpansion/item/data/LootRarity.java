@@ -4,7 +4,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
 public enum LootRarity {
-    COMMON("common", ChatFormatting.GRAY, 55),
+    COMMON("common", ChatFormatting.WHITE, 55),
     UNCOMMON("uncommon", ChatFormatting.GREEN, 28),
     RARE("rare", ChatFormatting.AQUA, 12),
     EPIC("epic", ChatFormatting.DARK_PURPLE, 4),

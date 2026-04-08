@@ -36,6 +36,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.STABILITY_PEARL.get());
                         output.accept(ModItems.GRIMSTONE.get());
                         output.accept(ModItems.MYSTIC_ESSENCE.get());
+                        output.accept(ModItems.HARDENED_FLESH.get());
                         output.accept(ModItems.DARK_ESSENCE.get());
                         output.accept(ModItems.ARCANE_ESSENCE.get());
                         output.accept(ModItems.MANASTONES.get());
@@ -47,6 +48,7 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.MANA_STEEL_MAGNET.get());
                         output.accept(ModItems.MANA_STEEL_PAXEL.get());
                         output.accept(ModItems.SCRAP_METAL.get());
+                        output.accept(ModItems.RUSTY_COIN.get());
                         output.accept(ModItems.ELIXRITE_SCRAP.get());
                         output.accept(ModItems.ELIXRITE_INGOT.get());
                         output.accept(ModItems.ELIXRITE_MAGNET.get());
