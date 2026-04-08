@@ -297,7 +297,8 @@ public final class GatewayForgeService {
                 state.levelXpMultiplier *= 1.35D;
                 state.experienceRewardMultiplier *= 1.35D;
                 state.rangedPacks += 1;
-                state.namedEliteChance += 0.08F;
+                state.assassinPacks += 1;
+                state.mixedPackCount += 1;
                 state.difficultyEstimate += 16;
             }
             case NETHER -> {
@@ -601,6 +602,10 @@ public final class GatewayForgeService {
             tag.putBoolean("IsImmuneToZombification", true);
             tag.putInt("TimeInOverworld", 0);
         }
+        if (entityType == EntityType.HOGLIN) {
+            tag.putInt("Age", 0);
+            tag.putBoolean("IsBaby", false);
+        }
         if (entityType == EntityType.PHANTOM) {
             ListTag activeEffects = tag.contains("ActiveEffects", 9) ? tag.getList("ActiveEffects", 10) : new ListTag();
             CompoundTag effect = new CompoundTag();
@@ -613,6 +618,9 @@ public final class GatewayForgeService {
             activeEffects.add(effect);
             tag.put("ActiveEffects", activeEffects);
         }
+        if (entityType == EntityType.DROWNED) {
+            tag.putBoolean("CanBreakDoors", true);
+        }
         if (!supportsArmorProgression(entityType)) {
             return tag;
         }
@@ -620,20 +628,20 @@ public final class GatewayForgeService {
         RandomSource random = RandomSource.create(state.profile.seed() ^ BuiltInRegistries.ENTITY_TYPE.getKey(entityType).hashCode() ^ tag.hashCode());
         float progress = armorProgress(state.profile.level());
         ListTag armorItems = ensureArmorItems(tag);
-        boolean drownedSunHelmet = entityType == EntityType.DROWNED;
-        if (drownedSunHelmet) {
+        boolean sunHelmetUndead = needsSunHelmet(entityType);
+        if (sunHelmetUndead) {
             armorItems.set(3, encodeItemStack(new ItemStack(Items.LEATHER_HELMET)));
         }
 
         if (progress > 0.0F && random.nextFloat() <= Mth.lerp(progress, 0.12F, 1.0F)) {
             ItemStack[] armorSet = selectArmorSet(state.profile.level(), random);
             for (int slot = 0; slot < 4; slot++) {
-                if (drownedSunHelmet && slot == 3) {
-                    continue;
-                }
                 boolean equipSlot = state.profile.level() >= 80 || random.nextFloat() < Mth.lerp(progress, 0.35F, 1.0F);
                 armorItems.set(slot, equipSlot ? encodeItemStack(armorSet[slot]) : new CompoundTag());
             }
+        }
+        if (sunHelmetUndead && armorItems.getCompound(3).isEmpty()) {
+            armorItems.set(3, encodeItemStack(new ItemStack(Items.LEATHER_HELMET)));
         }
         tag.put("ArmorItems", armorItems);
 
@@ -739,6 +747,15 @@ public final class GatewayForgeService {
                 || path.contains("drowned")
                 || path.contains("piglin")
                 || path.contains("vindicator");
+    }
+
+    private static boolean needsSunHelmet(EntityType<?> entityType) {
+        return entityType == EntityType.ZOMBIE
+                || entityType == EntityType.ZOMBIE_VILLAGER
+                || entityType == EntityType.DROWNED
+                || entityType == EntityType.SKELETON
+                || entityType == EntityType.STRAY
+                || entityType == EntityType.BOGGED;
     }
 
     private static boolean supportsRangedMeleeVariant(EntityType<?> entityType) {
@@ -1067,10 +1084,10 @@ public final class GatewayForgeService {
     }
 
     private static WaveArchetype selectWaveArchetype(ForgeState state, RandomSource random, int waveIndex, int waveCount) {
-        float hoardBias = 0.20F + Math.min(0.28F, state.profile.level() / 180.0F) + waveIndex * 0.08F;
-        float tankBias = 0.34F - Math.min(0.18F, state.profile.level() / 220.0F) - waveIndex * 0.05F;
-        float assassinBias = 0.24F;
-        float archerBias = 0.22F + Math.min(0.16F, state.rangedPacks * 0.06F);
+        float hoardBias = 0.20F + Math.min(0.28F, state.profile.level() / 180.0F) + waveIndex * 0.08F + (state.hoardPacks * 0.12F);
+        float tankBias = 0.34F - Math.min(0.18F, state.profile.level() / 220.0F) - waveIndex * 0.05F + (state.tankPacks * 0.12F);
+        float assassinBias = 0.24F + (state.assassinPacks * 0.12F);
+        float archerBias = 0.22F + Math.min(0.16F, state.rangedPacks * 0.06F) + (state.archerPacks * 0.12F);
         if (waveIndex >= waveCount - 2) {
             hoardBias += 0.10F;
             tankBias -= 0.04F;
@@ -1465,8 +1482,13 @@ public final class GatewayForgeService {
             case THEMED_REINFORCEMENTS -> state.reinforcementRolls += (int) Math.round(effect.value());
             case MIXED_PACKS -> state.mixedPackCount += (int) Math.round(effect.value());
             case RANGED_PACKS -> state.rangedPacks += (int) Math.round(effect.value());
+            case TANK_PACKS -> state.tankPacks += (int) Math.round(effect.value());
+            case HOARD_PACKS -> state.hoardPacks += (int) Math.round(effect.value());
+            case ASSASSIN_PACKS -> state.assassinPacks += (int) Math.round(effect.value());
+            case ARCHER_PACKS -> state.archerPacks += (int) Math.round(effect.value());
             case MINIBOSS_CHANCE -> state.minibossChance += (float) effect.value();
-            case NAMED_ELITE_CHANCE -> state.namedEliteChance += (float) effect.value();
+            case NAMED_ELITE_CHANCE -> {
+            }
             case DANGEROUS_FINAL_WAVE -> state.dangerousFinalWave = true;
             case WAVE_TIME_DELTA -> state.waveTimeDelta += (int) Math.round(effect.value());
             case SETUP_TIME_DELTA -> state.setupTimeDelta += (int) Math.round(effect.value());
@@ -1714,8 +1736,11 @@ public final class GatewayForgeService {
         private int reinforcementRolls;
         private int mixedPackCount;
         private int rangedPacks;
+        private int tankPacks;
+        private int hoardPacks;
+        private int assassinPacks;
+        private int archerPacks;
         private float minibossChance;
-        private float namedEliteChance;
         private boolean dangerousFinalWave;
         private int waveTimeDelta;
         private int setupTimeDelta;

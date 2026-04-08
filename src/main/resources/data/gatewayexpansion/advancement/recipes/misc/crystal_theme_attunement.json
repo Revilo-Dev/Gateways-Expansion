@@ -1,0 +1,38 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_tier_1_crystal": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatewayexpansion:tier_1_crystal",
+              "gatewayexpansion:tier_2_crystal",
+              "gatewayexpansion:tier_3_crystal",
+              "gatewayexpansion:tier_4_crystal",
+              "gatewayexpansion:tier_5_crystal"
+            ]
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "gatewayexpansion:crystal_theme_attunement"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_tier_1_crystal",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "gatewayexpansion:crystal_theme_attunement"
+    ]
+  }
+}

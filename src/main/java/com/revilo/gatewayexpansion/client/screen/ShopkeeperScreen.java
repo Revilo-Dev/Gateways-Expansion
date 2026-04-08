@@ -207,7 +207,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
                 }
 
                 int hoveredSlot = this.getOfferSlotAt(mouseX, mouseY);
-                if (hoveredSlot >= 0 && this.menu.getOfferDefinition(hoveredSlot) != null) {
+                if (hoveredSlot >= 0 && this.menu.isOfferSlotUnlocked(hoveredSlot) && this.menu.getOfferDefinition(hoveredSlot) != null) {
                     this.selectedSlot = hoveredSlot;
                     this.updateBuyButton();
                     return true;
@@ -323,7 +323,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
 
     private void renderSelectedOfferPanel(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         ShopOfferDefinition offer = this.getSelectedOffer();
-        if (offer == null) {
+        if (offer == null || !this.menu.isOfferSlotUnlocked(this.selectedSlot)) {
             return;
         }
 
@@ -407,12 +407,10 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         int hoveredSlot = this.getOfferSlotAt(mouseX, mouseY);
         if (hoveredSlot >= 0) {
             if (!this.menu.isOfferSlotUnlocked(hoveredSlot)) {
-                ShopOfferDefinition lockedOffer = this.menu.getOfferDefinition(hoveredSlot);
                 guiGraphics.renderComponentTooltip(
                         this.font,
                         List.of(
                                 Component.translatable("screen.gatewayexpansion.shopkeeper.locked"),
-                                lockedOffer != null ? lockedOffer.title() : Component.empty(),
                                 Component.translatable("screen.gatewayexpansion.shopkeeper.unlocks_at", this.menu.getRequiredLevelForSlot(hoveredSlot))
                         ),
                         mouseX,
@@ -641,7 +639,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
 
     private int findInitialSelection() {
         for (int slotIndex = 0; slotIndex < ShopkeeperMenu.GRID_SLOT_COUNT; slotIndex++) {
-            if (this.menu.getOfferDefinition(slotIndex) != null) {
+            if (this.menu.isOfferSlotUnlocked(slotIndex) && this.menu.getOfferDefinition(slotIndex) != null) {
                 return slotIndex;
             }
         }

@@ -1,0 +1,34 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_magnetite_scrap": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatewayexpansion:magnetite_scrap"
+            ]
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "gatewayexpansion:magnetite_ingot"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_magnetite_scrap",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "gatewayexpansion:magnetite_ingot"
+    ]
+  }
+}

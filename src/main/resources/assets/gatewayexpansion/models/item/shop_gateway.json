@@ -1,7 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "gatewayexpansion:item/loot/prismatic_core"
-  },
-  "gui_light": "front"
+    "layer0": "gatewayexpansion:item/shop_gateway"
+  }
 }

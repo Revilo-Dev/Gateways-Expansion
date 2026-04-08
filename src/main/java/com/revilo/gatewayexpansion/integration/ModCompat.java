@@ -64,6 +64,10 @@ public final class ModCompat {
     }
 
     private static boolean isPoolEligible(ResourceLocation id, EntityType<?> type) {
-        return isHostile(type) && !id.getPath().contains("creeper");
+        String path = id.getPath();
+        return isHostile(type)
+                && !path.contains("creeper")
+                && !path.contains("ghast")
+                && !path.contains("piglin");
     }
 }

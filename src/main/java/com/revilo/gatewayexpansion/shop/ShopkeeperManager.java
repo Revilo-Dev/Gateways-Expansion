@@ -70,9 +70,11 @@ public final class ShopkeeperManager {
             ModItems.SCRAP_METAL,
             ModItems.MANA_GEMS,
             ModItems.MANA_STEEL_SCRAP,
+            ModItems.MAGNETITE_SCRAP,
             ModItems.ARCANE_ESSENCE,
             ModItems.MANASTONES,
             ModItems.ELIXRITE_SCRAP,
+            ModItems.MAGNETITE_INGOT,
             ModItems.ASTRITE_SCRAP,
             ModItems.SOLAR_SHARD,
             ModItems.PRISMATIC_DIAMOND,
@@ -575,6 +577,12 @@ public final class ShopkeeperManager {
     private static int getGatewayDropWeight(LootMaterialItem item, GatewayEntity gate) {
         if (item == ModItems.MANA_STEEL_SCRAP.get()) {
             return isLevel20PlusGate(gate) ? LootRarity.COMMON.weight() : LootRarity.UNCOMMON.weight();
+        }
+        if (item == ModItems.MAGNETITE_SCRAP.get()) {
+            return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : LootRarity.COMMON.weight();
+        }
+        if (item == ModItems.MAGNETITE_INGOT.get()) {
+            return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : 0;
         }
         if (item == ModItems.ELIXRITE_SCRAP.get()) {
             return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : LootRarity.RARE.weight();

@@ -40,7 +40,7 @@ public class MagnetItem extends Item {
     }
 
     public double attractionForce() {
-        return 0.025D + (this.pullSpeed * 0.01D);
+        return 0.025D + (this.pullSpeed * 0.02D);
     }
 
     public int runeSlots() {

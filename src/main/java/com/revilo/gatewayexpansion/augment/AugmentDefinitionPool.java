@@ -124,13 +124,13 @@ public final class AugmentDefinitionPool {
                 List.of(effect("minecraft:strength", 0, "Enemies gain Strength"), effect("minecraft:regeneration", 0, "Enemies regenerate"), fx(ForgeEffectType.MINIBOSS_CHANCE, 0.20D, "Occasional miniboss chance")),
                 fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll")));
         register(a("shattered_observatory", "Shattered Observatory", AugmentDifficultyTier.EXTREME, tags("arcane", "special"),
-                List.of(fx(ForgeEffectType.NAMED_ELITE_CHANCE, 0.30D, "Named enemy injection"), fx(ForgeEffectType.RANGED_PACKS, 2, "Arcane ranged pressure"), effect("minecraft:slowness", 0, "Slowing attacks")),
+                List.of(fx(ForgeEffectType.ARCHER_PACKS, 2, "Archer pressure"), fx(ForgeEffectType.ASSASSIN_PACKS, 1, "Assassin pressure"), effect("minecraft:slowness", 0, "Slowing attacks")),
                 fx(ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS, 2, "+2 final reward rolls")));
         register(a("infernal_overrun", "Infernal Overrun", AugmentDifficultyTier.EXTREME, tags("nether", "finale"),
                 List.of(fx(ForgeEffectType.DAMAGE_MULTIPLIER, 0.25D, "+25% damage"), fx(ForgeEffectType.ARMOR_PIERCE, 3, "+3 armor pierce"), fx(ForgeEffectType.DANGEROUS_FINAL_WAVE, 1, "Infernal final wave")),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.28D, "loot range")));
         register(a("voidstamp_host", "Voidstamp Host", AugmentDifficultyTier.EXTREME, tags("extreme", "arcane"),
-                List.of(fx(ForgeEffectType.NAMED_ELITE_CHANCE, 0.24D, "Named enemies appear"), fx(ForgeEffectType.ELITE_UPGRADE_CHANCE, 0.22D, "Elite upgrades on some waves"), effect("minecraft:glowing", 0, "Glowing enemies")),
+                List.of(fx(ForgeEffectType.HOARD_PACKS, 2, "Hoard pressure"), fx(ForgeEffectType.ELITE_UPGRADE_CHANCE, 0.22D, "Elite upgrades on some waves"), effect("minecraft:glowing", 0, "Glowing enemies")),
                 fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll")));
         register(a("warpit_maw", "Warpit Maw", AugmentDifficultyTier.EXTREME, tags("extreme", "beast"),
                 List.of(fx(ForgeEffectType.ADD_MINIONS_PER_WAVE, 3, "+3 minions per wave"), dual(ForgeEffectType.SUPPORT_PACK_EVERY, 2, 2, "+2 support mobs every 2 waves"), fx(ForgeEffectType.SPEED_MULTIPLIER, 0.18D, "+18% speed")),

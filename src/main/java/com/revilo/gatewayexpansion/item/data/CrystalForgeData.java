@@ -94,9 +94,12 @@ public final class CrystalForgeData {
     public static List<Component> buildCrystalTooltip(ItemStack stack) {
         List<Component> lines = new ArrayList<>();
         CompoundTag rootTag = getRootTag(stack);
-        if (rootTag.contains(THEME_KEY)) {
+        if (rootTag.contains(THEME_KEY) && rootTag.contains(ATTUNED_KEY) && rootTag.getBoolean(ATTUNED_KEY)) {
             CrystalTheme theme = CrystalTheme.valueOf(rootTag.getString(THEME_KEY));
-            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.theme", theme.displayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
+            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.theme", themedLabel(theme)));
+            lines.addAll(themeSummary(theme));
+        } else {
+            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.random_theme").withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         if (rootTag.contains(LEVEL_KEY)) {
             lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.level", rootTag.getInt(LEVEL_KEY)).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
@@ -115,6 +118,49 @@ public final class CrystalForgeData {
         return new CrystalProfile(theme, level, seed);
     }
 
+    private static Component themedLabel(CrystalTheme theme) {
+        return theme.displayName().copy()
+                .append(Component.literal(" "))
+                .append(Component.literal("[alt]").withStyle(ChatFormatting.GRAY));
+    }
+
+    private static List<Component> themeSummary(CrystalTheme theme) {
+        List<Component> lines = new ArrayList<>();
+        switch (theme) {
+            case UNDEAD -> {
+                lines.add(themeStat("More mobs"));
+                lines.add(themeStat("High item quantity"));
+                lines.add(themeStat("Low rarity"));
+            }
+            case RAIDER -> {
+                lines.add(themeStat("More assassins"));
+                lines.add(themeStat("High rarity"));
+                lines.add(themeStat("High coins"));
+                lines.add(themeStat("Low levels"));
+            }
+            case NETHER -> {
+                lines.add(themeStat("More tanks"));
+                lines.add(themeStat("High xp"));
+                lines.add(themeStat("High quantity"));
+                lines.add(themeStat("Low coins"));
+            }
+            case ARCANE -> {
+                lines.add(themeStat("More Chaos"));
+                lines.add(themeStat("High levels"));
+                lines.add(themeStat("High coins"));
+                lines.add(themeStat("High rarity"));
+                lines.add(themeStat("Low xp"));
+            }
+            case BEAST -> {
+            }
+        }
+        return lines;
+    }
+
+    private static Component themeStat(String text) {
+        return Component.literal(text).withStyle(ChatFormatting.GRAY);
+    }
+
     private static CrystalTheme randomThemeForLevel(int level, long seed) {
         RandomSource random = RandomSource.create(seed ^ ((long) level << 32) ^ 0x5F3759D5L);
         int undeadWeight;
@@ -131,9 +177,14 @@ public final class CrystalForgeData {
             netherWeight = 25;
             raiderWeight = 15;
             arcaneWeight = 0;
-        } else {
+        } else if (level >= 25) {
             undeadWeight = 75;
             netherWeight = 25;
+            raiderWeight = 0;
+            arcaneWeight = 0;
+        } else {
+            undeadWeight = 100;
+            netherWeight = 0;
             raiderWeight = 0;
             arcaneWeight = 0;
         }

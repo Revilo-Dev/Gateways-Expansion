@@ -8,14 +8,12 @@ import com.revilo.gatewayexpansion.client.screen.GatewayWorkbenchScreen;
 import com.revilo.gatewayexpansion.gateway.GatewayHudOverlay;
 import com.revilo.gatewayexpansion.registry.ModBlockEntities;
 import com.revilo.gatewayexpansion.registry.ModEntities;
-import com.revilo.gatewayexpansion.registry.ModItems;
 import com.revilo.gatewayexpansion.registry.ModMenus;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 public final class GatewayExpansionClient {
@@ -46,12 +44,6 @@ public final class GatewayExpansionClient {
         public static void registerBlockEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerBlockEntityRenderer(ModBlockEntities.GATEWAY_WORKBENCH.get(), GatewayWorkbenchBlockEntityRenderer::new);
             event.registerEntityRenderer(ModEntities.GATEKEEPER.get(), GatekeeperRenderer::new);
-        }
-
-        @SubscribeEvent
-        public static void registerItemColors(RegisterColorHandlersEvent.Item event) {
-        event.register((stack, tintIndex) -> 0xFFFFFF, ModItems.SOLAR_SHARD.get());
-            event.register((stack, tintIndex) -> tintIndex == 0 ? 0x9B4DFF : 0xFFFFFF, ModItems.SHOP_GATEWAY.get());
         }
 
         @SubscribeEvent

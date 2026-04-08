@@ -104,16 +104,15 @@ public final class EnemyPoolRegistry {
                 }
             }
             case NETHER -> {
-                pools.pool(EnemyPoolRole.MELEE).add(EntityType.PIGLIN, 8, "vanilla").add(EntityType.HOGLIN, 5, "vanilla").add(EntityType.WITHER_SKELETON, 4, "vanilla").add(EntityType.SKELETON, 3, "vanilla");
-                pools.pool(EnemyPoolRole.RANGED).add(EntityType.BLAZE, 7, "vanilla").add(EntityType.PIGLIN, 5, "vanilla").add(EntityType.SKELETON, 5, "vanilla");
+                pools.pool(EnemyPoolRole.MELEE).add(EntityType.HOGLIN, 5, "vanilla").add(EntityType.WITHER_SKELETON, 4, "vanilla").add(EntityType.SKELETON, 3, "vanilla");
+                pools.pool(EnemyPoolRole.RANGED).add(EntityType.BLAZE, 7, "vanilla").add(EntityType.SKELETON, 5, "vanilla");
                 pools.pool(EnemyPoolRole.TANK).add(EntityType.HOGLIN, 7, "vanilla").add(EntityType.PIGLIN_BRUTE, 5, "vanilla").add(EntityType.MAGMA_CUBE, 3, "vanilla");
-                pools.pool(EnemyPoolRole.FAST).add(EntityType.MAGMA_CUBE, 6, "vanilla").add(EntityType.PIGLIN, 4, "vanilla");
+                pools.pool(EnemyPoolRole.FAST).add(EntityType.MAGMA_CUBE, 6, "vanilla");
                 pools.pool(EnemyPoolRole.ELITE).add(EntityType.PIGLIN_BRUTE, 7, "vanilla").add(EntityType.WITHER_SKELETON, 6, "vanilla").add(EntityType.BLAZE, 3, "vanilla");
-                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.BLAZE, 6, "vanilla").add(EntityType.SKELETON, 4, "vanilla").add(EntityType.PIGLIN, 4, "vanilla");
-                pools.pool(EnemyPoolRole.THEME).add(EntityType.PIGLIN, 7, "vanilla").add(EntityType.HOGLIN, 5, "vanilla").add(EntityType.WITHER_SKELETON, 4, "vanilla").add(EntityType.BLAZE, 4, "vanilla");
+                pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.BLAZE, 6, "vanilla").add(EntityType.SKELETON, 4, "vanilla");
+                pools.pool(EnemyPoolRole.THEME).add(EntityType.HOGLIN, 5, "vanilla").add(EntityType.WITHER_SKELETON, 4, "vanilla").add(EntityType.BLAZE, 4, "vanilla");
                 if (level >= 20) {
-                    pools.pool(EnemyPoolRole.MELEE).add(EntityType.PIGLIN, 3, "vanilla").add(EntityType.SKELETON, 2, "vanilla");
-                    pools.pool(EnemyPoolRole.RANGED).add(EntityType.PIGLIN, 3, "vanilla");
+                    pools.pool(EnemyPoolRole.MELEE).add(EntityType.SKELETON, 2, "vanilla");
                     pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.WITHER_SKELETON, 2, "vanilla");
                 }
                 if (level >= 35) {
