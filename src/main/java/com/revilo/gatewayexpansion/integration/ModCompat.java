@@ -1,11 +1,8 @@
 package com.revilo.gatewayexpansion.integration;
 
-import com.revilo.gatewayexpansion.GatewayExpansion;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -13,8 +10,6 @@ import net.minecraft.world.entity.MobCategory;
 import net.neoforged.fml.ModList;
 
 public final class ModCompat {
-
-    private static final Set<String> LOGGED_MODS = new LinkedHashSet<>();
 
     private ModCompat() {
     }
@@ -61,10 +56,7 @@ public final class ModCompat {
     }
 
     public static void debugDetected(String label, String... modIds) {
-        String key = label + Arrays.toString(modIds);
-        if (LOGGED_MODS.add(key)) {
-            GatewayExpansion.LOGGER.debug("{} support {}", label, isAnyLoaded(modIds) ? "enabled" : "not detected");
-        }
+        // Intentionally silent to avoid reload/init log spam from repeated pool evaluation.
     }
 
     private static boolean isHostile(EntityType<?> type) {

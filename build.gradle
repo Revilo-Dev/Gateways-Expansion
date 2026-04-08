@@ -89,10 +89,12 @@ dependencies {
     implementation "net.neoforged:neoforge:${neo_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    compileOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}:api"
     localImplementation "dev.shadowsoffire:Placebo:${minecraft_version}-${placebo_version}"
     localImplementation "dev.shadowsoffire:ApothicAttributes:${minecraft_version}-${apothic_attributes_version}"
     localImplementation "dev.shadowsoffire:GatewaysToEternity:${minecraft_version}-${gateways_version}"
     localRuntime "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+    localRuntime "top.theillusivec4.curios:curios-neoforge:${curios_version}"
     localRuntime "dev.shadowsoffire:Placebo:${minecraft_version}-${placebo_version}"
     localRuntime "dev.shadowsoffire:ApothicAttributes:${minecraft_version}-${apothic_attributes_version}"
     localRuntime "dev.shadowsoffire:GatewaysToEternity:${minecraft_version}-${gateways_version}"
@@ -113,7 +115,8 @@ tasks.withType(ProcessResources).configureEach {
             mod_description        : mod_description,
             gateways_version       : gateways_version,
             placebo_version        : placebo_version,
-            apothic_attributes_version: apothic_attributes_version
+            apothic_attributes_version: apothic_attributes_version,
+            curios_version         : curios_version
     ]
     inputs.properties replaceProperties
 

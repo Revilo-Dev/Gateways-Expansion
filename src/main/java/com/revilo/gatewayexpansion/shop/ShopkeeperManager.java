@@ -5,8 +5,11 @@ import com.revilo.gatewayexpansion.entity.GatekeeperEntity;
 import com.revilo.gatewayexpansion.gateway.GatewayPartyScaling;
 import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
 import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
+import com.revilo.gatewayexpansion.integration.LevelUpGatewayXpRewards;
 import com.revilo.gatewayexpansion.integration.ModCompat;
 import com.revilo.gatewayexpansion.item.LootMaterialItem;
+import com.revilo.gatewayexpansion.item.MagnetItem;
+import com.revilo.gatewayexpansion.item.PaxelItem;
 import com.revilo.gatewayexpansion.item.data.LootRarity;
 import com.revilo.gatewayexpansion.menu.ShopkeeperMenu;
 import com.revilo.gatewayexpansion.registry.ModEntities;
@@ -24,6 +27,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.Entity;
@@ -70,7 +74,7 @@ public final class ShopkeeperManager {
             ModItems.MANASTONES,
             ModItems.ELIXRITE_SCRAP,
             ModItems.ASTRITE_SCRAP,
-            ModItems.SOLAR_CRYSTAL,
+            ModItems.SOLAR_SHARD,
             ModItems.PRISMATIC_DIAMOND,
             ModItems.LUNARIUM_SCRAP,
             ModItems.DARK_ESSENCE,
@@ -100,8 +104,10 @@ public final class ShopkeeperManager {
         GatewayEntity gate = event.getEntity();
         if (gate.level() instanceof ServerLevel serverLevel) {
             int waveBurst = computeWaveCoinBurst(gate, serverLevel.random);
+            int awardedCoins = applyGatewayCoinMultiplier(gate, waveBurst);
             spawnCoins(gate, waveBurst);
             spawnGatewayLoot(gate, computeWaveLootRolls(gate, serverLevel.random));
+            sendWaveSummary(gate, awardedCoins);
         }
     }
 
@@ -328,7 +334,7 @@ public final class ShopkeeperManager {
 
     private static void spawnCoins(GatewayEntity gate, int amount) {
         RandomSource random = gate.level().random;
-        int remaining = Math.max(0, (int) Math.round(amount * GatewayForgeService.getGatewayCoinRewardMultiplier(gate.getGateway())));
+        int remaining = applyGatewayCoinMultiplier(gate, amount);
         while (remaining > 0) {
             int stackSize = Math.min(remaining, 3 + random.nextInt(5));
             remaining -= stackSize;
@@ -418,6 +424,9 @@ public final class ShopkeeperManager {
 
     private static int rollStockForOffer(ShopOfferDefinition offer, RandomSource random) {
         ItemStack preview = offer.previewStack();
+        if (preview.getItem() instanceof PaxelItem || preview.getItem() instanceof MagnetItem) {
+            return 1;
+        }
         if (preview.is(ModItems.STABILITY_PEARL.get())) {
             return 1 + random.nextInt(2);
         }
@@ -454,7 +463,7 @@ public final class ShopkeeperManager {
         if (preview.is(ModItems.MANA_GEMS.get()) || preview.is(ModItems.ARCANE_ESSENCE.get()) || preview.is(ModItems.MANASTONES.get())) {
             return 18 + random.nextInt(11);
         }
-        if (preview.is(ModItems.SOLAR_CRYSTAL.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
+        if (preview.is(ModItems.SOLAR_SHARD.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
             return 10 + random.nextInt(7);
         }
         if (preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
@@ -468,9 +477,6 @@ public final class ShopkeeperManager {
         }
         if (preview.is(ModItems.PRISMATIC_CORE.get())) {
             return 3 + random.nextInt(3);
-        }
-        if (preview.is(ModItems.ASTRITE_PAXEL.get()) || preview.is(ModItems.LUNARIUM_PAXEL.get())) {
-            return 1;
         }
         if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem) {
             return 2 + random.nextInt(3);
@@ -534,10 +540,13 @@ public final class ShopkeeperManager {
         if (preview.is(ModItems.PRISMATIC_CORE.get()) || preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
             return 2;
         }
+        if (preview.getItem() instanceof MagnetItem) {
+            return 1;
+        }
         if (preview.is(ModItems.LUNARIUM_SCRAP.get()) || preview.is(ModItems.LUNARIUM_INGOT.get()) || preview.is(ModItems.LUNARIUM_PAXEL.get())) {
             return 1;
         }
-        if (preview.is(ModItems.SOLAR_CRYSTAL.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
+        if (preview.is(ModItems.SOLAR_SHARD.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
             return 3;
         }
         if (preview.is(ModItems.ASTRITE_SCRAP.get()) || preview.is(ModItems.ASTRITE_INGOT.get()) || preview.is(ModItems.ASTRITE_PAXEL.get())) {
@@ -588,7 +597,8 @@ public final class ShopkeeperManager {
         int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
         int wave = Math.max(1, gate.getWave());
         int base = 4 + level + tier * 3 + wave * 2;
-        return base + random.nextInt(7);
+        int scaled = (int) Math.round((base + random.nextInt(7)) * GatewayPartyScaling.getRewardMultiplier(gate));
+        return Math.max(1, scaled);
     }
 
     private static int computeCompletionCoinBurst(GatewayEntity gate, RandomSource random) {
@@ -596,7 +606,42 @@ public final class ShopkeeperManager {
         int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gate.getGateway()));
         int wave = Math.max(1, gate.getWave());
         int base = 18 + (level * 2) + tier * 8 + wave * 4;
-        return base + random.nextInt(13);
+        int scaled = (int) Math.round((base + random.nextInt(13)) * GatewayPartyScaling.getRewardMultiplier(gate));
+        return Math.max(1, scaled);
+    }
+
+    private static void sendWaveSummary(GatewayEntity gate, int awardedCoins) {
+        ServerPlayer player = LevelUpGatewayXpRewards.findRewardPlayer(gate);
+        if (player == null) {
+            return;
+        }
+
+        int displayedCoins = awardedCoins;
+        if (MythicCoinWallet.getTotalMultiplier(player) != 1.0D) {
+            displayedCoins = Mth.floor((float) (awardedCoins * MythicCoinWallet.getTotalMultiplier(player)) + 0.5F);
+        }
+
+        int levelXp = LevelUpGatewayXpRewards.computeWaveXp(gate);
+        String survived = formatElapsedTime(gate.tickCount);
+        Component summary = Component.empty()
+                .append(Component.literal("◆ ").withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal("Coins: " + displayedCoins).withStyle(ChatFormatting.LIGHT_PURPLE))
+                .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal("Levels: " + levelXp).withStyle(ChatFormatting.AQUA))
+                .append(Component.literal(" | ").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal("Survived: " + survived).withStyle(ChatFormatting.GOLD));
+        player.displayClientMessage(summary, true);
+    }
+
+    private static int applyGatewayCoinMultiplier(GatewayEntity gate, int amount) {
+        return Math.max(0, (int) Math.round(amount * GatewayForgeService.getGatewayCoinRewardMultiplier(gate.getGateway())));
+    }
+
+    private static String formatElapsedTime(int ticks) {
+        int totalSeconds = Math.max(0, ticks / 20);
+        int minutes = totalSeconds / 60;
+        int seconds = totalSeconds % 60;
+        return String.format(java.util.Locale.ROOT, "%d:%02d", minutes, seconds);
     }
 
     private static int computeWaveLootRolls(GatewayEntity gate, RandomSource random) {

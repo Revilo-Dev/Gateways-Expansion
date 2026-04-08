@@ -20,16 +20,13 @@ public final class GeneratedGatewayPearlTracker {
             return;
         }
 
-        boolean restored = restoreFromInventory(player);
-        if (restored) {
-            GatewayForgeService.syncGatewayRegistry(player);
-        }
+        restoreFromInventory(player);
     }
 
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player && restoreFromInventory(player)) {
-            GatewayForgeService.syncGatewayRegistry(player);
+        if (event.getEntity() instanceof ServerPlayer player) {
+            restoreFromInventory(player);
         }
     }
 

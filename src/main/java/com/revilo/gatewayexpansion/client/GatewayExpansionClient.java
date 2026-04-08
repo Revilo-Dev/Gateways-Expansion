@@ -50,7 +50,7 @@ public final class GatewayExpansionClient {
 
         @SubscribeEvent
         public static void registerItemColors(RegisterColorHandlersEvent.Item event) {
-            event.register((stack, tintIndex) -> 0xFFFFFF, ModItems.SOLAR_CRYSTAL.get());
+        event.register((stack, tintIndex) -> 0xFFFFFF, ModItems.SOLAR_SHARD.get());
             event.register((stack, tintIndex) -> tintIndex == 0 ? 0x9B4DFF : 0xFFFFFF, ModItems.SHOP_GATEWAY.get());
         }
 

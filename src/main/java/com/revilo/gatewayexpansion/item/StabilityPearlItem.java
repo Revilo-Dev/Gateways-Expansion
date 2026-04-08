@@ -7,7 +7,12 @@ import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import java.util.Comparator;
 import java.util.List;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.particles.ItemParticleOption;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -24,8 +29,6 @@ public class StabilityPearlItem extends Item {
     private static final int RANGE = 96;
     private static final int TIME_EXTENSION_TICKS = 200;
     private static final int HEALTH_PENALTY_TICKS = 200;
-    private static final int USE_DURATION = 32;
-
     public StabilityPearlItem(Properties properties) {
         super(properties);
     }
@@ -33,53 +36,23 @@ public class StabilityPearlItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand usedHand) {
         ItemStack stack = player.getItemInHand(usedHand);
-        if (findGateway(player) == null) {
+        GatewayEntity gateway = findGateway(player);
+        if (gateway == null) {
             if (!level.isClientSide) {
                 player.sendSystemMessage(Component.translatable("message.gatewayexpansion.no_active_gateway"));
             }
             return InteractionResultHolder.fail(stack);
         }
 
-        player.startUsingItem(usedHand);
-        return InteractionResultHolder.consume(stack);
-    }
-
-    @Override
-    public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity livingEntity) {
-        if (!(livingEntity instanceof Player player)) {
-            return stack;
-        }
-
-        GatewayEntity gateway = findGateway(player);
-        if (gateway == null) {
-            if (!level.isClientSide) {
-                player.sendSystemMessage(Component.translatable("message.gatewayexpansion.no_active_gateway"));
-            }
-            return stack;
-        }
-
-        gateway.getEntityData().set(GatewayEntity.TICKS_ACTIVE, Math.max(0, gateway.getTicksActive() - TIME_EXTENSION_TICKS));
-        player.addEffect(new MobEffectInstance(ModMobEffects.STABILITY_DRAIN, HEALTH_PENALTY_TICKS, 0, false, true, true));
-        player.setHealth(Math.min(player.getHealth(), player.getMaxHealth()));
-
         if (!level.isClientSide) {
-            player.sendSystemMessage(Component.translatable("message.gatewayexpansion.gateway_time_extended", TIME_EXTENSION_TICKS / 20));
+            applyStabilityPearl((ServerLevel) level, player, stack, gateway);
         }
-
-        if (!player.hasInfiniteMaterials()) {
-            stack.shrink(1);
-        }
-        return stack;
+        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
 
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
-        return UseAnim.DRINK;
-    }
-
-    @Override
-    public int getUseDuration(ItemStack stack, LivingEntity entity) {
-        return USE_DURATION;
+        return UseAnim.NONE;
     }
 
     @Override
@@ -95,5 +68,27 @@ public class StabilityPearlItem extends Item {
                 .filter(gateway -> !ShopkeeperManager.isGatewayAnimation(gateway))
                 .min(Comparator.comparingDouble(player::distanceToSqr))
                 .orElse(null);
+    }
+
+    private static void applyStabilityPearl(ServerLevel level, Player player, ItemStack stack, GatewayEntity gateway) {
+        gateway.getEntityData().set(GatewayEntity.TICKS_ACTIVE, Math.max(0, gateway.getTicksActive() - TIME_EXTENSION_TICKS));
+        player.addEffect(new MobEffectInstance(ModMobEffects.STABILITY_DRAIN, HEALTH_PENALTY_TICKS, 0, false, true, true));
+        player.setHealth(Math.min(player.getHealth(), player.getMaxHealth()));
+        spawnShatterEffect(level, player, stack);
+        player.sendSystemMessage(Component.translatable("message.gatewayexpansion.gateway_time_extended", TIME_EXTENSION_TICKS / 20));
+        if (!player.hasInfiniteMaterials()) {
+            stack.shrink(1);
+        }
+    }
+
+    private static void spawnShatterEffect(ServerLevel level, Player player, ItemStack stack) {
+        ItemStack particleStack = stack.copy();
+        particleStack.setCount(1);
+        level.sendParticles(new ItemParticleOption(ParticleTypes.ITEM, particleStack),
+                player.getX(), player.getEyeY() - 0.2D, player.getZ(),
+                16,
+                0.25D, 0.2D, 0.25D,
+                0.08D);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.7F, 1.15F);
     }
 }

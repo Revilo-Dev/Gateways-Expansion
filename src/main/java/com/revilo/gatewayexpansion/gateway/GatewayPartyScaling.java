@@ -1,11 +1,19 @@
 package com.revilo.gatewayexpansion.gateway;
 
+import com.revilo.gatewayexpansion.config.GatewayExpansionConfig;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.entity.NormalGatewayEntity;
 import dev.shadowsoffire.gateways.event.GateEvent;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -22,6 +30,7 @@ public final class GatewayPartyScaling {
     private static final String EXTRA_PLAYERS_KEY = "gatewayexpansion.party_extra_players";
     private static final String BONUS_WAVES_KEY = "gatewayexpansion.party_bonus_waves";
     private static final String APPLIED_EXTRA_PLAYERS_KEY = "gatewayexpansion.party_applied_extra_players";
+    private static final String ANNOUNCED_PLAYERS_KEY = "gatewayexpansion.party_announced_players";
     private static final ResourceLocation HEALTH_MODIFIER_ID = ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "party_health");
     private static final ResourceLocation DAMAGE_MODIFIER_ID = ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "party_damage");
     private static final ResourceLocation SPEED_MODIFIER_ID = ResourceLocation.fromNamespaceAndPath("gatewayexpansion", "party_speed");
@@ -33,10 +42,15 @@ public final class GatewayPartyScaling {
     @SubscribeEvent
     public static void onGatewayOpened(GateEvent.Opened event) {
         GatewayEntity gate = event.getEntity();
-        int extraPlayers = countExtraPlayers(gate);
+        List<Player> nearbyPlayers = playersInRange(gate);
+        int extraPlayers = Math.max(0, nearbyPlayers.size() - 1);
         CompoundTag data = gate.getPersistentData();
         data.putInt(EXTRA_PLAYERS_KEY, extraPlayers);
         data.putInt(BONUS_WAVES_KEY, extraPlayers);
+        writeAnnouncedPlayers(data, nearbyPlayers.stream().map(Player::getUUID).collect(Collectors.toSet()));
+        for (Player player : extraPlayers(gate, nearbyPlayers)) {
+            announceJoin(gate, player);
+        }
     }
 
     @SubscribeEvent
@@ -45,13 +59,15 @@ public final class GatewayPartyScaling {
             return;
         }
 
-        int extraPlayers = countExtraPlayers(gate);
+        List<Player> nearbyPlayers = playersInRange(gate);
+        int extraPlayers = Math.max(0, nearbyPlayers.size() - 1);
         CompoundTag data = gate.getPersistentData();
         int previousExtraPlayers = Math.max(0, data.getInt(EXTRA_PLAYERS_KEY));
         if (extraPlayers > previousExtraPlayers) {
             data.putInt(BONUS_WAVES_KEY, data.getInt(BONUS_WAVES_KEY) + (extraPlayers - previousExtraPlayers));
             scaleActiveWaveEntities(gate, extraPlayers);
         }
+        announceNewPlayers(gate, nearbyPlayers, data);
         data.putInt(EXTRA_PLAYERS_KEY, Math.max(previousExtraPlayers, extraPlayers));
 
         if (gate instanceof NormalGatewayEntity normalGate
@@ -82,11 +98,74 @@ public final class GatewayPartyScaling {
         return 1.0D + (getExtraPlayers(gate) * 0.5D);
     }
 
+    public static double getRewardMultiplier(GatewayEntity gate) {
+        return 1.0D + (getExtraPlayers(gate) * 0.35D);
+    }
+
     private static int countExtraPlayers(GatewayEntity gate) {
+        return Math.max(0, playersInRange(gate).size() - 1);
+    }
+
+    private static List<Player> playersInRange(GatewayEntity gate) {
         double range = gate.getGateway().rules().leashRange() + 8.0D;
         AABB area = gate.getBoundingBox().inflate(range);
-        List<Player> players = gate.level().getEntitiesOfClass(Player.class, area, player -> player.isAlive() && !player.isSpectator());
-        return Math.max(0, players.size() - 1);
+        return gate.level().getEntitiesOfClass(Player.class, area, player -> player.isAlive() && !player.isSpectator());
+    }
+
+    private static List<Player> extraPlayers(GatewayEntity gate, List<Player> nearbyPlayers) {
+        Player owner = sourcePlayer(gate);
+        return nearbyPlayers.stream()
+                .filter(player -> owner == null || !player.getUUID().equals(owner.getUUID()))
+                .toList();
+    }
+
+    private static void announceNewPlayers(GatewayEntity gate, List<Player> nearbyPlayers, CompoundTag data) {
+        Set<UUID> announced = readAnnouncedPlayers(data);
+        for (Player player : extraPlayers(gate, nearbyPlayers)) {
+            if (announced.add(player.getUUID())) {
+                announceJoin(gate, player);
+            }
+        }
+        Player owner = sourcePlayer(gate);
+        if (owner != null) {
+            announced.add(owner.getUUID());
+        }
+        writeAnnouncedPlayers(data, announced);
+    }
+
+    private static void announceJoin(GatewayEntity gate, Player joinedPlayer) {
+        if (!GatewayExpansionConfig.ANNOUNCE_GATE_PARTY_JOIN_IN_CHAT.get() || gate.level().isClientSide || gate.level().getServer() == null) {
+            return;
+        }
+
+        Player owner = sourcePlayer(gate);
+        if (owner == null || owner.getUUID().equals(joinedPlayer.getUUID())) {
+            return;
+        }
+
+        Component message = Component.literal(joinedPlayer.getName().getString() + " has joined " + owner.getName().getString() + "'s gate");
+        gate.level().getServer().getPlayerList().broadcastSystemMessage(message, false);
+    }
+
+    private static Player sourcePlayer(GatewayEntity gate) {
+        if (gate.summonerOrClosest() instanceof ServerPlayer player) {
+            return player;
+        }
+        return gate.level().getNearestPlayer(gate, 64.0D);
+    }
+
+    private static Set<UUID> readAnnouncedPlayers(CompoundTag data) {
+        return data.getList(ANNOUNCED_PLAYERS_KEY, net.minecraft.nbt.Tag.TAG_STRING).stream()
+                .map(tag -> UUID.fromString(tag.getAsString()))
+                .collect(Collectors.toSet());
+    }
+
+    private static void writeAnnouncedPlayers(CompoundTag data, Set<UUID> players) {
+        ListTag list = new ListTag();
+        for (UUID uuid : players) {
+            list.add(StringTag.valueOf(uuid.toString()));
+        }
+        data.put(ANNOUNCED_PLAYERS_KEY, list);
     }
 
     private static void scaleActiveWaveEntities(GatewayEntity gate, int extraPlayers) {

@@ -10,11 +10,12 @@ public record AugmentDefinition(
         String title,
         AugmentDifficultyTier difficultyTier,
         List<ForgeEffect> modifierEffects,
-        ForgeEffect rewardEffect,
+        List<ForgeEffect> rewardEffects,
         Set<String> tags
 ) {
     public AugmentDefinition {
         modifierEffects = List.copyOf(modifierEffects);
+        rewardEffects = List.copyOf(rewardEffects);
         tags = Set.copyOf(tags);
     }
 }

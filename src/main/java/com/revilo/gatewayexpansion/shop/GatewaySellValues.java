@@ -31,13 +31,15 @@ public final class GatewaySellValues {
         if (item == ModItems.MANA_GEMS.get()) return 48;
         if (item == ModItems.MANA_STEEL_SCRAP.get()) return 36;
         if (item == ModItems.MANA_STEEL_INGOT.get()) return 324;
+        if (item == ModItems.MAGNETITE_SCRAP.get()) return 44;
+        if (item == ModItems.MAGNETITE_INGOT.get()) return 396;
         if (item == ModItems.ARCANE_ESSENCE.get()) return 60;
         if (item == ModItems.MANASTONES.get()) return 75;
         if (item == ModItems.ELIXRITE_SCRAP.get()) return 68;
         if (item == ModItems.ELIXRITE_INGOT.get()) return 612;
         if (item == ModItems.ASTRITE_SCRAP.get()) return 96;
         if (item == ModItems.ASTRITE_INGOT.get()) return 864;
-        if (item == ModItems.SOLAR_CRYSTAL.get()) return 140;
+        if (item == ModItems.SOLAR_SHARD.get()) return 140;
         if (item == ModItems.PRISMATIC_DIAMOND.get()) return 260;
         if (item == ModItems.LUNARIUM_SCRAP.get()) return 180;
         if (item == ModItems.LUNARIUM_INGOT.get()) return 1620;

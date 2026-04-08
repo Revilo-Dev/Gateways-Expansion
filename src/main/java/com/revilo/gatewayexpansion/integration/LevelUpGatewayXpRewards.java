@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.integration;
 
 import com.revilo.gatewayexpansion.GatewayExpansion;
+import com.revilo.gatewayexpansion.gateway.GatewayPartyScaling;
 import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.event.GateEvent;
@@ -50,7 +51,7 @@ public final class LevelUpGatewayXpRewards {
         }
     }
 
-    private static int computeWaveXp(GatewayEntity gatewayEntity) {
+    public static int computeWaveXp(GatewayEntity gatewayEntity) {
         Gateway gateway = gatewayEntity.getGateway();
         int level = GatewayForgeService.getGatewayLevel(gateway);
         int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gateway));
@@ -59,11 +60,12 @@ public final class LevelUpGatewayXpRewards {
         }
         double levelMultiplier = GatewayForgeService.getGatewayLevelXpMultiplier(gateway);
         double experienceMultiplier = GatewayForgeService.getGatewayExperienceRewardMultiplier(gateway);
+        double partyMultiplier = GatewayPartyScaling.getRewardMultiplier(gatewayEntity);
         int baseXp = Math.max(24, level * 10 + tier * 28);
-        return Math.max(24, (int) Math.round(baseXp * levelMultiplier * experienceMultiplier));
+        return Math.max(24, (int) Math.round(baseXp * levelMultiplier * experienceMultiplier * partyMultiplier));
     }
 
-    private static int computeCompletionXp(GatewayEntity gatewayEntity) {
+    public static int computeCompletionXp(GatewayEntity gatewayEntity) {
         Gateway gateway = gatewayEntity.getGateway();
         int level = GatewayForgeService.getGatewayLevel(gateway);
         int tier = Math.max(1, GatewayForgeService.getGatewayCrystalTier(gateway));
@@ -72,8 +74,9 @@ public final class LevelUpGatewayXpRewards {
         }
         double levelMultiplier = GatewayForgeService.getGatewayLevelXpMultiplier(gateway);
         double experienceMultiplier = GatewayForgeService.getGatewayExperienceRewardMultiplier(gateway);
+        double partyMultiplier = GatewayPartyScaling.getRewardMultiplier(gatewayEntity);
         int baseXp = Math.max(96, level * 26 + tier * 84);
-        return Math.max(96, (int) Math.round(baseXp * levelMultiplier * experienceMultiplier));
+        return Math.max(96, (int) Math.round(baseXp * levelMultiplier * experienceMultiplier * partyMultiplier));
     }
 
     private static void awardXp(ServerPlayer player, long amount, ResourceLocation source) {
@@ -106,7 +109,7 @@ public final class LevelUpGatewayXpRewards {
         }
     }
 
-    private static ServerPlayer findRewardPlayer(GatewayEntity gatewayEntity) {
+    public static ServerPlayer findRewardPlayer(GatewayEntity gatewayEntity) {
         if (gatewayEntity.summonerOrClosest() instanceof ServerPlayer player) {
             return player;
         }

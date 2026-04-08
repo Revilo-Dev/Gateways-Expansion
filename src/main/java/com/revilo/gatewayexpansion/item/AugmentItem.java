@@ -53,7 +53,9 @@ public class AugmentItem extends Item {
         for (var effect : definition.modifierEffects()) {
             tooltipComponents.add(Component.literal(effect.description()).withStyle(isNegativeTooltipEffect(effect) ? ChatFormatting.RED : ChatFormatting.GREEN));
         }
-        tooltipComponents.add(Component.literal(definition.rewardEffect().description()).withStyle(ChatFormatting.GOLD));
+        for (ForgeEffect effect : definition.rewardEffects()) {
+            tooltipComponents.add(Component.literal(effect.description()).withStyle(ChatFormatting.GOLD));
+        }
     }
 
     @Override

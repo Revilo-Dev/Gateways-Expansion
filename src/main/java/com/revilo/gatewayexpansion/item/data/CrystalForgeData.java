@@ -16,7 +16,12 @@ import net.minecraft.world.item.component.CustomData;
 public final class CrystalForgeData {
 
     private static final String ROOT_KEY = GatewayExpansion.MOD_ID;
-    private static final CrystalTheme[] THEMES = CrystalTheme.values();
+    private static final CrystalTheme[] THEMES = {
+            CrystalTheme.UNDEAD,
+            CrystalTheme.ARCANE,
+            CrystalTheme.NETHER,
+            CrystalTheme.RAIDER
+    };
     private static final String THEME_KEY = "theme";
     private static final String LEVEL_KEY = "level";
     private static final String SEED_KEY = "seed";

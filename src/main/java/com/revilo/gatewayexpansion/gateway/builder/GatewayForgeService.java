@@ -263,7 +263,7 @@ public final class GatewayForgeService {
                         }
                     }
                     applyEffects(state, definition.modifierEffects(), true);
-                    applyEffect(state, definition.rewardEffect(), true);
+                    applyEffects(state, definition.rewardEffects(), true);
                 }
             }
         }
@@ -280,8 +280,36 @@ public final class GatewayForgeService {
                 }
             }
         }
+        applyThemeIdentity(state);
         state.finish();
         return state;
+    }
+
+    private static void applyThemeIdentity(ForgeState state) {
+        switch (state.profile.theme()) {
+            case UNDEAD -> {
+                state.rewardMultiplier += 0.18D;
+                state.waveTimeDelta += 40;
+                state.difficultyEstimate -= 10;
+            }
+            case ARCANE -> {
+                state.levelXpMultiplier *= 1.35D;
+                state.experienceRewardMultiplier *= 1.35D;
+                state.rangedPacks += 1;
+                state.namedEliteChance += 0.08F;
+                state.difficultyEstimate += 16;
+            }
+            case NETHER -> {
+                state.rarityRewardMultiplier *= 1.28D;
+                state.damageMultiplier += 0.08D;
+                state.difficultyEstimate += 8;
+            }
+            case RAIDER -> {
+                state.coinRewardMultiplier *= 1.40D;
+                state.projectileDamage += 0.10D;
+                state.difficultyEstimate += 4;
+            }
+        }
     }
 
     private static void applyFinalRandomStage(ForgeState state) {
@@ -342,46 +370,85 @@ public final class GatewayForgeService {
             }
 
             Wave.Builder builder = Wave.builder();
-            int packs = 1 + waveIndex / 2 + state.densePacks + (waveIndex >= waveCount - 2 ? 1 : 0);
-            for (int pack = 0; pack < packs; pack++) {
-                EntityType<?> primary = pickEnemy(enemyPools, random, EnemyPoolRole.THEME, EnemyPoolRole.MELEE);
-                builder.entity(configureWaveEntity(StandardWaveEntity.builder(primary), primary, state).count(Mth.clamp(baseCount(state, waveIndex, random), 1, 64)).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+            WaveComposition composition = buildWaveComposition(state, enemyPools, random, waveIndex, waveCount);
+            int totalEnemies = 0;
+            double totalStrength = 0.0D;
+            for (PlannedWaveEntity planned : composition.entities()) {
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(planned.type()), planned.type(), state, planned.archetype())
+                        .count(planned.count())
+                        .addModifiers(adjustModifiersForEntity(planned.type(), state, planned.modifiers()))
+                        .finalizeSpawn(true)
+                        .build());
+                totalEnemies += planned.count();
+                totalStrength += planned.threatCost();
             }
             if (state.supportInterval > 0 && ((waveIndex + 1) % state.supportInterval == 0)) {
                 for (int i = 0; i < state.supportCount; i++) {
                     EntityType<?> supportType = pickEnemy(enemyPools, random, EnemyPoolRole.SUPPORT, EnemyPoolRole.MELEE);
-                    builder.entity(configureWaveEntity(StandardWaveEntity.builder(supportType), supportType, state).count(1).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                    int supportCount = 1 + random.nextInt(2);
+                    builder.entity(configureWaveEntity(StandardWaveEntity.builder(supportType), supportType, state, WaveArchetype.HOARD)
+                            .count(supportCount)
+                            .addModifiers(adjustModifiersForEntity(supportType, state, waveModifiers(state, WaveArchetype.HOARD, waveIndex)))
+                            .finalizeSpawn(true)
+                            .build());
+                    totalEnemies += supportCount;
+                    totalStrength += supportCount * perMobThreatCost(state, waveIndex, WaveArchetype.HOARD);
                 }
             }
             if (state.rangedPacks > 0 && random.nextFloat() < 0.45F + (0.10F * state.rangedPacks)) {
                 EntityType<?> rangedType = pickEnemy(enemyPools, random, EnemyPoolRole.RANGED, EnemyPoolRole.MELEE);
-                builder.entity(configureWaveEntity(StandardWaveEntity.builder(rangedType), rangedType, state).count(1 + state.rangedPacks).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                int rangedCount = 1 + state.rangedPacks + random.nextInt(2);
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(rangedType), rangedType, state, WaveArchetype.ARCHER)
+                        .count(rangedCount)
+                        .addModifiers(adjustModifiersForEntity(rangedType, state, waveModifiers(state, WaveArchetype.ARCHER, waveIndex)))
+                        .finalizeSpawn(true)
+                        .build());
+                totalEnemies += rangedCount;
+                totalStrength += rangedCount * perMobThreatCost(state, waveIndex, WaveArchetype.ARCHER);
             }
             if (state.mixedPackCount > 0 && random.nextFloat() < 0.35F) {
                 EntityType<?> mixedType = pickEnemy(enemyPools, random, EnemyPoolRole.FAST, EnemyPoolRole.SUPPORT);
-                builder.entity(configureWaveEntity(StandardWaveEntity.builder(mixedType), mixedType, state).count(state.mixedPackCount).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                int mixedCount = Math.max(1, state.mixedPackCount);
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(mixedType), mixedType, state, WaveArchetype.ASSASSIN)
+                        .count(mixedCount)
+                        .addModifiers(adjustModifiersForEntity(mixedType, state, waveModifiers(state, WaveArchetype.ASSASSIN, waveIndex)))
+                        .finalizeSpawn(true)
+                        .build());
+                totalEnemies += mixedCount;
+                totalStrength += mixedCount * perMobThreatCost(state, waveIndex, WaveArchetype.ASSASSIN);
             }
             if (state.reinforcementRolls > 0 && random.nextFloat() < 0.25F * state.reinforcementRolls) {
                 EntityType<?> reinforcementType = pickEnemy(enemyPools, random, EnemyPoolRole.TANK, EnemyPoolRole.MELEE);
-                builder.entity(configureWaveEntity(StandardWaveEntity.builder(reinforcementType), reinforcementType, state).count(2 + state.reinforcementRolls).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+                int reinforcementCount = 1 + state.reinforcementRolls;
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(reinforcementType), reinforcementType, state, WaveArchetype.TANK)
+                        .count(reinforcementCount)
+                        .addModifiers(adjustModifiersForEntity(reinforcementType, state, waveModifiers(state, WaveArchetype.TANK, waveIndex)))
+                        .finalizeSpawn(true)
+                        .build());
+                totalEnemies += reinforcementCount;
+                totalStrength += reinforcementCount * perMobThreatCost(state, waveIndex, WaveArchetype.TANK);
             }
             if (shouldAddElite(state, waveIndex, random)) {
                 int eliteCount = 1 + (waveIndex == waveCount - 1 ? state.finalWaveEliteCount : 0);
                 for (int i = 0; i < eliteCount; i++) {
                     EntityType<?> eliteType = pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.MELEE);
-                    builder.entity(configureWaveEntity(StandardWaveEntity.builder(eliteType), eliteType, state).count(1).addModifiers(eliteModifiers(state, random)).finalizeSpawn(true).build());
+                    builder.entity(configureWaveEntity(StandardWaveEntity.builder(eliteType), eliteType, state).count(1).addModifiers(adjustModifiersForEntity(eliteType, state, eliteModifiers(state, random))).finalizeSpawn(true).build());
+                    totalEnemies += 1;
+                    totalStrength += 4.25D;
                 }
             }
             if (waveIndex >= waveCount - 2 && random.nextFloat() < state.minibossChance) {
                 EntityType<?> minibossType = pickEnemy(enemyPools, random, EnemyPoolRole.ELITE, EnemyPoolRole.TANK);
-                builder.entity(configureWaveEntity(StandardWaveEntity.builder(minibossType), minibossType, state).count(1).addModifiers(minibossModifiers(state)).finalizeSpawn(true).build());
+                builder.entity(configureWaveEntity(StandardWaveEntity.builder(minibossType), minibossType, state).count(1).addModifiers(adjustModifiersForEntity(minibossType, state, minibossModifiers(state))).finalizeSpawn(true).build());
+                totalEnemies += 1;
+                totalStrength += 6.0D;
             }
             for (WaveModifier modifier : globalWaveModifiers(state)) {
                 builder.modifier(modifier);
             }
             addWaveRewardDrops(builder, state, theme, waveIndex, waveCount, random);
             builder.reward(new Reward.ExperienceReward(waveExperienceReward(state), 5));
-            builder.maxWaveTime(computeWaveTimeLimit(state, waveIndex, waveCount, packs));
+            builder.maxWaveTime(computeWaveTimeLimit(state, waveIndex, waveCount, totalEnemies, totalStrength));
             builder.setupTime(computeSetupTime(state));
             waves.add(builder.build());
         }
@@ -484,15 +551,23 @@ public final class GatewayForgeService {
     private static Wave buildBossWave(ForgeState state, GatewayThemeProfile theme, EnemyPoolSet enemyPools, RandomSource random, int waveCount) {
         Wave.Builder builder = Wave.builder();
         EntityType<?> boss = enemyPools.pickBoss(random);
-        builder.entity(configureWaveEntity(StandardWaveEntity.builder(boss), boss, state).count(1).addModifiers(bossModifiers(state)).finalizeSpawn(true).build());
+        builder.entity(configureWaveEntity(StandardWaveEntity.builder(boss), boss, state).count(1).addModifiers(adjustModifiersForEntity(boss, state, bossModifiers(state))).finalizeSpawn(true).build());
+        int totalEnemies = 1;
+        double totalStrength = 8.5D;
 
         if (random.nextFloat() < 0.65F) {
             EntityType<?> supportType = pickEnemy(enemyPools, random, EnemyPoolRole.SUPPORT, EnemyPoolRole.RANGED);
-            builder.entity(configureWaveEntity(StandardWaveEntity.builder(supportType), supportType, state).count(2 + state.crystalTier.tier() / 2).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+            int supportCount = 2 + state.crystalTier.tier() / 2;
+            builder.entity(configureWaveEntity(StandardWaveEntity.builder(supportType), supportType, state, WaveArchetype.ARCHER).count(supportCount).addModifiers(adjustModifiersForEntity(supportType, state, waveModifiers(state, WaveArchetype.ARCHER, waveCount - 1))).finalizeSpawn(true).build());
+            totalEnemies += supportCount;
+            totalStrength += supportCount * perMobThreatCost(state, waveCount - 1, WaveArchetype.ARCHER);
         }
         if (random.nextFloat() < 0.45F) {
             EntityType<?> meleeType = pickEnemy(enemyPools, random, EnemyPoolRole.MELEE, EnemyPoolRole.THEME);
-            builder.entity(configureWaveEntity(StandardWaveEntity.builder(meleeType), meleeType, state).count(3 + state.crystalTier.tier()).addModifiers(baseModifiers(state)).finalizeSpawn(true).build());
+            int meleeCount = 3 + state.crystalTier.tier();
+            builder.entity(configureWaveEntity(StandardWaveEntity.builder(meleeType), meleeType, state, WaveArchetype.TANK).count(meleeCount).addModifiers(adjustModifiersForEntity(meleeType, state, waveModifiers(state, WaveArchetype.TANK, waveCount - 1))).finalizeSpawn(true).build());
+            totalEnemies += meleeCount;
+            totalStrength += meleeCount * perMobThreatCost(state, waveCount - 1, WaveArchetype.TANK);
         }
 
         for (WaveModifier modifier : globalWaveModifiers(state)) {
@@ -502,17 +577,25 @@ public final class GatewayForgeService {
         builder.reward(new Reward.StackReward(createCatalystRewardStack(random)));
         builder.reward(new Reward.LootTableReward(theme.rareLoot(), 1, theme.rareDescKey()));
         builder.reward(new Reward.ExperienceReward(waveExperienceReward(state), 5));
-        builder.maxWaveTime(Mth.clamp(7200 + state.profile.level() * 20 + state.waveTimeDelta, 3600, 12000));
+        builder.maxWaveTime(Mth.clamp(computeWaveTimeLimit(state, waveCount - 1, waveCount, totalEnemies, totalStrength) + 500, 900, 12000));
         builder.setupTime(computeSetupTime(state));
         return builder.build();
     }
 
     private static StandardWaveEntity.Builder configureWaveEntity(StandardWaveEntity.Builder builder, EntityType<?> entityType, ForgeState state) {
-        return builder.nbt(tag -> applySpawnOverrides(tag, entityType, state));
+        return configureWaveEntity(builder, entityType, state, null);
     }
 
-    private static CompoundTag applySpawnOverrides(CompoundTag tag, EntityType<?> entityType, ForgeState state) {
+    private static StandardWaveEntity.Builder configureWaveEntity(StandardWaveEntity.Builder builder, EntityType<?> entityType, ForgeState state, WaveArchetype archetype) {
+        return builder.nbt(tag -> applySpawnOverrides(tag, entityType, state, archetype));
+    }
+
+    private static CompoundTag applySpawnOverrides(CompoundTag tag, EntityType<?> entityType, ForgeState state, WaveArchetype archetype) {
         tag.putString("DeathLootTable", "minecraft:empty");
+        if (entityType == EntityType.PIGLIN || entityType == EntityType.PIGLIN_BRUTE || entityType == EntityType.HOGLIN) {
+            tag.putBoolean("IsImmuneToZombification", true);
+            tag.putInt("TimeInOverworld", 0);
+        }
         if (entityType == EntityType.PHANTOM) {
             ListTag activeEffects = tag.contains("ActiveEffects", 9) ? tag.getList("ActiveEffects", 10) : new ListTag();
             CompoundTag effect = new CompoundTag();
@@ -532,15 +615,15 @@ public final class GatewayForgeService {
         RandomSource random = RandomSource.create(state.profile.seed() ^ BuiltInRegistries.ENTITY_TYPE.getKey(entityType).hashCode() ^ tag.hashCode());
         float progress = armorProgress(state.profile.level());
         ListTag armorItems = ensureArmorItems(tag);
-        boolean undeadCapOnly = state.profile.theme() == CrystalTheme.UNDEAD;
-        if (undeadCapOnly) {
+        boolean drownedSunHelmet = entityType == EntityType.DROWNED;
+        if (drownedSunHelmet) {
             armorItems.set(3, encodeItemStack(new ItemStack(Items.LEATHER_HELMET)));
         }
 
         if (progress > 0.0F && random.nextFloat() <= Mth.lerp(progress, 0.12F, 1.0F)) {
             ItemStack[] armorSet = selectArmorSet(state.profile.level(), random);
             for (int slot = 0; slot < 4; slot++) {
-                if (undeadCapOnly && slot == 3) {
+                if (drownedSunHelmet && slot == 3) {
                     continue;
                 }
                 boolean equipSlot = state.profile.level() >= 80 || random.nextFloat() < Mth.lerp(progress, 0.35F, 1.0F);
@@ -567,6 +650,16 @@ public final class GatewayForgeService {
                 handDropChances.set(1, net.minecraft.nbt.FloatTag.valueOf(0.0F));
                 tag.put("HandDropChances", handDropChances);
             }
+        }
+        if (supportsRangedMeleeVariant(entityType) && shouldUseMeleeVariant(state, archetype, random)) {
+            ListTag handItems = ensureHandItems(tag);
+            handItems.set(0, encodeItemStack(selectWeapon(entityType, state.profile.level(), random)));
+            handItems.set(1, new CompoundTag());
+            tag.put("HandItems", handItems);
+            ListTag handDropChances = ensureHandDropChances(tag);
+            handDropChances.set(0, net.minecraft.nbt.FloatTag.valueOf(0.0F));
+            handDropChances.set(1, net.minecraft.nbt.FloatTag.valueOf(0.0F));
+            tag.put("HandDropChances", handDropChances);
         }
         return tag;
     }
@@ -604,13 +697,12 @@ public final class GatewayForgeService {
         return Math.max(20, adjustedSetupTime);
     }
 
-    private static int computeWaveTimeLimit(ForgeState state, int waveIndex, int waveCount, int packs) {
-        int base = 1020 + state.profile.level() * 6 + state.waveTimeDelta + (waveIndex >= waveCount - 2 ? state.lateWaveTimeBonus : 0);
-        int densityBonus = packs * 100 + Math.max(0, state.minionsPerWave) * 35;
-        if (state.profile.level() >= 18) {
-            densityBonus += 260 + Math.min(140, (state.profile.level() - 18) * 10);
-        }
-        return Mth.clamp(base + densityBonus, 220, 2400);
+    private static int computeWaveTimeLimit(ForgeState state, int waveIndex, int waveCount, int totalEnemies, double totalStrength) {
+        int base = 260 + state.waveTimeDelta + (waveIndex >= waveCount - 2 ? state.lateWaveTimeBonus : 0);
+        int enemyTime = totalEnemies * 18;
+        int strengthTime = (int) Math.round(totalStrength * 140.0D);
+        int progressionTime = waveIndex * 90 + state.crystalTier.tier() * 35 + Math.max(0, state.minionsPerWave) * 20;
+        return Mth.clamp(base + enemyTime + strengthTime + progressionTime, 220, 2400);
     }
 
     private static boolean supportsArmorProgression(EntityType<?> entityType) {
@@ -620,7 +712,9 @@ public final class GatewayForgeService {
         }
         String path = key.getPath();
         return path.contains("zombie")
+                || path.contains("drowned")
                 || path.contains("skeleton")
+                || path.contains("stray")
                 || path.contains("piglin")
                 || path.contains("pillager")
                 || path.contains("vindicator")
@@ -640,6 +734,23 @@ public final class GatewayForgeService {
                 || path.contains("drowned")
                 || path.contains("piglin")
                 || path.contains("vindicator");
+    }
+
+    private static boolean supportsRangedMeleeVariant(EntityType<?> entityType) {
+        return entityType == EntityType.SKELETON
+                || entityType == EntityType.STRAY
+                || entityType == EntityType.BOGGED;
+    }
+
+    private static boolean shouldUseMeleeVariant(ForgeState state, WaveArchetype archetype, RandomSource random) {
+        float chance = 0.08F + Math.min(0.18F, state.profile.level() / 220.0F);
+        if (archetype == WaveArchetype.TANK || archetype == WaveArchetype.ASSASSIN || archetype == WaveArchetype.HOARD) {
+            chance += 0.22F;
+        }
+        if (archetype == WaveArchetype.ARCHER) {
+            chance -= 0.10F;
+        }
+        return random.nextFloat() < Mth.clamp(chance, 0.05F, 0.45F);
     }
 
     private static float armorProgress(int level) {
@@ -862,16 +973,205 @@ public final class GatewayForgeService {
         if (state.eliteEvery > 0 && (waveIndex + 1) % state.eliteEvery == 0) {
             return true;
         }
-        return random.nextFloat() < state.eliteChance + (waveIndex * 0.02F) + state.eliteUpgradeChance;
+        return random.nextFloat() < eliteSpawnChance(state, waveIndex);
     }
 
-    private static int baseCount(ForgeState state, int waveIndex, RandomSource random) {
-        int count = 2 + state.crystalTier.tier() + waveIndex + state.minionsPerWave + (state.shorterDenser ? 2 : 0);
-        if (state.profile.level() >= 18) {
-            count += 2 + (state.profile.level() >= 28 ? 1 : 0);
+    private static float eliteSpawnChance(ForgeState state, int waveIndex) {
+        float chance = state.eliteChance + (waveIndex * 0.02F) + state.eliteUpgradeChance;
+        if (state.profile.theme() == CrystalTheme.RAIDER) {
+            chance *= state.profile.level() < 50 ? 0.45F : 0.60F;
+        } else if (state.profile.theme() == CrystalTheme.ARCANE) {
+            chance *= state.profile.level() < 50 ? 0.60F : 0.75F;
         }
-        count += random.nextInt(2 + Math.max(1, state.profile.level() / 14));
-        return count;
+        return Mth.clamp(chance, 0.01F, 0.45F);
+    }
+
+    private static WaveComposition buildWaveComposition(ForgeState state, EnemyPoolSet enemyPools, RandomSource random, int waveIndex, int waveCount) {
+        WaveArchetype primaryArchetype = selectWaveArchetype(state, random, waveIndex, waveCount);
+        double budget = computeWaveBudget(state, waveIndex, primaryArchetype);
+        int minCount = minimumEnemyTarget(state, waveIndex, primaryArchetype);
+        int maxCount = maximumEnemyTarget(state, waveIndex, primaryArchetype);
+        List<PlannedWaveEntity> planned = new ArrayList<>();
+        double spent = 0.0D;
+        int totalCount = 0;
+        int guard = 0;
+        while (guard++ < 48 && totalCount < maxCount) {
+            WaveArchetype archetype = pickArchetypeForBudget(primaryArchetype, random, totalCount, minCount);
+            EnemyPoolRole role = pickRoleForArchetype(archetype, random);
+            EntityType<?> type = pickEnemy(enemyPools, random, role, fallbackRoleForArchetype(archetype));
+            double perMobCost = perMobThreatCost(state, waveIndex, archetype);
+            int remainingSlots = maxCount - totalCount;
+            double remainingBudget = budget - spent;
+            int count = groupCountForArchetype(archetype, remainingBudget, perMobCost, remainingSlots, random);
+            if (count <= 0) {
+                if (totalCount < minCount) {
+                    count = Math.min(remainingSlots, forcedCountForArchetype(archetype, random));
+                } else {
+                    break;
+                }
+            }
+            List<WaveModifier> modifiers = waveModifiers(state, archetype, waveIndex);
+            double groupCost = count * perMobCost;
+            planned.add(new PlannedWaveEntity(type, count, modifiers, groupCost, archetype));
+            spent += groupCost;
+            totalCount += count;
+            if (spent >= budget && totalCount >= minCount) {
+                break;
+            }
+        }
+        if (planned.isEmpty()) {
+            EntityType<?> fallback = pickEnemy(enemyPools, random, EnemyPoolRole.MELEE, EnemyPoolRole.THEME);
+            int count = Math.max(4, minimumEnemyTarget(state, waveIndex, WaveArchetype.HOARD) / 2);
+            double cost = count * perMobThreatCost(state, waveIndex, WaveArchetype.HOARD);
+            planned.add(new PlannedWaveEntity(fallback, count, waveModifiers(state, WaveArchetype.HOARD, waveIndex), cost, WaveArchetype.HOARD));
+            totalCount = count;
+            spent = cost;
+            primaryArchetype = WaveArchetype.HOARD;
+        }
+        return new WaveComposition(planned, totalCount, spent, primaryArchetype);
+    }
+
+    private static WaveArchetype selectWaveArchetype(ForgeState state, RandomSource random, int waveIndex, int waveCount) {
+        float hoardBias = 0.20F + Math.min(0.28F, state.profile.level() / 180.0F) + waveIndex * 0.08F;
+        float tankBias = 0.34F - Math.min(0.18F, state.profile.level() / 220.0F) - waveIndex * 0.05F;
+        float assassinBias = 0.24F;
+        float archerBias = 0.22F + Math.min(0.16F, state.rangedPacks * 0.06F);
+        if (waveIndex >= waveCount - 2) {
+            hoardBias += 0.10F;
+            tankBias -= 0.04F;
+        }
+        float total = hoardBias + tankBias + assassinBias + archerBias;
+        float roll = random.nextFloat() * total;
+        if ((roll -= tankBias) < 0.0F) return WaveArchetype.TANK;
+        if ((roll -= assassinBias) < 0.0F) return WaveArchetype.ASSASSIN;
+        if ((roll -= hoardBias) < 0.0F) return WaveArchetype.HOARD;
+        return WaveArchetype.ARCHER;
+    }
+
+    private static WaveArchetype pickArchetypeForBudget(WaveArchetype primary, RandomSource random, int totalCount, int minCount) {
+        if (totalCount < minCount / 2 && primary != WaveArchetype.HOARD && random.nextFloat() < 0.45F) {
+            return WaveArchetype.HOARD;
+        }
+        if (random.nextFloat() < 0.64F) {
+            return primary;
+        }
+        return switch (primary) {
+            case TANK -> random.nextBoolean() ? WaveArchetype.ASSASSIN : WaveArchetype.HOARD;
+            case ASSASSIN -> random.nextBoolean() ? WaveArchetype.ARCHER : WaveArchetype.HOARD;
+            case HOARD -> random.nextBoolean() ? WaveArchetype.ASSASSIN : WaveArchetype.ARCHER;
+            case ARCHER -> random.nextBoolean() ? WaveArchetype.HOARD : WaveArchetype.ASSASSIN;
+        };
+    }
+
+    private static EnemyPoolRole pickRoleForArchetype(WaveArchetype archetype, RandomSource random) {
+        return switch (archetype) {
+            case TANK -> random.nextFloat() < 0.7F ? EnemyPoolRole.TANK : EnemyPoolRole.MELEE;
+            case ASSASSIN -> random.nextFloat() < 0.7F ? EnemyPoolRole.FAST : EnemyPoolRole.MELEE;
+            case HOARD -> random.nextFloat() < 0.6F ? EnemyPoolRole.THEME : EnemyPoolRole.MELEE;
+            case ARCHER -> random.nextFloat() < 0.75F ? EnemyPoolRole.RANGED : EnemyPoolRole.SUPPORT;
+        };
+    }
+
+    private static EnemyPoolRole fallbackRoleForArchetype(WaveArchetype archetype) {
+        return switch (archetype) {
+            case TANK -> EnemyPoolRole.MELEE;
+            case ASSASSIN -> EnemyPoolRole.FAST;
+            case HOARD -> EnemyPoolRole.THEME;
+            case ARCHER -> EnemyPoolRole.MELEE;
+        };
+    }
+
+    private static double computeWaveBudget(ForgeState state, int waveIndex, WaveArchetype archetype) {
+        double budget = 8.0D
+                + state.crystalTier.tier() * 3.0D
+                + state.profile.level() * 0.34D
+                + waveIndex * (7.5D + state.profile.level() * 0.04D)
+                + state.minionsPerWave * 1.6D
+                + state.densePacks * 3.0D;
+        if (waveIndex >= Math.max(1, state.waveCount() - 2)) {
+            budget += 4.0D;
+        }
+        return budget * archetype.budgetMultiplier();
+    }
+
+    private static double perMobThreatCost(ForgeState state, int waveIndex, WaveArchetype archetype) {
+        double softness = Mth.clamp(1.22D - state.profile.level() * 0.006D - waveIndex * 0.08D, 0.56D, 1.18D);
+        return archetype.baseCost() * softness;
+    }
+
+    private static int minimumEnemyTarget(ForgeState state, int waveIndex, WaveArchetype archetype) {
+        int base = switch (archetype) {
+            case TANK -> 8;
+            case ASSASSIN -> 10;
+            case HOARD -> 16;
+            case ARCHER -> 12;
+        };
+        return base + state.crystalTier.tier() + waveIndex * 4 + state.profile.level() / 18 + Math.max(0, state.minionsPerWave);
+    }
+
+    private static int maximumEnemyTarget(ForgeState state, int waveIndex, WaveArchetype archetype) {
+        int padding = switch (archetype) {
+            case TANK -> 8;
+            case ASSASSIN -> 12;
+            case HOARD -> 24;
+            case ARCHER -> 18;
+        };
+        return minimumEnemyTarget(state, waveIndex, archetype) + padding + state.densePacks * 4;
+    }
+
+    private static int groupCountForArchetype(WaveArchetype archetype, double remainingBudget, double perMobCost, int remainingSlots, RandomSource random) {
+        int maxAffordable = (int) Math.floor(remainingBudget / Math.max(0.35D, perMobCost));
+        if (maxAffordable <= 0) {
+            return 0;
+        }
+        int lower = archetype.minGroupSize();
+        int upper = archetype.maxGroupSize();
+        int count = lower + random.nextInt(Math.max(1, upper - lower + 1));
+        count = Math.min(count, maxAffordable);
+        return Mth.clamp(count, 0, remainingSlots);
+    }
+
+    private static int forcedCountForArchetype(WaveArchetype archetype, RandomSource random) {
+        return archetype.minGroupSize() + random.nextInt(Math.max(1, archetype.maxGroupSize() - archetype.minGroupSize()));
+    }
+
+    private static List<WaveModifier> waveModifiers(ForgeState state, WaveArchetype archetype, int waveIndex) {
+        List<WaveModifier> modifiers = new ArrayList<>(baseModifiers(state));
+        double softness = Mth.clamp(1.08D - state.profile.level() * 0.003D - waveIndex * 0.05D, 0.62D, 1.05D);
+        switch (archetype) {
+            case TANK -> {
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MAX_HEALTH, Operation.ADD_MULTIPLIED_TOTAL, (float) (0.35D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.ARMOR, Operation.ADD_VALUE, (float) (3.5D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MOVEMENT_SPEED, Operation.ADD_MULTIPLIED_TOTAL, (float) (-0.05D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.SCALE, Operation.ADD_MULTIPLIED_TOTAL, 0.10F));
+            }
+            case ASSASSIN -> {
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MOVEMENT_SPEED, Operation.ADD_MULTIPLIED_TOTAL, (float) (0.22D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.ATTACK_DAMAGE, Operation.ADD_MULTIPLIED_TOTAL, (float) (0.12D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MAX_HEALTH, Operation.ADD_MULTIPLIED_TOTAL, (float) (-0.08D * softness)));
+            }
+            case HOARD -> {
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MAX_HEALTH, Operation.ADD_MULTIPLIED_TOTAL, (float) (-0.18D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.ATTACK_DAMAGE, Operation.ADD_MULTIPLIED_TOTAL, (float) (-0.10D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MOVEMENT_SPEED, Operation.ADD_MULTIPLIED_TOTAL, (float) (0.04D * softness)));
+            }
+            case ARCHER -> {
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MOVEMENT_SPEED, Operation.ADD_MULTIPLIED_TOTAL, (float) (0.08D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(ALObjects.Attributes.PROJECTILE_DAMAGE, Operation.ADD_MULTIPLIED_TOTAL, (float) (0.18D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.MAX_HEALTH, Operation.ADD_MULTIPLIED_TOTAL, (float) (-0.06D * softness)));
+                modifiers.add(WaveModifier.AttributeModifier.create(Attributes.SCALE, Operation.ADD_MULTIPLIED_TOTAL, -0.05F));
+            }
+        }
+        return modifiers;
+    }
+
+    private static List<WaveModifier> adjustModifiersForEntity(EntityType<?> entityType, ForgeState state, List<WaveModifier> modifiers) {
+        if (state.profile.theme() != CrystalTheme.RAIDER || entityType != EntityType.RAVAGER) {
+            return modifiers;
+        }
+        List<WaveModifier> adjusted = new ArrayList<>(modifiers);
+        adjusted.add(WaveModifier.AttributeModifier.create(Attributes.MAX_HEALTH, Operation.ADD_MULTIPLIED_TOTAL, -0.25F));
+        return adjusted;
     }
 
     private static EntityType<?> pickEnemy(EnemyPoolSet enemyPools, RandomSource random, EnemyPoolRole primary, EnemyPoolRole fallback) {
@@ -1220,61 +1520,132 @@ public final class GatewayForgeService {
     }
 
     private static double naturalHealthMultiplier(int level) {
-        if (level <= 10) {
-            return 0.04D * level;
+        if (level <= 0) {
+            return 0.0D;
+        }
+        if (level <= 20) {
+            return level * 0.025D;
+        }
+        if (level <= 30) {
+            return 0.50D + (level - 20) * 0.045D;
         }
         if (level <= 50) {
-            return 0.15D + ((level - 10) / 40.0D) * 0.95D;
+            return 0.95D + (level - 30) * 0.0225D;
+        }
+        if (level <= 75) {
+            return 1.40D + (level - 50) * 0.060D;
         }
         if (level <= 100) {
-            return 1.10D + ((level - 50) / 50.0D) * 1.90D;
+            return 2.90D + (level - 75) * 0.020D;
         }
-        return 3.0D;
+        return 3.40D;
     }
 
     private static double naturalDamageMultiplier(int level) {
-        if (level <= 10) {
-            return 0.05D * level;
+        if (level <= 0) {
+            return 0.0D;
+        }
+        if (level <= 20) {
+            return level * 0.023D;
+        }
+        if (level <= 30) {
+            return 0.46D + (level - 20) * 0.040D;
         }
         if (level <= 50) {
-            return 0.10D + ((level - 10) / 40.0D) * 0.90D;
+            return 0.86D + (level - 30) * 0.020D;
+        }
+        if (level <= 75) {
+            return 1.26D + (level - 50) * 0.070D;
         }
         if (level <= 100) {
-            return 1.0D + ((level - 50) / 50.0D) * 3.0D;
+            return 3.01D + (level - 75) * 0.020D;
         }
-        return 4.0D;
+        return 3.51D;
     }
 
     private static double naturalFlatDamageBonus(int level) {
         if (level <= 0) {
             return 0.0D;
         }
-        if (level <= 10) {
-            return level / 10.0D;
+        if (level <= 20) {
+            return level * 0.045D;
+        }
+        if (level <= 30) {
+            return 0.90D + (level - 20) * 0.060D;
         }
         if (level <= 50) {
-            return 1.0D + ((level - 10) / 40.0D) * 1.5D;
+            return 1.50D + (level - 30) * 0.030D;
+        }
+        if (level <= 75) {
+            return 2.10D + (level - 50) * 0.060D;
         }
         if (level <= 100) {
-            return 2.5D + ((level - 50) / 50.0D) * 2.5D;
+            return 3.60D + (level - 75) * 0.030D;
         }
-        return 5.0D;
+        return 4.35D;
     }
 
     private static double naturalArmorBonus(int level) {
         if (level <= 0) {
             return 0.0D;
         }
-        if (level <= 10) {
-            return 0.10D * level;
+        if (level <= 20) {
+            return level * 0.050D;
+        }
+        if (level <= 30) {
+            return 1.0D + (level - 20) * 0.070D;
         }
         if (level <= 50) {
-            return 1.0D + ((level - 10) / 40.0D) * 2.0D;
+            return 1.70D + (level - 30) * 0.040D;
+        }
+        if (level <= 75) {
+            return 2.50D + (level - 50) * 0.080D;
         }
         if (level <= 100) {
-            return 3.0D + ((level - 50) / 50.0D) * 3.0D;
+            return 4.50D + (level - 75) * 0.040D;
         }
-        return 6.0D;
+        return 5.50D;
+    }
+
+    private enum WaveArchetype {
+        TANK(2.8D, 0.95D, 2, 5),
+        ASSASSIN(1.9D, 1.0D, 3, 6),
+        HOARD(0.90D, 1.1D, 5, 11),
+        ARCHER(1.45D, 1.0D, 3, 7);
+
+        private final double baseCost;
+        private final double budgetMultiplier;
+        private final int minGroupSize;
+        private final int maxGroupSize;
+
+        WaveArchetype(double baseCost, double budgetMultiplier, int minGroupSize, int maxGroupSize) {
+            this.baseCost = baseCost;
+            this.budgetMultiplier = budgetMultiplier;
+            this.minGroupSize = minGroupSize;
+            this.maxGroupSize = maxGroupSize;
+        }
+
+        private double baseCost() {
+            return this.baseCost;
+        }
+
+        private double budgetMultiplier() {
+            return this.budgetMultiplier;
+        }
+
+        private int minGroupSize() {
+            return this.minGroupSize;
+        }
+
+        private int maxGroupSize() {
+            return this.maxGroupSize;
+        }
+    }
+
+    private record PlannedWaveEntity(EntityType<?> type, int count, List<WaveModifier> modifiers, double threatCost, WaveArchetype archetype) {
+    }
+
+    private record WaveComposition(List<PlannedWaveEntity> entities, int totalCount, double totalStrength, WaveArchetype primaryArchetype) {
     }
 
     private static final class ForgeState {

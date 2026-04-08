@@ -15,6 +15,7 @@ public final class AugmentDefinitionPool {
 
     private static final Map<String, AugmentDefinition> BY_ID = new LinkedHashMap<>();
     private static final Map<AugmentDifficultyTier, List<AugmentDefinition>> BY_TIER = new LinkedHashMap<>();
+    private static final double SECONDARY_REWARD_CHANCE = 0.22D;
 
     static {
         register(a("grave_tide", "Grave Tide", AugmentDifficultyTier.EASY,  tags("population", "undead"),
@@ -81,7 +82,7 @@ public final class AugmentDefinitionPool {
 
         register(a("siege_lords", "Siege Lords", AugmentDifficultyTier.HARD, tags("elite", "finale"),
                 List.of(fx(ForgeEffectType.FINAL_WAVE_ELITES, 2, "+2 stronger final wave units"), fx(ForgeEffectType.ELITE_CHANCE, 0.12D, "+12% elite chance")),
-                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 2, "+2 rare reward rolls")));
+                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll")));
         register(a("reaper_arms", "Reaper Arms", AugmentDifficultyTier.HARD, tags("damage", "undead"),
                 List.of(fx(ForgeEffectType.DAMAGE_MULTIPLIER, 0.22D, "+22% damage"), fx(ForgeEffectType.ARMOR_PIERCE, 2, "+2 armor pierce")),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.20D, "loot range")));
@@ -115,13 +116,13 @@ public final class AugmentDefinitionPool {
                 fx(ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS, 2, "+2 final reward rolls")));
         register(a("nightmare_legion", "Nightmare Legion", AugmentDifficultyTier.EXTREME, tags("extreme", "elite"),
                 List.of(fx(ForgeEffectType.ELITE_EVERY, 1, "+1 elite every wave"), fx(ForgeEffectType.FINAL_WAVE_ELITES, 3, "+3 final wave elites"), fx(ForgeEffectType.HEALTH_MULTIPLIER, 0.28D, "+28% health")),
-                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 2, "+2 rare reward rolls")));
+                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll")));
         register(a("ashen_stampede", "Ashen Stampede", AugmentDifficultyTier.EXTREME, tags("beast", "nether"),
                 List.of(fx(ForgeEffectType.ADD_MINIONS_PER_WAVE, 4, "+4 minions per wave"), fx(ForgeEffectType.SPEED_MULTIPLIER, 0.22D, "+22% speed"), fx(ForgeEffectType.SHORTER_DENSER_WAVES, 1, "Dense encounter")),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.25D, "loot range")));
         register(a("deathless_coven", "Deathless Coven", AugmentDifficultyTier.EXTREME, tags("undead", "effect"),
                 List.of(effect("minecraft:strength", 0, "Enemies gain Strength"), effect("minecraft:regeneration", 0, "Enemies regenerate"), fx(ForgeEffectType.MINIBOSS_CHANCE, 0.20D, "Occasional miniboss chance")),
-                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 2, "+2 rare reward rolls")));
+                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll")));
         register(a("shattered_observatory", "Shattered Observatory", AugmentDifficultyTier.EXTREME, tags("arcane", "special"),
                 List.of(fx(ForgeEffectType.NAMED_ELITE_CHANCE, 0.30D, "Named enemy injection"), fx(ForgeEffectType.RANGED_PACKS, 2, "Arcane ranged pressure"), effect("minecraft:slowness", 0, "Slowing attacks")),
                 fx(ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS, 2, "+2 final reward rolls")));
@@ -130,7 +131,7 @@ public final class AugmentDefinitionPool {
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.28D, "loot range")));
         register(a("voidstamp_host", "Voidstamp Host", AugmentDifficultyTier.EXTREME, tags("extreme", "arcane"),
                 List.of(fx(ForgeEffectType.NAMED_ELITE_CHANCE, 0.24D, "Named enemies appear"), fx(ForgeEffectType.ELITE_UPGRADE_CHANCE, 0.22D, "Elite upgrades on some waves"), effect("minecraft:glowing", 0, "Glowing enemies")),
-                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 2, "+2 rare reward rolls")));
+                fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward roll")));
         register(a("warpit_maw", "Warpit Maw", AugmentDifficultyTier.EXTREME, tags("extreme", "beast"),
                 List.of(fx(ForgeEffectType.ADD_MINIONS_PER_WAVE, 3, "+3 minions per wave"), dual(ForgeEffectType.SUPPORT_PACK_EVERY, 2, 2, "+2 support mobs every 2 waves"), fx(ForgeEffectType.SPEED_MULTIPLIER, 0.18D, "+18% speed")),
                 fx(ForgeEffectType.REWARD_MULTIPLIER, 0.24D, "loot range")));
@@ -165,8 +166,8 @@ public final class AugmentDefinitionPool {
                 template.id(),
                 template.title(),
                 template.difficultyTier(),
-                template.modifierEffects(),
-                rollReward(template.rewardEffect(), template.difficultyTier(), random, level),
+                rollModifierEffects(template.modifierEffects(), template.difficultyTier(), random, level),
+                rollRewardEffects(template.rewardEffects(), template.difficultyTier(), random, level),
                 template.tags());
     }
 
@@ -175,8 +176,8 @@ public final class AugmentDefinitionPool {
         BY_TIER.computeIfAbsent(definition.difficultyTier(), ignored -> new ArrayList<>()).add(definition);
     }
 
-    private static AugmentDefinition a(String id, String title, AugmentDifficultyTier tier, Set<String> tags, List<ForgeEffect> modifiers, ForgeEffect reward) {
-        return new AugmentDefinition(id, title, tier, modifiers, reward, tags);
+    private static AugmentDefinition a(String id, String title, AugmentDifficultyTier tier, Set<String> tags, List<ForgeEffect> modifiers, ForgeEffect... rewards) {
+        return new AugmentDefinition(id, title, tier, modifiers, List.of(rewards), tags);
     }
 
     private static ForgeEffect fx(ForgeEffectType type, double value, String description) {
@@ -191,17 +192,189 @@ public final class AugmentDefinitionPool {
         return ForgeEffect.ref(ForgeEffectType.MOB_EFFECT, ResourceLocation.parse(effectId), amplifier, 0.0D, description);
     }
 
+    private static List<ForgeEffect> rollModifierEffects(List<ForgeEffect> effects, AugmentDifficultyTier tier, RandomSource random, int level) {
+        List<ForgeEffect> rolled = new ArrayList<>(effects.size());
+        for (ForgeEffect effect : effects) {
+            rolled.add(rollModifier(effect, tier, random, level));
+        }
+        return List.copyOf(rolled);
+    }
+
+    private static List<ForgeEffect> rollRewardEffects(List<ForgeEffect> rewards, AugmentDifficultyTier tier, RandomSource random, int level) {
+        List<ForgeEffect> rolled = new ArrayList<>(rewards.size() + 1);
+        for (ForgeEffect reward : rewards) {
+            rolled.add(rollReward(reward, tier, random, level));
+        }
+        ForgeEffect secondary = maybeRollSecondaryReward(rolled, tier, random, level);
+        if (secondary != null) {
+            rolled.add(secondary);
+        }
+        return List.copyOf(rolled);
+    }
+
+    private static ForgeEffect rollModifier(ForgeEffect effect, AugmentDifficultyTier tier, RandomSource random, int level) {
+        return switch (effect.type()) {
+            case DAMAGE_MULTIPLIER -> rollScaledModifier(effect.type(), "damage", tier, random, level);
+            case SPEED_MULTIPLIER -> rollScaledModifier(effect.type(), "speed", tier, random, level);
+            case HEALTH_MULTIPLIER -> rollScaledModifier(effect.type(), "health", tier, random, level);
+            case KNOCKBACK_RESISTANCE -> rollScaledModifier(effect.type(), "knockback resistance", tier, random, level);
+            default -> effect;
+        };
+    }
+
     private static ForgeEffect rollReward(ForgeEffect reward, AugmentDifficultyTier tier, RandomSource random, int level) {
+        double rewardScale = extremeRewardScale(tier, level);
         return switch (reward.type()) {
-            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "coin multiplier");
-            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "level gain");
-            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "experience");
+            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), rewardScale), "coin multiplier");
+            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), rewardScale), "level gain");
+            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), rewardScale), "experience");
             case REWARD_MULTIPLIER -> {
-                double lootMultiplier = rollLevelRange(random, level);
+                double lootMultiplier = scaleMultiplier(rollLevelRange(random, level), rewardScale);
                 yield rangedReward(reward.type(), lootMultiplier - 1.0D, "loot", lootMultiplier);
             }
-            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), rollLevelRange(random, level), "rarity");
+            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), 1.0D + ((rewardScale - 1.0D) * 0.7D)), "rarity");
+            case EXTRA_RARE_REWARD_ROLLS, EXTRA_FINAL_REWARD_ROLLS, EXTRA_ENTITY_LOOT_ROLLS ->
+                    ForgeEffect.of(reward.type(), Math.max(1.0D, Math.round(reward.value() * rewardScale)), "+" + (int) Math.max(1.0D, Math.round(reward.value() * rewardScale)) + rewardSuffix(reward.type()));
             default -> reward;
+        };
+    }
+
+    private static ForgeEffect maybeRollSecondaryReward(List<ForgeEffect> existingRewards, AugmentDifficultyTier tier, RandomSource random, int level) {
+        if (level < 10 || random.nextDouble() >= secondaryRewardChance(tier, level)) {
+            return null;
+        }
+
+        List<ForgeEffectType> pool = List.of(
+                ForgeEffectType.REWARD_MULTIPLIER,
+                ForgeEffectType.RARITY_REWARD_MULTIPLIER,
+                ForgeEffectType.COIN_REWARD_MULTIPLIER,
+                ForgeEffectType.EXPERIENCE_REWARD_MULTIPLIER);
+        ForgeEffectType type = pool.get(random.nextInt(pool.size()));
+        for (ForgeEffect reward : existingRewards) {
+            if (reward.type() == type) {
+                type = ForgeEffectType.REWARD_MULTIPLIER;
+                break;
+            }
+        }
+
+        return switch (type) {
+            case REWARD_MULTIPLIER -> {
+                double quantityMultiplier = rollSecondaryMultiplier(random, level, tier, 1.05D, 1.20D, 1.12D, 1.30D);
+                yield rangedReward(type, quantityMultiplier - 1.0D, "item quantity", quantityMultiplier);
+            }
+            case RARITY_REWARD_MULTIPLIER -> {
+                double rarityMultiplier = rollSecondaryMultiplier(random, level, tier, 1.03D, 1.10D, 1.08D, 1.18D);
+                yield rangedReward(type, rarityMultiplier, "item rarity");
+            }
+            case COIN_REWARD_MULTIPLIER -> {
+                double coinMultiplier = rollSecondaryMultiplier(random, level, tier, 1.10D, 1.40D, 1.25D, 1.70D);
+                yield rangedReward(type, coinMultiplier, "coin multiplier");
+            }
+            case EXPERIENCE_REWARD_MULTIPLIER -> {
+                double experienceMultiplier = rollSecondaryMultiplier(random, level, tier, 1.10D, 1.35D, 1.25D, 1.60D);
+                yield rangedReward(type, experienceMultiplier, "experience");
+            }
+            default -> null;
+        };
+    }
+
+    private static ForgeEffect rollScaledModifier(ForgeEffectType type, String noun, AugmentDifficultyTier tier, RandomSource random, int level) {
+        Range range = modifierRange(type, tier, level);
+        double value = roundPercent(range.min() + random.nextDouble() * (range.max() - range.min()));
+        return ForgeEffect.of(type, value, "+" + percent(value) + " " + noun);
+    }
+
+    private static Range modifierRange(ForgeEffectType type, AugmentDifficultyTier tier, int level) {
+        if (tier == AugmentDifficultyTier.EXTREME && level >= 50) {
+            return switch (type) {
+                case DAMAGE_MULTIPLIER -> new Range(0.60D, 0.90D);
+                case SPEED_MULTIPLIER -> new Range(0.08D, 0.14D);
+                case HEALTH_MULTIPLIER -> new Range(0.55D, 0.85D);
+                case KNOCKBACK_RESISTANCE -> new Range(0.50D, 0.75D);
+                default -> new Range(0.0D, 0.0D);
+            };
+        }
+
+        return switch (type) {
+            case DAMAGE_MULTIPLIER -> levelBandRange(level,
+                    new Range(0.05D, 0.10D),
+                    new Range(0.08D, 0.16D),
+                    new Range(0.15D, 0.30D),
+                    new Range(0.22D, 0.42D),
+                    new Range(0.30D, 0.60D),
+                    new Range(0.40D, 0.75D));
+            case SPEED_MULTIPLIER -> levelBandRange(level,
+                    new Range(0.02D, 0.06D),
+                    new Range(0.03D, 0.08D),
+                    new Range(0.04D, 0.10D),
+                    new Range(0.05D, 0.12D),
+                    new Range(0.06D, 0.14D),
+                    new Range(0.08D, 0.16D));
+            case HEALTH_MULTIPLIER -> levelBandRange(level,
+                    new Range(0.08D, 0.15D),
+                    new Range(0.12D, 0.22D),
+                    new Range(0.18D, 0.32D),
+                    new Range(0.22D, 0.40D),
+                    new Range(0.28D, 0.55D),
+                    new Range(0.36D, 0.68D));
+            case KNOCKBACK_RESISTANCE -> levelBandRange(level,
+                    new Range(0.05D, 0.12D),
+                    new Range(0.08D, 0.18D),
+                    new Range(0.12D, 0.28D),
+                    new Range(0.18D, 0.36D),
+                    new Range(0.25D, 0.50D),
+                    new Range(0.32D, 0.60D));
+            default -> new Range(0.0D, 0.0D);
+        };
+    }
+
+    private static Range levelBandRange(int level, Range low, Range early, Range mid, Range late, Range high, Range endgame) {
+        if (level <= 10) return low;
+        if (level <= 20) return early;
+        if (level <= 35) return mid;
+        if (level <= 49) return late;
+        if (level <= 75) return high;
+        return endgame;
+    }
+
+    private static double rollSecondaryMultiplier(RandomSource random, int level, AugmentDifficultyTier tier, double lowMin, double lowMax, double highMin, double highMax) {
+        double progress = Math.min(1.0D, Math.max(0.0D, level / 75.0D));
+        double min = lowMin + ((highMin - lowMin) * progress);
+        double max = lowMax + ((highMax - lowMax) * progress);
+        if (tier == AugmentDifficultyTier.EXTREME && level >= 50) {
+            min += 0.05D;
+            max += 0.10D;
+        }
+        return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
+    }
+
+    private static double scaleMultiplier(double multiplier, double rewardScale) {
+        return Math.round((1.0D + ((multiplier - 1.0D) * rewardScale)) * 100.0D) / 100.0D;
+    }
+
+    private static double extremeRewardScale(AugmentDifficultyTier tier, int level) {
+        return tier == AugmentDifficultyTier.EXTREME && level >= 50 ? 2.0D : 1.0D;
+    }
+
+    private static double secondaryRewardChance(AugmentDifficultyTier tier, int level) {
+        double base = switch (tier) {
+            case EASY -> 0.08D;
+            case MEDIUM -> 0.12D;
+            case HARD -> 0.18D;
+            case EXTREME -> SECONDARY_REWARD_CHANCE;
+        };
+        if (tier == AugmentDifficultyTier.EXTREME && level >= 50) {
+            base += 0.10D;
+        }
+        return Math.min(0.45D, base + Math.min(0.10D, level / 500.0D));
+    }
+
+    private static String rewardSuffix(ForgeEffectType type) {
+        return switch (type) {
+            case EXTRA_RARE_REWARD_ROLLS -> " rare reward rolls";
+            case EXTRA_FINAL_REWARD_ROLLS -> " final reward rolls";
+            case EXTRA_ENTITY_LOOT_ROLLS -> " entity loot rolls";
+            default -> " reward rolls";
         };
     }
 
@@ -279,5 +452,16 @@ public final class AugmentDefinitionPool {
 
     private static Set<String> tags(String... tags) {
         return Set.of(tags);
+    }
+
+    private static double roundPercent(double value) {
+        return Math.round(value * 100.0D) / 100.0D;
+    }
+
+    private static int percent(double value) {
+        return (int) Math.round(value * 100.0D);
+    }
+
+    private record Range(double min, double max) {
     }
 }
