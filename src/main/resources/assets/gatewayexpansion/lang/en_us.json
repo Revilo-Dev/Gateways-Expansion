@@ -274,7 +274,7 @@
   "shop.gatewayexpansion.offer.tier_3_crystal.desc": "A pre-attuned crystal for mid-tier forging.",
   "shop.gatewayexpansion.offer.time_catalyst": "Time Catalyst",
   "shop.gatewayexpansion.offer.time_catalyst.desc": "A temporary stock catalyst focused on pacing.",
-  "shop.gatewayexpansion.offer.stability_pearl.desc": "A rare stabilizing pearl that adds 10 seconds to a gateway at the cost of health.",
+  "shop.gatewayexpansion.offer.stability_pearl.desc": "A rare stabilizing pearl that adds 15 seconds to a gateway while cutting max health until the gate ends.",
   "shop.gatewayexpansion.offer.tier_4_crystal": "Tier 4 Crystal",
   "shop.gatewayexpansion.offer.tier_4_crystal.desc": "A rarer crystal for higher-end gateways.",
   "shop.gatewayexpansion.offer.tier_5_crystal": "Tier 5 Crystal",

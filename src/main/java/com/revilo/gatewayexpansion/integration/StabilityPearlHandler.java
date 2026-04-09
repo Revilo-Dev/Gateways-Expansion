@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.integration;
 
 import com.revilo.gatewayexpansion.registry.ModMobEffects;
+import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
