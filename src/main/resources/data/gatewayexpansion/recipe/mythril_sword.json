@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatewayexpansion:mythril_upgrade_template"
+  },
+  "base": {
+    "item": "gatewayexpansion:iridium_sword"
+  },
+  "addition": {
+    "item": "gatewayexpansion:mythril_ingot"
+  },
+  "result": {
+    "id": "gatewayexpansion:mythril_sword",
+    "count": 1
+  }
+}

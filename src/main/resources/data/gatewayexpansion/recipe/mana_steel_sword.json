@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatewayexpansion:mana_steel_upgrade_template"
+  },
+  "base": {
+    "item": "minecraft:netherite_sword"
+  },
+  "addition": {
+    "item": "gatewayexpansion:mana_steel_ingot"
+  },
+  "result": {
+    "id": "gatewayexpansion:mana_steel_sword",
+    "count": 1
+  }
+}

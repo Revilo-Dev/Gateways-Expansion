@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatewayexpansion:arcanium_upgrade_template"
+  },
+  "base": {
+    "item": "gatewayexpansion:mythril_sword"
+  },
+  "addition": {
+    "item": "gatewayexpansion:arcanium_ingot"
+  },
+  "result": {
+    "id": "gatewayexpansion:arcanium_sword",
+    "count": 1
+  }
+}

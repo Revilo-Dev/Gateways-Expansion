@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.item;
 
 import com.revilo.gatewayexpansion.registry.ModMobEffects;
+import com.revilo.gatewayexpansion.integration.StabilityPearlHandler;
 import com.revilo.gatewayexpansion.shop.GatewaySellValues;
 import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
@@ -27,8 +28,8 @@ import net.minecraft.world.level.Level;
 public class StabilityPearlItem extends Item {
 
     private static final int RANGE = 96;
-    private static final int TIME_EXTENSION_TICKS = 200;
-    private static final int HEALTH_PENALTY_TICKS = 200;
+    private static final int TIME_EXTENSION_TICKS = 300;
+    private static final int HEALTH_PENALTY_TICKS = Integer.MAX_VALUE;
     public StabilityPearlItem(Properties properties) {
         super(properties);
     }
@@ -73,6 +74,9 @@ public class StabilityPearlItem extends Item {
     private static void applyStabilityPearl(ServerLevel level, Player player, ItemStack stack, GatewayEntity gateway) {
         gateway.getEntityData().set(GatewayEntity.TICKS_ACTIVE, Math.max(0, gateway.getTicksActive() - TIME_EXTENSION_TICKS));
         player.addEffect(new MobEffectInstance(ModMobEffects.STABILITY_DRAIN, HEALTH_PENALTY_TICKS, 0, false, true, true));
+        if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+            StabilityPearlHandler.linkToGateway(serverPlayer, gateway);
+        }
         player.setHealth(Math.min(player.getHealth(), player.getMaxHealth()));
         spawnShatterEffect(level, player, stack);
         player.sendSystemMessage(Component.translatable("message.gatewayexpansion.gateway_time_extended", TIME_EXTENSION_TICKS / 20));

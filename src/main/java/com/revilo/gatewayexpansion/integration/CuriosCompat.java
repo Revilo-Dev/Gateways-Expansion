@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.integration;
 
 import com.revilo.gatewayexpansion.item.MagnetItem;
+import com.revilo.gatewayexpansion.item.RunicItemSupport;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import java.util.List;
 import net.minecraft.world.item.Item;
@@ -44,7 +45,7 @@ public final class CuriosCompat {
             if (!(stack.getItem() instanceof MagnetItem magnet)) {
                 return;
             }
-            MagnetItem.ensureRunicData(stack);
+            RunicItemSupport.ensureRunicData(stack, magnet.runeSlots());
             MagnetHandler.pullNearbyItems(slotContext.entity(), magnet);
         }
     }

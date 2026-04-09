@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MBM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "gatewayexpansion:ignite_scrap"
+    },
+    "B": {
+      "item": "gatewayexpansion:upgrade_base"
+    }
+  },
+  "result": {
+    "id": "gatewayexpansion:ignite_upgrade_template",
+    "count": 1
+  }
+}

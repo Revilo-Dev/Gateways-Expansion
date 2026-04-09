@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatewayexpansion:ignite_upgrade_template"
+  },
+  "base": {
+    "item": "gatewayexpansion:lunarium_sword"
+  },
+  "addition": {
+    "item": "gatewayexpansion:ignite_ingot"
+  },
+  "result": {
+    "id": "gatewayexpansion:ignite_sword",
+    "count": 1
+  }
+}

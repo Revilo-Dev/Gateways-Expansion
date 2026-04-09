@@ -37,6 +37,8 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SmithingTemplateItem;
+import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -68,6 +70,7 @@ public final class ShopkeeperManager {
             ModItems.GRIMSTONE,
             ModItems.MYSTIC_ESSENCE,
             ModItems.SCRAP_METAL,
+            ModItems.UPGRADE_BASE,
             ModItems.MANA_GEMS,
             ModItems.MANA_STEEL_SCRAP,
             ModItems.MAGNETITE_SCRAP,
@@ -426,8 +429,11 @@ public final class ShopkeeperManager {
 
     private static int rollStockForOffer(ShopOfferDefinition offer, RandomSource random) {
         ItemStack preview = offer.previewStack();
-        if (preview.getItem() instanceof PaxelItem || preview.getItem() instanceof MagnetItem) {
+        if (preview.getItem() instanceof PaxelItem || preview.getItem() instanceof MagnetItem || preview.getItem() instanceof SwordItem || preview.getItem() instanceof SmithingTemplateItem) {
             return 1;
+        }
+        if (preview.is(ModItems.UPGRADE_BASE.get())) {
+            return 1 + random.nextInt(3);
         }
         if (preview.is(ModItems.STABILITY_PEARL.get())) {
             return 1 + random.nextInt(2);
@@ -542,6 +548,9 @@ public final class ShopkeeperManager {
         if (preview.is(ModItems.PRISMATIC_CORE.get()) || preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
             return 2;
         }
+        if (preview.is(ModItems.UPGRADE_BASE.get()) || preview.getItem() instanceof SmithingTemplateItem) {
+            return 2;
+        }
         if (preview.getItem() instanceof MagnetItem) {
             return 1;
         }
@@ -578,6 +587,9 @@ public final class ShopkeeperManager {
         if (item == ModItems.MANA_STEEL_SCRAP.get()) {
             return isLevel20PlusGate(gate) ? LootRarity.COMMON.weight() : LootRarity.UNCOMMON.weight();
         }
+        if (item == ModItems.UPGRADE_BASE.get()) {
+            return getGateLevel(gate) >= 5 ? LootRarity.UNCOMMON.weight() : 0;
+        }
         if (item == ModItems.MAGNETITE_SCRAP.get()) {
             return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : LootRarity.COMMON.weight();
         }
@@ -598,6 +610,10 @@ public final class ShopkeeperManager {
 
     private static boolean isLevel20PlusGate(GatewayEntity gate) {
         return gate != null && GatewayForgeService.getGatewayCrystalTier(gate.getGateway()) >= 2;
+    }
+
+    private static int getGateLevel(GatewayEntity gate) {
+        return gate == null ? 0 : Math.max(0, GatewayForgeService.getGatewayLevel(gate.getGateway()));
     }
 
     private static int computeWaveCoinBurst(GatewayEntity gate, RandomSource random) {

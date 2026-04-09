@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "gatewayexpansion:item/weapon/astrite_sword"
+  }
+}

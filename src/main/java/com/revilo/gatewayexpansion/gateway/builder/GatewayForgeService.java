@@ -620,6 +620,7 @@ public final class GatewayForgeService {
         }
         if (entityType == EntityType.DROWNED) {
             tag.putBoolean("CanBreakDoors", true);
+            tag.putBoolean("gatewayexpansion.gateway_drowned", true);
         }
         if (!supportsArmorProgression(entityType)) {
             return tag;
@@ -893,7 +894,7 @@ public final class GatewayForgeService {
     }
 
     private static ItemStack createAugmentRewardStack(ForgeState state, int waveIndex, RandomSource random) {
-        AugmentDifficultyTier tier = selectAugmentTier(state, waveIndex);
+        AugmentDifficultyTier tier = selectAugmentTier(state, waveIndex, random);
         ItemStack stack = new ItemStack(switch (tier) {
             case EASY -> ModItems.EASY_AUGMENT.get();
             case MEDIUM -> ModItems.MEDIUM_AUGMENT.get();
@@ -904,10 +905,14 @@ public final class GatewayForgeService {
         return stack;
     }
 
-    private static AugmentDifficultyTier selectAugmentTier(ForgeState state, int waveIndex) {
+    private static AugmentDifficultyTier selectAugmentTier(ForgeState state, int waveIndex, RandomSource random) {
+        int level = state.profile.level();
         int rewardScore = state.profile.level() + state.crystalTier.tier() * 8 + waveIndex * 6;
-        if (rewardScore >= 62) {
-            return AugmentDifficultyTier.EXTREME;
+        if (level >= 50 && rewardScore >= 82) {
+            float extremeChance = Mth.clamp(0.08F + (rewardScore - 82) * 0.0125F + (level - 50) * 0.004F, 0.08F, 0.35F);
+            if (random.nextFloat() < extremeChance) {
+                return AugmentDifficultyTier.EXTREME;
+            }
         }
         if (rewardScore >= 42) {
             return AugmentDifficultyTier.HARD;

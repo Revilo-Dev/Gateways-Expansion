@@ -1,30 +1,25 @@
 package com.revilo.gatewayexpansion.item;
 
-import com.revilo.gatewayexpansion.integration.ModCompat;
 import com.revilo.gatewayexpansion.shop.GatewaySellValues;
 import java.util.List;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 
 public class MagnetItem extends Item {
 
-    private static final String RUNE_SLOTS_KEY = "rune_slots";
-    private static final String RUNIC_SLOTS_KEY = "runic_slots";
-    private static final String MAX_RUNE_SLOTS_KEY = "max_rune_slots";
     private final int bonusRange;
     private final int pullSpeed;
+    private final int runeSlots;
 
-    public MagnetItem(int bonusRange, int pullSpeed, Properties properties) {
+    public MagnetItem(int bonusRange, int pullSpeed, int runeSlots, Properties properties) {
         super(properties);
         this.bonusRange = bonusRange;
         this.pullSpeed = pullSpeed;
+        this.runeSlots = runeSlots;
     }
 
     public int bonusRange() {
@@ -44,12 +39,12 @@ public class MagnetItem extends Item {
     }
 
     public int runeSlots() {
-        return this.bonusRange >= 8 ? 3 : 2;
+        return this.runeSlots;
     }
 
     @Override
     public void inventoryTick(ItemStack stack, Level level, net.minecraft.world.entity.Entity entity, int slotId, boolean isSelected) {
-        ensureRunicData(stack);
+        RunicItemSupport.ensureRunicData(stack, this.runeSlots());
         super.inventoryTick(stack, level, entity, slotId, isSelected);
     }
 
@@ -59,19 +54,6 @@ public class MagnetItem extends Item {
         if (this.pullSpeed > 0) {
             tooltipComponents.add(Component.literal("+" + this.pullSpeed + " pull speed").withStyle(ChatFormatting.GREEN));
         }
-        tooltipComponents.add(Component.literal(this.runeSlots() + " rune slots").withStyle(ChatFormatting.LIGHT_PURPLE));
         GatewaySellValues.appendSellValueTooltip(stack, tooltipComponents);
-    }
-
-    public static void ensureRunicData(ItemStack stack) {
-        if (!(stack.getItem() instanceof MagnetItem magnet) || !ModCompat.isAnyLoaded("runic")) {
-            return;
-        }
-
-        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
-            tag.putInt(RUNE_SLOTS_KEY, magnet.runeSlots());
-            tag.putInt(RUNIC_SLOTS_KEY, magnet.runeSlots());
-            tag.putInt(MAX_RUNE_SLOTS_KEY, magnet.runeSlots());
-        });
     }
 }

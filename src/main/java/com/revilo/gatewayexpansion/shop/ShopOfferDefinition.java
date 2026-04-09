@@ -14,6 +14,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
@@ -37,16 +38,20 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         offers.add(simpleOffer("mana_gems", "mana_gems", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_GEMS.get())), 0, ModItems.MANA_GEMS.get()));
         offers.add(simpleOffer("mana_steel_scrap", "mana_steel_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_SCRAP.get())), 5, ModItems.MANA_STEEL_SCRAP.get()));
         offers.add(simpleOffer("mana_steel_ingot", "mana_steel_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_INGOT.get())), 5, ModItems.MANA_STEEL_INGOT.get()));
+        offers.add(simpleOffer("upgrade_base", "upgrade_base", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.UPGRADE_BASE.get())), 5, ModItems.UPGRADE_BASE.get()));
+        offers.add(swordTemplateOffer("mana_steel_upgrade_template", 5, ModItems.MANA_STEEL_UPGRADE_TEMPLATE.get(), ModItems.MANA_STEEL_SCRAP.get(), 8));
         offers.add(simpleOffer("mana_steel_magnet", "mana_steel_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_MAGNET.get())), 15, ModItems.MANA_STEEL_MAGNET.get()));
         offers.add(simpleOffer("mana_steel_paxel", "mana_steel_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_PAXEL.get())), 5, ModItems.MANA_STEEL_PAXEL.get()));
         offers.add(simpleOffer("arcane_essence", "arcane_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANE_ESSENCE.get())), 0, ModItems.ARCANE_ESSENCE.get()));
         offers.add(simpleOffer("manastones", "manastones", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANASTONES.get())), 0, ModItems.MANASTONES.get()));
         offers.add(simpleOffer("elixrite_scrap", "elixrite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_SCRAP.get())), 5, ModItems.ELIXRITE_SCRAP.get()));
         offers.add(simpleOffer("elixrite_ingot", "elixrite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_INGOT.get())), 5, ModItems.ELIXRITE_INGOT.get()));
+        offers.add(swordTemplateOffer("elixrite_upgrade_template", 5, ModItems.ELIXRITE_UPGRADE_TEMPLATE.get(), ModItems.ELIXRITE_SCRAP.get(), 8));
         offers.add(simpleOffer("elixrite_magnet", "elixrite_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_MAGNET.get())), 25, ModItems.ELIXRITE_MAGNET.get()));
         offers.add(simpleOffer("elixrite_paxel", "elixrite_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_PAXEL.get())), 5, ModItems.ELIXRITE_PAXEL.get()));
         offers.add(simpleOffer("astrite_scrap", "astrite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_SCRAP.get())), 21, ModItems.ASTRITE_SCRAP.get()));
         offers.add(simpleOffer("astrite_ingot", "astrite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_INGOT.get())), 21, ModItems.ASTRITE_INGOT.get()));
+        offers.add(swordTemplateOffer("astrite_upgrade_template", 21, ModItems.ASTRITE_UPGRADE_TEMPLATE.get(), ModItems.ASTRITE_SCRAP.get(), 8));
         offers.add(simpleOffer("astrite_magnet", "astrite_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_MAGNET.get())), 32, ModItems.ASTRITE_MAGNET.get()));
         offers.add(simpleOffer("astrite_paxel", "astrite_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_PAXEL.get())), 21, ModItems.ASTRITE_PAXEL.get()));
         offers.add(simpleOffer("solar_shard", "solar_shard", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SOLAR_SHARD.get())), 30, ModItems.SOLAR_SHARD.get()));
@@ -54,22 +59,27 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         offers.add(simpleOffer("prismatic_diamond", "prismatic_diamond", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_DIAMOND.get())), 40, ModItems.PRISMATIC_DIAMOND.get()));
         offers.add(simpleOffer("lunarium_scrap", "lunarium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_SCRAP.get())), 21, ModItems.LUNARIUM_SCRAP.get()));
         offers.add(simpleOffer("lunarium_ingot", "lunarium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_INGOT.get())), 21, ModItems.LUNARIUM_INGOT.get()));
+        offers.add(swordTemplateOffer("lunarium_upgrade_template", 21, ModItems.LUNARIUM_UPGRADE_TEMPLATE.get(), ModItems.LUNARIUM_SCRAP.get(), 8));
         offers.add(simpleOffer("lunarium_magnet", "lunarium_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_MAGNET.get())), 40, ModItems.LUNARIUM_MAGNET.get()));
         offers.add(simpleOffer("lunarium_paxel", "lunarium_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_PAXEL.get())), 21, ModItems.LUNARIUM_PAXEL.get()));
         offers.add(simpleOffer("ignite_scrap", "ignite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_SCRAP.get())), 41, ModItems.IGNITE_SCRAP.get()));
         offers.add(simpleOffer("ignite_ingot", "ignite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_INGOT.get())), 41, ModItems.IGNITE_INGOT.get()));
+        offers.add(swordTemplateOffer("ignite_upgrade_template", 41, ModItems.IGNITE_UPGRADE_TEMPLATE.get(), ModItems.IGNITE_SCRAP.get(), 8));
         offers.add(simpleOffer("ignite_magnet", "ignite_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_MAGNET.get())), 48, ModItems.IGNITE_MAGNET.get()));
         offers.add(simpleOffer("ignite_paxel", "ignite_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_PAXEL.get())), 41, ModItems.IGNITE_PAXEL.get()));
         offers.add(simpleOffer("iridium_scrap", "iridium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_SCRAP.get())), 41, ModItems.IRIDIUM_SCRAP.get()));
         offers.add(simpleOffer("iridium_ingot", "iridium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_INGOT.get())), 41, ModItems.IRIDIUM_INGOT.get()));
+        offers.add(swordTemplateOffer("iridium_upgrade_template", 41, ModItems.IRIDIUM_UPGRADE_TEMPLATE.get(), ModItems.IRIDIUM_SCRAP.get(), 8));
         offers.add(simpleOffer("iridium_magnet", "iridium_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_MAGNET.get())), 55, ModItems.IRIDIUM_MAGNET.get()));
         offers.add(simpleOffer("iridium_paxel", "iridium_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_PAXEL.get())), 41, ModItems.IRIDIUM_PAXEL.get()));
         offers.add(simpleOffer("mythril_scrap", "mythril_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_SCRAP.get())), 61, ModItems.MYTHRIL_SCRAP.get()));
         offers.add(simpleOffer("mythril_ingot", "mythril_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_INGOT.get())), 61, ModItems.MYTHRIL_INGOT.get()));
+        offers.add(swordTemplateOffer("mythril_upgrade_template", 61, ModItems.MYTHRIL_UPGRADE_TEMPLATE.get(), ModItems.MYTHRIL_INGOT.get(), 8));
         offers.add(simpleOffer("mythril_magnet", "mythril_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_MAGNET.get())), 68, ModItems.MYTHRIL_MAGNET.get()));
         offers.add(simpleOffer("mythril_paxel", "mythril_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_PAXEL.get())), 61, ModItems.MYTHRIL_PAXEL.get()));
         offers.add(simpleOffer("arcanium_scrap", "arcanium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_SCRAP.get())), 61, ModItems.ARCANIUM_SCRAP.get()));
         offers.add(simpleOffer("arcanium_ingot", "arcanium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_INGOT.get())), 61, ModItems.ARCANIUM_INGOT.get()));
+        offers.add(swordTemplateOffer("arcanium_upgrade_template", 61, ModItems.ARCANIUM_UPGRADE_TEMPLATE.get(), ModItems.ARCANIUM_INGOT.get(), 8));
         offers.add(simpleOffer("arcanium_magnet", "arcanium_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_MAGNET.get())), 76, ModItems.ARCANIUM_MAGNET.get()));
         offers.add(simpleOffer("arcanium_paxel", "arcanium_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_PAXEL.get())), 61, ModItems.ARCANIUM_PAXEL.get()));
         offers.add(simpleOffer("prismatic_steel_scrap", "prismatic_steel_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_STEEL_SCRAP.get())), 81, ModItems.PRISMATIC_STEEL_SCRAP.get()));
@@ -123,6 +133,23 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 previewStack.getHoverName(),
                 Component.literal(description),
                 (random, playerLevel) -> new ItemStack(item)
+        );
+    }
+
+    private static ShopOfferDefinition swordTemplateOffer(String id, int requiredLevel, ItemLike template, Item ingredient, int ingredientCount) {
+        ItemStack previewStack = new ItemStack(template);
+        int ingredientValue = GatewaySellValues.getUnitValue(new ItemStack(ingredient));
+        int baseValue = GatewaySellValues.getUnitValue(new ItemStack(ModItems.UPGRADE_BASE.get()));
+        int price = Math.max(1, (int) Math.ceil((baseValue + ingredientValue * ingredientCount) * 1.1D));
+        return new ShopOfferDefinition(
+                id,
+                price,
+                requiredLevel,
+                true,
+                previewStack,
+                previewStack.getHoverName(),
+                Component.translatable("shop.gatewayexpansion.offer." + id + ".desc"),
+                (random, playerLevel) -> new ItemStack(template)
         );
     }
 

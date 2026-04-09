@@ -24,7 +24,9 @@ import net.neoforged.neoforge.common.ItemAbility;
 
 public class PaxelItem extends TieredItem {
 
-    public PaxelItem(Tier tier, Item.Properties properties, float attackDamage, float attackSpeed) {
+    private final int runeSlots;
+
+    public PaxelItem(Tier tier, Item.Properties properties, float attackDamage, float attackSpeed, int runeSlots) {
         super(
                 tier,
                 properties
@@ -40,6 +42,7 @@ public class PaxelItem extends TieredItem {
                                                 Tool.Rule.minesAndDrops(net.minecraft.tags.BlockTags.MINEABLE_WITH_HOE, tier.getSpeed())),
                                         1.0F,
                                         1)));
+        this.runeSlots = runeSlots;
     }
 
     @Override
@@ -123,6 +126,12 @@ public class PaxelItem extends TieredItem {
     @Override
     public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
         return true;
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, net.minecraft.world.level.Level level, net.minecraft.world.entity.Entity entity, int slotId, boolean isSelected) {
+        RunicItemSupport.ensureRunicData(stack, this.runeSlots);
+        super.inventoryTick(stack, level, entity, slotId, isSelected);
     }
 
     @Override
