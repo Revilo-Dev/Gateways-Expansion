@@ -9,6 +9,7 @@ import com.revilo.gatewayexpansion.integration.LevelUpGatewayXpRewards;
 import com.revilo.gatewayexpansion.integration.ModCompat;
 import com.revilo.gatewayexpansion.item.LootMaterialItem;
 import com.revilo.gatewayexpansion.item.MagnetItem;
+import com.revilo.gatewayexpansion.item.MythicCoinStackData;
 import com.revilo.gatewayexpansion.item.PaxelItem;
 import com.revilo.gatewayexpansion.item.data.LootRarity;
 import com.revilo.gatewayexpansion.menu.ShopkeeperMenu;
@@ -131,7 +132,7 @@ public final class ShopkeeperManager {
             return;
         }
 
-        MythicCoinWallet.add(player, stack.getCount());
+        MythicCoinWallet.add(player, MythicCoinStackData.getValue(stack));
         player.take(itemEntity, stack.getCount());
         player.level().playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.25F, 1.1F);
         if (player.level() instanceof ServerLevel serverLevel) {

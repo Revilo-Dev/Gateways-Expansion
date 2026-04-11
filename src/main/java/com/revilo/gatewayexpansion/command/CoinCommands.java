@@ -3,9 +3,12 @@ package com.revilo.gatewayexpansion.command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.revilo.gatewayexpansion.currency.MythicCoinWallet;
+import com.revilo.gatewayexpansion.item.MythicCoinStackData;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -16,10 +19,14 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
+import java.util.UUID;
+
 public final class CoinCommands {
 
     private static final SimpleCommandExceptionType PLAYER_ONLY = new SimpleCommandExceptionType(Component.translatable("command.gatewayexpansion.coins.player_only"));
     private static final SimpleCommandExceptionType NOT_ENOUGH_COINS = new SimpleCommandExceptionType(Component.translatable("command.gatewayexpansion.coins.not_enough"));
+    private static final SimpleCommandExceptionType DIRECT_ID_ONLY = new SimpleCommandExceptionType(Component.translatable("command.gatewayexpansion.coins.direct_id_only"));
+    private static final DynamicCommandExceptionType PLAYER_NOT_FOUND = new DynamicCommandExceptionType(id -> Component.translatable("command.gatewayexpansion.coins.player_not_found", id));
 
     private CoinCommands() {
     }
@@ -52,15 +59,15 @@ public final class CoinCommands {
                                                 EntityArgument.getPlayer(context, "id"),
                                                 IntegerArgumentType.getInteger(context, "count"))))))
                 .then(Commands.literal("transfer")
-                        .then(Commands.argument("id", EntityArgument.player())
+                        .then(Commands.argument("id", StringArgumentType.word())
                                 .executes(context -> transferCoins(
                                         context.getSource(),
-                                        EntityArgument.getPlayer(context, "id"),
+                                        StringArgumentType.getString(context, "id"),
                                         -1))
                                 .then(Commands.argument("count", IntegerArgumentType.integer(1))
                                         .executes(context -> transferCoins(
                                                 context.getSource(),
-                                                EntityArgument.getPlayer(context, "id"),
+                                                StringArgumentType.getString(context, "id"),
                                                 IntegerArgumentType.getInteger(context, "count"))))))
                 .then(Commands.literal("withdraw")
                         .executes(context -> withdrawCoins(context.getSource(), -1))
@@ -103,8 +110,9 @@ public final class CoinCommands {
         return 1;
     }
 
-    private static int transferCoins(CommandSourceStack source, ServerPlayer target, int requestedAmount) throws CommandSyntaxException {
+    private static int transferCoins(CommandSourceStack source, String targetId, int requestedAmount) throws CommandSyntaxException {
         ServerPlayer sender = source.getPlayerOrException();
+        ServerPlayer target = resolveDirectPlayer(source, targetId);
         if (sender == target) {
             return 0;
         }
@@ -123,6 +131,28 @@ public final class CoinCommands {
         return amount;
     }
 
+    private static ServerPlayer resolveDirectPlayer(CommandSourceStack source, String id) throws CommandSyntaxException {
+        if (id.startsWith("@")) {
+            throw DIRECT_ID_ONLY.create();
+        }
+
+        ServerPlayer byName = source.getServer().getPlayerList().getPlayerByName(id);
+        if (byName != null) {
+            return byName;
+        }
+
+        try {
+            UUID uuid = UUID.fromString(id);
+            ServerPlayer byUuid = source.getServer().getPlayerList().getPlayer(uuid);
+            if (byUuid != null) {
+                return byUuid;
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        throw PLAYER_NOT_FOUND.create(id);
+    }
+
     private static int withdrawCoins(CommandSourceStack source, int requestedAmount) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         int balance = MythicCoinWallet.get(player);
@@ -138,15 +168,9 @@ public final class CoinCommands {
     }
 
     private static void giveCoinsAsItems(ServerPlayer player, int amount) {
-        int remaining = amount;
-        int maxStackSize = ModItems.MYTHIC_COIN.get().getDefaultMaxStackSize();
-        while (remaining > 0) {
-            int stackSize = Math.min(maxStackSize, remaining);
-            ItemStack stack = new ItemStack(ModItems.MYTHIC_COIN.get(), stackSize);
-            if (!player.getInventory().add(stack)) {
-                player.drop(stack, false);
-            }
-            remaining -= stackSize;
+        ItemStack stack = MythicCoinStackData.createStack(amount);
+        if (!player.getInventory().add(stack)) {
+            player.drop(stack, false);
         }
     }
 }
