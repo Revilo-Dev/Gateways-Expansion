@@ -2,6 +2,8 @@ package com.revilo.gatewayexpansion.item;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -22,11 +24,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.ItemAbilities;
 import net.neoforged.neoforge.common.ItemAbility;
 
-public class PaxelItem extends TieredItem {
+public class PaxelItem extends TieredItem implements RarityTintedItemName {
 
+    private final ChatFormatting nameColor;
     private final int runeSlots;
 
-    public PaxelItem(Tier tier, Item.Properties properties, float attackDamage, float attackSpeed, int runeSlots) {
+    public PaxelItem(Tier tier, Item.Properties properties, ChatFormatting nameColor, float attackDamage, float attackSpeed, int runeSlots) {
         super(
                 tier,
                 properties
@@ -42,7 +45,18 @@ public class PaxelItem extends TieredItem {
                                                 Tool.Rule.minesAndDrops(net.minecraft.tags.BlockTags.MINEABLE_WITH_HOE, tier.getSpeed())),
                                         1.0F,
                                         1)));
+        this.nameColor = nameColor;
         this.runeSlots = runeSlots;
+    }
+
+    @Override
+    public ChatFormatting nameColor() {
+        return this.nameColor;
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return this.tintedName(stack, super.getName(stack));
     }
 
     @Override

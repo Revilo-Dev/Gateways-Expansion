@@ -7,6 +7,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
@@ -79,16 +81,17 @@ public final class CrystalForgeData {
     public static void attuneTheme(ItemStack stack, CrystalTheme theme) {
         CompoundTag rootTag = getRootTag(stack);
         int level = rootTag.contains(LEVEL_KEY) ? rootTag.getInt(LEVEL_KEY) : 0;
-        long seed = rootTag.contains(SEED_KEY) ? rootTag.getLong(SEED_KEY) : (level * 31L + theme.ordinal());
+        final int attunedLevel = normalizeToTierBand(level);
+        long seed = stableThemeSeed(attunedLevel, theme);
         CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
             CompoundTag updatedRoot = tag.getCompound(ROOT_KEY);
             updatedRoot.putString(THEME_KEY, theme.name());
-            updatedRoot.putInt(LEVEL_KEY, level);
+            updatedRoot.putInt(LEVEL_KEY, attunedLevel);
             updatedRoot.putLong(SEED_KEY, seed);
             updatedRoot.putBoolean(ATTUNED_KEY, true);
             tag.put(ROOT_KEY, updatedRoot);
         });
-        syncModelData(stack, level);
+        syncModelData(stack, attunedLevel);
     }
 
     public static List<Component> buildCrystalTooltip(ItemStack stack) {
@@ -97,12 +100,16 @@ public final class CrystalForgeData {
         if (rootTag.contains(THEME_KEY) && rootTag.contains(ATTUNED_KEY) && rootTag.getBoolean(ATTUNED_KEY)) {
             CrystalTheme theme = CrystalTheme.valueOf(rootTag.getString(THEME_KEY));
             lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.theme", themedLabel(theme)));
-            lines.addAll(themeSummary(theme));
+            if (isAltHeld()) {
+                lines.addAll(themeSummary(theme));
+            }
         } else {
-            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.random_theme").withStyle(ChatFormatting.LIGHT_PURPLE));
+            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.random_theme")
+                    .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0xA45CFF))));
         }
         if (rootTag.contains(LEVEL_KEY)) {
-            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.level", rootTag.getInt(LEVEL_KEY)).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+            lines.add(Component.translatable("tooltip.gatewayexpansion.crystal.level", levelBand(rootTag.getInt(LEVEL_KEY)))
+                    .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
         }
         return lines;
     }
@@ -119,7 +126,7 @@ public final class CrystalForgeData {
     }
 
     private static Component themedLabel(CrystalTheme theme) {
-        return theme.displayName().copy()
+        return theme.displayName().copy().withStyle(Style.EMPTY.withColor(TextColor.fromRgb(themeColor(theme))))
                 .append(Component.literal(" "))
                 .append(Component.literal("[alt]").withStyle(ChatFormatting.GRAY));
     }
@@ -161,6 +168,54 @@ public final class CrystalForgeData {
         return Component.literal(text).withStyle(ChatFormatting.GRAY);
     }
 
+    private static int themeColor(CrystalTheme theme) {
+        return switch (theme) {
+            case UNDEAD -> 0x2E6B2E;
+            case ARCANE -> 0x66CCFF;
+            case NETHER -> 0xD63B2A;
+            case RAIDER -> 0x2A4FA8;
+            case BEAST -> 0xFFFFFF;
+        };
+    }
+
+    private static String levelBand(int level) {
+        if (level >= 90) {
+            return "90+";
+        }
+        if (level >= 70) {
+            return "70-89";
+        }
+        if (level >= 50) {
+            return "50-69";
+        }
+        if (level >= 20) {
+            return "20-49";
+        }
+        return "0-19";
+    }
+
+    private static int normalizeToTierBand(int level) {
+        if (level >= 90) return 90;
+        if (level >= 70) return 70;
+        if (level >= 50) return 50;
+        if (level >= 20) return 20;
+        return 0;
+    }
+
+    private static long stableThemeSeed(int levelBandStart, CrystalTheme theme) {
+        return (long) levelBandStart * 31L + theme.ordinal() * 131L + 0x5F3759D5L;
+    }
+
+    private static boolean isAltHeld() {
+        try {
+            Class<?> screenClass = Class.forName("net.minecraft.client.gui.screens.Screen");
+            Object value = screenClass.getMethod("hasAltDown").invoke(null);
+            return value instanceof Boolean bool && bool;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+
     private static CrystalTheme randomThemeForLevel(int level, long seed) {
         RandomSource random = RandomSource.create(seed ^ ((long) level << 32) ^ 0x5F3759D5L);
         int undeadWeight;
@@ -173,14 +228,14 @@ public final class CrystalForgeData {
             raiderWeight = 18;
             arcaneWeight = 12;
         } else if (level >= 30) {
-            undeadWeight = 60;
-            netherWeight = 25;
-            raiderWeight = 15;
-            arcaneWeight = 0;
+            undeadWeight = 58;
+            netherWeight = 24;
+            raiderWeight = 10;
+            arcaneWeight = 8;
         } else if (level >= 25) {
-            undeadWeight = 75;
-            netherWeight = 25;
-            raiderWeight = 0;
+            undeadWeight = 70;
+            netherWeight = 22;
+            raiderWeight = 8;
             arcaneWeight = 0;
         } else {
             undeadWeight = 100;

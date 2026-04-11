@@ -8,6 +8,8 @@ import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import com.revilo.gatewayexpansion.shop.GatewaySellValues;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -20,6 +22,7 @@ import net.minecraft.world.level.Level;
 
 public class AugmentItem extends Item {
 
+    private static final Pattern EPIC_REWARD_PATTERN = Pattern.compile("\\+(\\d+) epic rewards?");
     private final AugmentDifficultyTier difficultyTier;
 
     public AugmentItem(AugmentDifficultyTier difficultyTier, Properties properties) {
@@ -36,12 +39,6 @@ public class AugmentItem extends Item {
     }
 
     @Override
-    public Component getName(ItemStack stack) {
-        AugmentDefinition definition = this.definition(stack);
-        return definition != null ? Component.literal(definition.title()) : super.getName(stack);
-    }
-
-    @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         AugmentDefinition definition = this.definition(stack);
         GatewaySellValues.appendSellValueTooltip(stack, tooltipComponents);
@@ -54,7 +51,7 @@ public class AugmentItem extends Item {
             tooltipComponents.add(Component.literal(effect.description()).withStyle(isNegativeTooltipEffect(effect) ? ChatFormatting.RED : ChatFormatting.GREEN));
         }
         for (ForgeEffect effect : definition.rewardEffects()) {
-            tooltipComponents.add(Component.literal(effect.description()).withStyle(ChatFormatting.GOLD));
+            appendRewardEffectTooltip(tooltipComponents, effect);
         }
     }
 
@@ -73,5 +70,32 @@ public class AugmentItem extends Item {
         return effect.type() != ForgeEffectType.MOB_EFFECT
                 || effect.referenceId() == null
                 || !ResourceLocation.withDefaultNamespace("glowing").equals(effect.referenceId());
+    }
+
+    private static void appendRewardEffectTooltip(List<Component> tooltipComponents, ForgeEffect effect) {
+        if (effect.type() != ForgeEffectType.EXTRA_RARE_REWARD_ROLLS) {
+            tooltipComponents.add(Component.literal(effect.description()).withStyle(ChatFormatting.GOLD));
+            return;
+        }
+
+        int rareRewards = Math.max(1, (int) Math.round(effect.value()));
+        int epicRewards = (int) Math.round(effect.secondaryValue());
+        if (epicRewards <= 0) {
+            epicRewards = extractRewardCount(effect.description(), EPIC_REWARD_PATTERN, 1);
+        }
+
+        tooltipComponents.add(Component.literal("+" + rareRewards + " rare rewards").withStyle(ChatFormatting.GOLD));
+        tooltipComponents.add(Component.literal("+" + epicRewards + " epic rewards").withStyle(ChatFormatting.GOLD));
+        if (effect.description().contains("+1 legendary reward")) {
+            tooltipComponents.add(Component.literal("+1 legendary reward").withStyle(ChatFormatting.GOLD));
+        }
+    }
+
+    private static int extractRewardCount(String description, Pattern pattern, int fallback) {
+        Matcher matcher = pattern.matcher(description);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        return fallback;
     }
 }

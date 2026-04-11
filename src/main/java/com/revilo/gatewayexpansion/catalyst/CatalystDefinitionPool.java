@@ -2,119 +2,25 @@ package com.revilo.gatewayexpansion.catalyst;
 
 import com.revilo.gatewayexpansion.gateway.roll.ForgeEffect;
 import com.revilo.gatewayexpansion.gateway.roll.ForgeEffectType;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 
 public final class CatalystDefinitionPool {
 
     private static final Map<String, CatalystDefinition> BY_ID = new LinkedHashMap<>();
-    private static final Map<CatalystArchetype, List<CatalystDefinition>> BY_ARCHETYPE = new LinkedHashMap<>();
+    private static final CatalystDefinition UNIVERSAL_TEMPLATE = new CatalystDefinition(
+            "gateway_catalyst",
+            "Gateway Catalyst",
+            ForgeEffect.of(ForgeEffectType.REWARD_MULTIPLIER, 0.10D, "+10% item quantity"),
+            ForgeEffect.of(ForgeEffectType.MOB_SPAWN_MULTIPLIER, 0.15D, "+15% mob spawns"),
+            Set.of("universal"));
+    private static final List<CatalystDefinition> UNIVERSAL_DEFINITIONS = List.of(UNIVERSAL_TEMPLATE);
 
     static {
-        register(CatalystArchetype.TIME, c("long_burn", "Long Burn", tags("time", "safe"),
-                plusSeconds(),
-                minusLoot()));
-        register(CatalystArchetype.TIME, c("patient_siege", "Patient Siege", tags("time", "safe"),
-                plusQuantity(),
-                plusWave()));
-        register(CatalystArchetype.TIME, c("rapid_clock", "Rapid Clock", tags("time", "reward"),
-                plusRarity(),
-                minusWaveCooldown()));
-        register(CatalystArchetype.TIME, c("sudden_death", "Sudden Death", tags("time", "volatile"),
-                plusRareReward(),
-                minusSeconds()));
-        register(CatalystArchetype.TIME, c("fast_reset", "Fast Reset", tags("setup", "tempo"),
-                plusXp(),
-                minusWaveCooldown()));
-        register(CatalystArchetype.TIME, c("staged_breath", "Staged Breath", tags("setup", "safe"),
-                plusSeconds(),
-                plusMobs()));
-        register(CatalystArchetype.TIME, c("borrowed_sun", "Borrowed Sun", tags("time", "tempo"),
-                plusXp(),
-                minusSeconds()));
-        register(CatalystArchetype.TIME, c("ember_lull", "Ember Lull", tags("setup", "safe"),
-                plusRarity(),
-                minusLoot()));
-
-        register(CatalystArchetype.STAT, c("thickened_hide", "Thickened Hide", tags("stat", "loot"),
-                plusQuantity(),
-                plusMobs()));
-        register(CatalystArchetype.STAT, c("savage_edge", "Savage Edge", tags("stat", "damage"),
-                plusXp(),
-                plusMobs()));
-        register(CatalystArchetype.STAT, c("hunting_wind", "Hunting Wind", tags("stat", "speed"),
-                plusRareReward(),
-                plusMobs()));
-        register(CatalystArchetype.STAT, c("platebreaker", "Platebreaker", tags("stat", "elite"),
-                plusRarity(),
-                plusWave()));
-        register(CatalystArchetype.STAT, c("bloodsalt", "Bloodsalt", tags("stat", "volatile"),
-                plusQuantity(),
-                minusSeconds()));
-        register(CatalystArchetype.STAT, c("sundered_quarry", "Sundered Quarry", tags("stat", "damage"),
-                plusXp(),
-                minusLoot()));
-        register(CatalystArchetype.STAT, c("glass_jaw", "Glass Jaw", tags("stat", "risk"),
-                plusSeconds(),
-                plusWave()));
-        register(CatalystArchetype.STAT, c("witchsteel", "Witchsteel", tags("stat", "ranged"),
-                plusRarity(),
-                plusMobs()));
-
-        register(CatalystArchetype.LOOT, c("gilded_teeth", "Gilded Teeth", tags("loot", "risk"),
-                plusQuantity(),
-                plusMobs()));
-        register(CatalystArchetype.LOOT, c("treasure_hunger", "Treasure Hunger", tags("loot", "risk"),
-                plusRareReward(),
-                minusSeconds()));
-        register(CatalystArchetype.LOOT, c("rare_bait", "Rare Bait", tags("loot", "elite"),
-                plusRarity(),
-                plusWave()));
-        register(CatalystArchetype.LOOT, c("prize_cache", "Prize Cache", tags("loot", "xp"),
-                plusXp(),
-                plusMobs()));
-        register(CatalystArchetype.LOOT, c("safe_hands", "Safe Hands", tags("loot", "safe"),
-                plusSeconds(),
-                minusLoot()));
-        register(CatalystArchetype.LOOT, c("mercy_clause", "Mercy Clause", tags("loot", "safe"),
-                plusQuantity(),
-                minusLoot()));
-        register(CatalystArchetype.LOOT, c("deep_pockets", "Deep Pockets", tags("loot", "reward"),
-                plusRarity(),
-                minusWaveCooldown()));
-        register(CatalystArchetype.LOOT, c("grave_tribute", "Grave Tribute", tags("loot", "xp"),
-                plusRareReward(),
-                plusMobs()));
-
-        register(CatalystArchetype.VOLATILE, c("razor_dusk", "Razor Dusk", tags("volatile", "time"),
-                plusRareReward(),
-                minusSeconds()));
-        register(CatalystArchetype.VOLATILE, c("kingmaker", "Kingmaker", tags("volatile", "elite"),
-                plusRarity(),
-                plusWave()));
-        register(CatalystArchetype.VOLATILE, c("war_drum", "War Drum", tags("volatile", "pressure"),
-                plusQuantity(),
-                plusMobs()));
-        register(CatalystArchetype.VOLATILE, c("red_feast", "Red Feast", tags("volatile", "lifesteal"),
-                plusXp(),
-                minusSeconds()));
-        register(CatalystArchetype.VOLATILE, c("abyssal_tax", "Abyssal Tax", tags("volatile", "miniboss"),
-                plusRareReward(),
-                plusMobs()));
-        register(CatalystArchetype.VOLATILE, c("last_bell", "Last Bell", tags("volatile", "finale"),
-                plusRarity(),
-                minusWaveCooldown()));
-        register(CatalystArchetype.VOLATILE, c("black_banner", "Black Banner", tags("volatile", "elite"),
-                plusQuantity(),
-                plusWave()));
-        register(CatalystArchetype.VOLATILE, c("furnace_heart", "Furnace Heart", tags("volatile", "damage"),
-                plusXp(),
-                minusLoot()));
+        BY_ID.put(UNIVERSAL_TEMPLATE.id(), UNIVERSAL_TEMPLATE);
     }
 
     private CatalystDefinitionPool() {
@@ -129,129 +35,198 @@ public final class CatalystDefinitionPool {
     }
 
     public static CatalystDefinition random(CatalystArchetype archetype, RandomSource random, int level) {
-        List<CatalystDefinition> entries = BY_ARCHETYPE.getOrDefault(archetype, List.of());
-        return materialize(entries.get(random.nextInt(entries.size())), random, level);
+        ForgeEffect positive = rollPositive(random, level);
+        return new CatalystDefinition(
+                UNIVERSAL_TEMPLATE.id(),
+                UNIVERSAL_TEMPLATE.title(),
+                positive,
+                rollNegative(random, positive, level),
+                UNIVERSAL_TEMPLATE.tags());
     }
 
     public static CatalystDefinition fallback(CatalystArchetype archetype) {
-        return BY_ARCHETYPE.getOrDefault(archetype, List.of()).getFirst();
+        return UNIVERSAL_TEMPLATE;
     }
 
     public static List<CatalystDefinition> definitionsFor(CatalystArchetype archetype) {
-        return List.copyOf(BY_ARCHETYPE.getOrDefault(archetype, List.of()));
+        return UNIVERSAL_DEFINITIONS;
     }
 
-    private static void register(CatalystArchetype archetype, CatalystDefinition definition) {
-        BY_ID.put(definition.id(), definition);
-        BY_ARCHETYPE.computeIfAbsent(archetype, ignored -> new ArrayList<>()).add(definition);
-    }
-
-    private static CatalystDefinition materialize(CatalystDefinition template, RandomSource random, int level) {
-        return new CatalystDefinition(
-                template.id(),
-                template.title(),
-                rollPositive(template.positiveEffect(), random, level),
-                template.negativeEffect(),
-                template.tags());
-    }
-
-    private static CatalystDefinition c(String id, String title, Set<String> tags, ForgeEffect positive, ForgeEffect negative) {
-        return new CatalystDefinition(id, title, positive, negative, tags);
-    }
-
-    private static ForgeEffect fx(ForgeEffectType type, double value, String description) {
-        return ForgeEffect.of(type, value, description);
-    }
-
-    @SuppressWarnings("unused")
-    private static ForgeEffect effect(String effectId, int amplifier, String description) {
-        return ForgeEffect.ref(ForgeEffectType.MOB_EFFECT, ResourceLocation.parse(effectId), amplifier, 0.0D, description);
-    }
-
-    private static ForgeEffect plusRareReward() {
-        return fx(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, 1, "+1 rare reward");
-    }
-
-    private static ForgeEffect plusRarity() {
-        return fx(ForgeEffectType.RARITY_REWARD_MULTIPLIER, 1.10D, "+10% item rarity");
-    }
-
-    private static ForgeEffect plusQuantity() {
-        return fx(ForgeEffectType.REWARD_MULTIPLIER, 0.05D, "+5% item quantity");
-    }
-
-    private static ForgeEffect plusXp() {
-        return fx(ForgeEffectType.EXPERIENCE_REWARD_MULTIPLIER, 1.07D, "+7% XP");
-    }
-
-    private static ForgeEffect plusSeconds() {
-        return fx(ForgeEffectType.WAVE_TIME_DELTA, 100, "+5 seconds");
-    }
-
-    private static ForgeEffect minusSeconds() {
-        return fx(ForgeEffectType.WAVE_TIME_DELTA, -200, "-10 seconds");
-    }
-
-    private static ForgeEffect minusLoot() {
-        return fx(ForgeEffectType.REWARD_MULTIPLIER, -0.05D, "-5% loot");
-    }
-
-    private static ForgeEffect plusMobs() {
-        return fx(ForgeEffectType.ADD_MINIONS_PER_WAVE, 5, "+5 mobs");
-    }
-
-    private static ForgeEffect plusWave() {
-        return fx(ForgeEffectType.BONUS_WAVES, 1, "+1 wave");
-    }
-
-    private static ForgeEffect minusWaveCooldown() {
-        return fx(ForgeEffectType.SETUP_TIME_DELTA, -60, "-3s wave cooldown");
-    }
-
-    private static Set<String> tags(String... tags) {
-        return Set.of(tags);
-    }
-
-    private static ForgeEffect rollPositive(ForgeEffect effect, RandomSource random, int level) {
-        return switch (effect.type()) {
-            case REWARD_MULTIPLIER -> {
-                double value = rollLevelRange(random, level);
-                yield ForgeEffect.of(effect.type(), value - 1.0D, "+" + trimPercent((value - 1.0D) * 100.0D) + "% item quantity");
-            }
-            case RARITY_REWARD_MULTIPLIER -> {
-                double value = rollLevelRange(random, level);
-                yield ForgeEffect.of(effect.type(), value, "+" + trimPercent((value - 1.0D) * 100.0D) + "% item rarity");
-            }
-            case LEVEL_XP_MULTIPLIER -> {
-                double value = rollLevelRange(random, level);
-                yield ForgeEffect.of(effect.type(), value, "+" + trimPercent((value - 1.0D) * 100.0D) + "% levels");
-            }
-            case EXPERIENCE_REWARD_MULTIPLIER -> {
-                double value = rollLevelRange(random, level);
-                yield ForgeEffect.of(effect.type(), value, "+" + trimPercent((value - 1.0D) * 100.0D) + "% XP");
-            }
-            default -> effect;
+    private static ForgeEffect rollPositive(RandomSource random, int level) {
+        int roll = random.nextInt(9);
+        return switch (roll) {
+            case 0 -> rollRareRewards(level);
+            case 1 -> rollPositiveSeconds(random, level);
+            case 2 -> rollFlatCoinBoost(random, level);
+            case 3 -> rollPercentMultiplier(ForgeEffectType.REWARD_MULTIPLIER, random, level, "item quantity");
+            case 4 -> rollPercentMultiplier(ForgeEffectType.RARITY_REWARD_MULTIPLIER, random, level, "item rarity");
+            case 5 -> rollPercentMultiplier(ForgeEffectType.EXPERIENCE_REWARD_MULTIPLIER, random, level, "experience");
+            case 6 -> rollPercentMultiplier(ForgeEffectType.LEVEL_XP_MULTIPLIER, random, level, "levels");
+            case 7 -> rollPercentMultiplier(ForgeEffectType.COIN_REWARD_MULTIPLIER, random, level, "coins");
+            default -> ForgeEffect.of(ForgeEffectType.SETUP_TIME_DELTA, 100, "+5s cooldown");
         };
     }
 
-    private static double rollLevelRange(RandomSource random, int level) {
+    private static ForgeEffect rollNegative(RandomSource random, ForgeEffect positive, int level) {
+        boolean positiveIsPercentType = isPercentPositiveType(positive.type());
+        if (positiveIsPercentType && random.nextFloat() < 0.45F) {
+            return crossTaxNegative(random, positive, level);
+        }
+
+        int roll = random.nextInt(9);
+        return switch (roll) {
+            case 0 -> negativeSeconds(random, positive, level);
+            case 1 -> percentPenalty(ForgeEffectType.MOB_SPAWN_MULTIPLIER, random, level, "mob spawns");
+            case 2 -> percentPenalty(ForgeEffectType.DAMAGE_MULTIPLIER, random, level, "mob damage");
+            case 3 -> packPenalty(ForgeEffectType.RANGED_PACKS, random, level, "ranged mobs");
+            case 4 -> packPenalty(ForgeEffectType.TANK_PACKS, random, level, "tank mobs");
+            case 5 -> packPenalty(ForgeEffectType.HOARD_PACKS, random, level, "hoard mobs");
+            case 6 -> packPenalty(ForgeEffectType.ARCHER_PACKS, random, level, "archers");
+            case 7 -> percentPenalty(ForgeEffectType.HEALTH_MULTIPLIER, random, level, "mob health");
+            default -> random.nextBoolean() ? ForgeEffect.of(ForgeEffectType.SETUP_TIME_DELTA, -40, "-2s cooldown") : wavePenalty(random, level);
+        };
+    }
+
+    private static ForgeEffect rollRareRewards(int level) {
+        int rareRolls = rareRewardRollBonus(level);
+        int epicRolls = epicRewardRollBonus(level);
+        String description = "+" + rareRolls + " rare rewards, +" + epicRolls + " epic rewards"
+                + (level >= 40 ? ", +1 legendary reward" : "");
+        return ForgeEffect.dual(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, rareRolls, epicRolls, description);
+    }
+
+    private static ForgeEffect rollPositiveSeconds(RandomSource random, int level) {
+        int minSeconds = level >= 50 ? 6 : 5;
+        int maxSeconds = level >= 70 ? 15 : (level >= 40 ? 12 : 9);
+        int seconds = random.nextInt(minSeconds, maxSeconds + 1);
+        return ForgeEffect.of(ForgeEffectType.WAVE_TIME_DELTA, seconds * 20.0D, "+" + seconds + " seconds");
+    }
+
+    private static ForgeEffect rollFlatCoinBoost(RandomSource random, int level) {
+        int minCoins = 20 + Math.max(0, level) * 2;
+        int maxCoins = 55 + Math.max(0, level) * 4;
+        int coins = random.nextInt(minCoins, Math.max(minCoins + 1, maxCoins + 1));
+        double asMultiplier = 1.0D + Math.min(2.5D, coins / 100.0D);
+        return ForgeEffect.of(ForgeEffectType.COIN_REWARD_MULTIPLIER, asMultiplier, "+" + coins + " coins");
+    }
+
+    private static ForgeEffect rollPercentMultiplier(ForgeEffectType type, RandomSource random, int level, String label) {
+        double multiplier = rollRewardMultiplier(random, level);
+        if (type == ForgeEffectType.REWARD_MULTIPLIER) {
+            double additive = multiplier - 1.0D;
+            return ForgeEffect.of(type, additive, "+" + trimPercent(additive * 100.0D) + "% " + label);
+        }
+        return ForgeEffect.of(type, multiplier, "+" + trimPercent((multiplier - 1.0D) * 100.0D) + "% " + label);
+    }
+
+    private static ForgeEffect negativeSeconds(RandomSource random, ForgeEffect positive, int level) {
+        int minSeconds = 5;
+        int maxSeconds = 15;
+        if (isHighPowerPositive(positive, level)) {
+            minSeconds = 10;
+        }
+        int seconds = random.nextInt(minSeconds, maxSeconds + 1);
+        return ForgeEffect.of(ForgeEffectType.WAVE_TIME_DELTA, -seconds * 20.0D, "-" + seconds + "s seconds");
+    }
+
+    private static ForgeEffect percentPenalty(ForgeEffectType type, RandomSource random, int level, String label) {
+        double percent = negativePercent(random, level);
+        return ForgeEffect.of(type, percent, "+" + trimPercent(percent * 100.0D) + "% " + label);
+    }
+
+    private static ForgeEffect packPenalty(ForgeEffectType type, RandomSource random, int level, String label) {
+        double percent = negativePercent(random, level);
+        int packIncrease = 1 + Math.min(2, (int) Math.floor(percent * 5.0D));
+        return ForgeEffect.of(type, packIncrease, "+" + trimPercent(percent * 100.0D) + "% " + label);
+    }
+
+    private static ForgeEffect wavePenalty(RandomSource random, int level) {
+        int maxWavePenalty = Math.max(1, 1 + Math.max(0, level) / 20);
+        int waves = random.nextInt(1, maxWavePenalty + 1);
+        return ForgeEffect.of(ForgeEffectType.BONUS_WAVES, waves, "+" + waves + " wave");
+    }
+
+    private static ForgeEffect crossTaxNegative(RandomSource random, ForgeEffect positive, int level) {
+        List<ForgeEffectType> taxPool = List.of(
+                ForgeEffectType.REWARD_MULTIPLIER,
+                ForgeEffectType.RARITY_REWARD_MULTIPLIER,
+                ForgeEffectType.EXPERIENCE_REWARD_MULTIPLIER,
+                ForgeEffectType.LEVEL_XP_MULTIPLIER,
+                ForgeEffectType.COIN_REWARD_MULTIPLIER);
+        List<ForgeEffectType> candidates = taxPool.stream().filter(type -> type != positive.type()).toList();
+        ForgeEffectType taxType = candidates.get(random.nextInt(candidates.size()));
+        double taxMultiplier = negativeMultiplier(random, level);
+        String label = switch (taxType) {
+            case REWARD_MULTIPLIER -> "loot";
+            case RARITY_REWARD_MULTIPLIER -> "rarity";
+            case EXPERIENCE_REWARD_MULTIPLIER -> "experience";
+            case LEVEL_XP_MULTIPLIER -> "levels";
+            case COIN_REWARD_MULTIPLIER -> "coins";
+            default -> "reward";
+        };
+        if (taxType == ForgeEffectType.REWARD_MULTIPLIER) {
+            double additive = taxMultiplier - 1.0D;
+            return ForgeEffect.of(taxType, additive, trimPercent(additive * 100.0D) + "% " + label);
+        }
+        return ForgeEffect.of(taxType, taxMultiplier, trimPercent((taxMultiplier - 1.0D) * 100.0D) + "% " + label);
+    }
+
+    private static boolean isPercentPositiveType(ForgeEffectType type) {
+        return type == ForgeEffectType.REWARD_MULTIPLIER
+                || type == ForgeEffectType.RARITY_REWARD_MULTIPLIER
+                || type == ForgeEffectType.EXPERIENCE_REWARD_MULTIPLIER
+                || type == ForgeEffectType.LEVEL_XP_MULTIPLIER
+                || type == ForgeEffectType.COIN_REWARD_MULTIPLIER;
+    }
+
+    private static boolean isHighPowerPositive(ForgeEffect positive, int level) {
+        if (positive.type() == ForgeEffectType.EXTRA_RARE_REWARD_ROLLS || positive.type() == ForgeEffectType.BONUS_WAVES) {
+            return true;
+        }
+        if (positive.type() == ForgeEffectType.SETUP_TIME_DELTA) {
+            return positive.value() >= 100.0D;
+        }
+        if (positive.type() == ForgeEffectType.WAVE_TIME_DELTA) {
+            return positive.value() >= 160.0D;
+        }
+        if (positive.type() == ForgeEffectType.REWARD_MULTIPLIER) {
+            return positive.value() >= 1.0D || level >= 50;
+        }
+        return positive.value() >= 2.0D || level >= 75;
+    }
+
+    private static int rareRewardRollBonus(int level) {
+        if (level >= 90) return 5;
+        if (level >= 70) return 4;
+        if (level >= 50) return 3;
+        if (level >= 20) return 2;
+        return 1;
+    }
+
+    private static int epicRewardRollBonus(int level) {
+        if (level >= 90) return 3;
+        if (level >= 50) return 2;
+        return 1;
+    }
+
+    private static double rollRewardMultiplier(RandomSource random, int level) {
         double min;
         double max;
         if (level >= 90) {
-            min = 10.0D;
-            max = 20.0D;
-        } else if (level >= 80) {
-            min = 6.0D;
-            max = 10.0D;
-        } else if (level >= 50) {
-            min = 5.0D;
-            max = 8.0D;
-        } else if (level >= 41) {
-            min = 3.0D;
-            max = 6.0D;
-        } else if (level >= 21) {
             min = 2.0D;
+            max = 15.0D;
+        } else if (level >= 75) {
+            min = 2.0D;
+            max = 10.0D;
+        } else if (level >= 51) {
+            min = 1.5D;
+            max = 5.0D;
+        } else if (level >= 31) {
+            min = 1.5D;
             max = 4.0D;
+        } else if (level >= 15) {
+            min = 1.5D;
+            max = 3.0D;
         } else {
             min = 1.5D;
             max = 2.0D;
@@ -259,8 +234,19 @@ public final class CatalystDefinitionPool {
         return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
     }
 
+    private static double negativePercent(RandomSource random, int level) {
+        double min = level >= 50 ? 0.20D : 0.12D;
+        double max = level >= 90 ? 0.95D : (level >= 50 ? 0.70D : 0.45D);
+        return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
+    }
+
+    private static double negativeMultiplier(RandomSource random, int level) {
+        double min = level >= 50 ? 0.05D : 0.20D;
+        double max = level >= 90 ? 0.50D : (level >= 50 ? 0.70D : 0.85D);
+        return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
+    }
+
     private static String trimPercent(double value) {
-        String text = String.format(java.util.Locale.ROOT, "%.0f", value);
-        return text;
+        return String.format(java.util.Locale.ROOT, "%.0f", value);
     }
 }

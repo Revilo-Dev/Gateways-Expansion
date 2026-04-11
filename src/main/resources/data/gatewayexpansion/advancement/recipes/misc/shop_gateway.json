@@ -1,12 +1,15 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_crystal": {
+    "has_ingredients": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
-            "items": "gatewayexpansion:tier_1_crystal"
+            "items": "gatewayexpansion:tier_2_crystal"
+          },
+          {
+            "items": "gatewayexpansion:arcane_essence"
           }
         ]
       }
@@ -20,7 +23,7 @@
   },
   "requirements": [
     [
-      "has_crystal",
+      "has_ingredients",
       "has_recipe"
     ]
   ],

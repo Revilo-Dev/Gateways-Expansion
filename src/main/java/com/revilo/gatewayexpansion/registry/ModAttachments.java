@@ -26,6 +26,12 @@ public final class ModAttachments {
                     .copyOnDeath()
                     .sync(ByteBufCodecs.FLOAT)
                     .build());
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<Boolean>> MAGNET_ENABLED =
+            ATTACHMENTS.register("magnet_enabled", () -> AttachmentType.builder(() -> true)
+                    .serialize(Codec.BOOL)
+                    .copyOnDeath()
+                    .sync(ByteBufCodecs.BOOL)
+                    .build());
 
     private ModAttachments() {
     }

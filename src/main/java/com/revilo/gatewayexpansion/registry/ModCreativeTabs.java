@@ -29,9 +29,6 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.HARD_AUGMENT.get());
                         output.accept(ModItems.EXTREME_AUGMENT.get());
                         output.accept(ModItems.TIME_CATALYST.get());
-                        output.accept(ModItems.STAT_CATALYST.get());
-                        output.accept(ModItems.LOOT_CATALYST.get());
-                        output.accept(ModItems.HIGHRISK_CATALYST.get());
                         output.accept(ModItems.MYTHIC_COIN.get());
                         output.accept(ModItems.STABILITY_PEARL.get());
                         output.accept(ModItems.GRIMSTONE.get());

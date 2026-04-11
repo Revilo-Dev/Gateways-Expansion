@@ -4,7 +4,6 @@ import com.revilo.gatewayexpansion.GatewayExpansion;
 import com.revilo.gatewayexpansion.augment.AugmentDefinition;
 import com.revilo.gatewayexpansion.augment.AugmentDefinitionPool;
 import com.revilo.gatewayexpansion.augment.AugmentStackData;
-import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.catalyst.CatalystDefinition;
 import com.revilo.gatewayexpansion.catalyst.CatalystDefinitionPool;
 import com.revilo.gatewayexpansion.catalyst.CatalystStackData;
@@ -74,7 +73,7 @@ public final class GatewayExpansionJeiPlugin implements IModPlugin {
         recipes.add(new GatewayWorkbenchJeiRecipe(
                 Component.translatable("jei.gatewayexpansion.recipe.catalysts"),
                 crystals,
-                catalystStacks(CatalystArchetype.TIME, CatalystArchetype.STAT, CatalystArchetype.LOOT, CatalystArchetype.VOLATILE),
+                catalystStacks(),
                 new ItemStack(GatewayObjects.GATE_PEARL.value())));
         return recipes;
     }
@@ -98,10 +97,7 @@ public final class GatewayExpansionJeiPlugin implements IModPlugin {
 
     private static List<ItemStack> catalystBaseStacks() {
         return List.of(
-                new ItemStack(ModItems.TIME_CATALYST.get()),
-                new ItemStack(ModItems.STAT_CATALYST.get()),
-                new ItemStack(ModItems.LOOT_CATALYST.get()),
-                new ItemStack(ModItems.HIGHRISK_CATALYST.get()));
+                new ItemStack(ModItems.TIME_CATALYST.get()));
     }
 
     private static List<ItemStack> augmentStacks(AugmentDifficultyTier... tiers) {
@@ -122,20 +118,13 @@ public final class GatewayExpansionJeiPlugin implements IModPlugin {
         return stacks;
     }
 
-    private static List<ItemStack> catalystStacks(CatalystArchetype... archetypes) {
+    private static List<ItemStack> catalystStacks() {
         List<ItemStack> stacks = new ArrayList<>();
-        for (CatalystArchetype archetype : archetypes) {
-            Item item = switch (archetype) {
-                case TIME -> ModItems.TIME_CATALYST.get();
-                case STAT -> ModItems.STAT_CATALYST.get();
-                case LOOT -> ModItems.LOOT_CATALYST.get();
-                case VOLATILE -> ModItems.HIGHRISK_CATALYST.get();
-            };
-            for (CatalystDefinition definition : CatalystDefinitionPool.definitionsFor(archetype)) {
-                ItemStack stack = new ItemStack(item);
-                CatalystStackData.setDefinitionId(stack, definition.id());
-                stacks.add(stack);
-            }
+        Item item = ModItems.TIME_CATALYST.get();
+        for (CatalystDefinition definition : CatalystDefinitionPool.definitionsFor(com.revilo.gatewayexpansion.catalyst.CatalystArchetype.TIME)) {
+            ItemStack stack = new ItemStack(item);
+            CatalystStackData.setDefinitionId(stack, definition.id());
+            stacks.add(stack);
         }
         return stacks;
     }

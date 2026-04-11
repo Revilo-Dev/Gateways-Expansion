@@ -15,7 +15,7 @@ public final class RunicItemSupport {
     }
 
     public static void ensureRunicData(ItemStack stack, int runeSlots) {
-        if (!ModCompat.isAnyLoaded("runic") || runeSlots <= 0) {
+        if (!ModCompat.isRunicLoaded() || runeSlots <= 0) {
             return;
         }
 

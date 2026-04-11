@@ -23,6 +23,7 @@ public record GatewayBuildResult(
         double rarityRewardMultiplier,
         int rareRewardDrops,
         int epicRewardDrops,
+        int legendaryRewardDrops,
         int finalExperienceReward,
         List<String> augmentSummary,
         List<String> catalystSummary,

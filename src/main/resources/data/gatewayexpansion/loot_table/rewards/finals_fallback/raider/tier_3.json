@@ -1,14 +1,61 @@
 {
-  "type": "minecraft:chest",
-  "pools": [
-    {
-      "rolls": 1,
-      "entries": [
-        { "type": "minecraft:item", "name": "minecraft:emerald", "weight": 9, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 14.0, "max": 24.0 }, "add": false } ] },
-        { "type": "minecraft:item", "name": "minecraft:diamond", "weight": 5, "functions": [ { "function": "minecraft:set_count", "count": { "type": "minecraft:uniform", "min": 2.0, "max": 4.0 }, "add": false } ] },
-        { "type": "minecraft:item", "name": "minecraft:crossbow", "weight": 5, "functions": [ { "function": "minecraft:set_enchantments", "enchantments": { "minecraft:quick_charge": 2 }, "add": false } ] },
-        { "type": "minecraft:item", "name": "minecraft:golden_apple", "weight": 2 }
-      ]
-    }
-  ]
+    "type":  "minecraft:chest",
+    "pools":  [
+                  {
+                      "rolls":  1,
+                      "entries":  [
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:emerald",
+                                          "weight":  9,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  14.0,
+                                                                              "max":  24.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:diamond",
+                                          "weight":  5,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  2.0,
+                                                                              "max":  4.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:crossbow",
+                                          "weight":  5,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_enchantments",
+                                                                "enchantments":  {
+                                                                                     "minecraft:quick_charge":  2
+                                                                                 },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:golden_apple",
+                                          "weight":  2
+                                      }
+                                  ]
+                  }
+              ]
 }

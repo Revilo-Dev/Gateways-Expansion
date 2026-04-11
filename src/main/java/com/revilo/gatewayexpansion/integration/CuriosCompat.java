@@ -42,11 +42,15 @@ public final class CuriosCompat {
 
         @Override
         public void curioTick(SlotContext slotContext, ItemStack stack) {
-            if (!(stack.getItem() instanceof MagnetItem magnet)) {
+            if (!(stack.getItem() instanceof MagnetItem magnet) || !isBeltSlot(slotContext)) {
                 return;
             }
             RunicItemSupport.ensureRunicData(stack, magnet.runeSlots());
             MagnetHandler.pullNearbyItems(slotContext.entity(), magnet);
+        }
+
+        private boolean isBeltSlot(SlotContext slotContext) {
+            return "belt".equals(slotContext.identifier());
         }
     }
 }

@@ -64,10 +64,13 @@ public final class CatalystStackData {
         CompoundTag root = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getCompound(ROOT_KEY);
         if (root.contains(ID_KEY)) {
             CatalystDefinition definition = CatalystDefinitionPool.getById(root.getString(ID_KEY));
-            if (definition != null) {
-                ForgeEffect positive = readEffect(root, POSITIVE_TYPE_KEY, POSITIVE_VALUE_KEY, POSITIVE_SECONDARY_VALUE_KEY, POSITIVE_REFERENCE_KEY, POSITIVE_DESCRIPTION_KEY, definition.positiveEffect());
-                ForgeEffect negative = readEffect(root, NEGATIVE_TYPE_KEY, NEGATIVE_VALUE_KEY, NEGATIVE_SECONDARY_VALUE_KEY, NEGATIVE_REFERENCE_KEY, NEGATIVE_DESCRIPTION_KEY, definition.negativeEffect());
-                return new CatalystDefinition(definition.id(), definition.title(), positive, negative, definition.tags());
+            CatalystDefinition base = definition != null ? definition : CatalystDefinitionPool.fallback(archetype);
+            if (base != null) {
+                ForgeEffect positive = readEffect(root, POSITIVE_TYPE_KEY, POSITIVE_VALUE_KEY, POSITIVE_SECONDARY_VALUE_KEY, POSITIVE_REFERENCE_KEY, POSITIVE_DESCRIPTION_KEY, base.positiveEffect());
+                ForgeEffect negative = readEffect(root, NEGATIVE_TYPE_KEY, NEGATIVE_VALUE_KEY, NEGATIVE_SECONDARY_VALUE_KEY, NEGATIVE_REFERENCE_KEY, NEGATIVE_DESCRIPTION_KEY, base.negativeEffect());
+                String id = definition != null ? definition.id() : root.getString(ID_KEY);
+                String title = definition != null ? definition.title() : base.title();
+                return new CatalystDefinition(id, title, positive, negative, base.tags());
             }
         }
         return stack.has(DataComponents.CUSTOM_DATA) ? CatalystDefinitionPool.fallback(archetype) : null;

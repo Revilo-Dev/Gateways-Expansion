@@ -13,6 +13,7 @@ import com.revilo.gatewayexpansion.integration.CuriosCompat;
 import com.revilo.gatewayexpansion.integration.LevelUpGatewayIntegration;
 import com.revilo.gatewayexpansion.integration.LevelUpGatewayXpRewards;
 import com.revilo.gatewayexpansion.integration.MagnetHandler;
+import com.revilo.gatewayexpansion.network.GatewayExpansionNetwork;
 import com.revilo.gatewayexpansion.registry.ModAttachments;
 import com.revilo.gatewayexpansion.registry.ModAttributes;
 import com.revilo.gatewayexpansion.registry.ModBlockEntities;
@@ -50,6 +51,7 @@ public final class GatewayExpansion {
         ModMobEffects.register(modEventBus);
         ModRecipes.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
+        GatewayExpansionNetwork.register(modEventBus);
         GatewayExpansionClient.register(modEventBus);
         if (com.revilo.gatewayexpansion.integration.ModCompat.isAnyLoaded("curios")) {
             CuriosCompat.register(modEventBus);

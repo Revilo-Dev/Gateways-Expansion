@@ -2,6 +2,7 @@ package com.revilo.gatewayexpansion.gateway;
 
 import com.revilo.gatewayexpansion.config.GatewayExpansionConfig;
 import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
+import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.event.GateEvent;
 import net.minecraft.ChatFormatting;
@@ -22,7 +23,7 @@ public final class GatewayDisplayManager {
             gate.setCustomName(Component.literal(displayName).withStyle(style -> style.withColor(gate.getGateway().color())));
         }
 
-        if (!GatewayExpansionConfig.ANNOUNCE_GATE_OPEN_IN_CHAT.get() || gate.level().isClientSide) {
+        if (!GatewayExpansionConfig.ANNOUNCE_GATE_OPEN_IN_CHAT.get() || gate.level().isClientSide || ShopkeeperManager.isGatewayAnimation(gate)) {
             return;
         }
 

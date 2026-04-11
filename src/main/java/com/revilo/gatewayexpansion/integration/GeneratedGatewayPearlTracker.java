@@ -26,7 +26,9 @@ public final class GeneratedGatewayPearlTracker {
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            GatewayForgeService.restorePersistedGateways(player.serverLevel());
             restoreFromInventory(player);
+            GatewayForgeService.syncGatewayRegistry(player);
         }
     }
 

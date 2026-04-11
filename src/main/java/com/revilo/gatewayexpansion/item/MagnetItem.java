@@ -9,17 +9,29 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 
-public class MagnetItem extends Item {
+public class MagnetItem extends Item implements RarityTintedItemName {
 
+    private final ChatFormatting nameColor;
     private final int bonusRange;
     private final int pullSpeed;
     private final int runeSlots;
 
-    public MagnetItem(int bonusRange, int pullSpeed, int runeSlots, Properties properties) {
+    public MagnetItem(ChatFormatting nameColor, int bonusRange, int pullSpeed, int runeSlots, Properties properties) {
         super(properties);
+        this.nameColor = nameColor;
         this.bonusRange = bonusRange;
         this.pullSpeed = pullSpeed;
         this.runeSlots = runeSlots;
+    }
+
+    @Override
+    public ChatFormatting nameColor() {
+        return this.nameColor;
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return this.tintedName(stack, super.getName(stack));
     }
 
     public int bonusRange() {
@@ -31,11 +43,11 @@ public class MagnetItem extends Item {
     }
 
     public double attractionRange() {
-        return 1.0D + this.bonusRange;
+        return 3.0D + this.bonusRange;
     }
 
     public double attractionForce() {
-        return 0.025D + (this.pullSpeed * 0.02D);
+        return 0.025D + (this.pullSpeed * 0.03D);
     }
 
     public int runeSlots() {
@@ -50,7 +62,7 @@ public class MagnetItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
-        tooltipComponents.add(Component.literal("+" + this.bonusRange + " block magnet range").withStyle(ChatFormatting.AQUA));
+        tooltipComponents.add(Component.literal("+" + (this.bonusRange + 2) + " block magnet range").withStyle(ChatFormatting.AQUA));
         if (this.pullSpeed > 0) {
             tooltipComponents.add(Component.literal("+" + this.pullSpeed + " pull speed").withStyle(ChatFormatting.GREEN));
         }

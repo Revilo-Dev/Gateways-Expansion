@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.integration;
 
 import net.minecraft.world.entity.ai.goal.ZombieAttackGoal;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Drowned;
 import net.minecraft.world.entity.player.Player;
@@ -27,6 +28,7 @@ public final class GatewayDrownedHandler {
         }
 
         drowned.goalSelector.addGoal(1, new ZombieAttackGoal(drowned, 1.0D, false));
+        drowned.targetSelector.addGoal(0, new HurtByTargetGoal(drowned));
         drowned.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(drowned, Player.class, true));
         data.putBoolean(AI_PATCHED_KEY, true);
     }

@@ -18,7 +18,7 @@
   "rewards": [],
   "failures": [],
   "boss_event": {
-    "mode": "name_plate",
+    "mode": "boss_bar",
     "fog": false
   },
   "rules": {

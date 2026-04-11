@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_tier_1_crystal": {
+    "has_crystal": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
@@ -17,7 +17,22 @@
         ]
       }
     },
-    "has_the_recipe": {
+    "has_theme_item": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "gatewayexpansion:hardened_flesh",
+              "gatewayexpansion:rusty_coin",
+              "gatewayexpansion:arcane_essence",
+              "gatewayexpansion:solar_shard"
+            ]
+          }
+        ]
+      }
+    },
+    "has_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
         "recipe": "gatewayexpansion:crystal_theme_attunement"
@@ -26,8 +41,11 @@
   },
   "requirements": [
     [
-      "has_tier_1_crystal",
-      "has_the_recipe"
+      "has_crystal",
+      "has_theme_item"
+    ],
+    [
+      "has_recipe"
     ]
   ],
   "rewards": {

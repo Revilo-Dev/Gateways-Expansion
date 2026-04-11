@@ -91,22 +91,6 @@
                       "entries":  [
                                       {
                                           "type":  "minecraft:item",
-                                          "name":  "minecraft:iron_ingot",
-                                          "weight":  8,
-                                          "functions":  [
-                                                            {
-                                                                "function":  "minecraft:set_count",
-                                                                "count":  {
-                                                                              "type":  "minecraft:uniform",
-                                                                              "min":  2,
-                                                                              "max":  5
-                                                                          },
-                                                                "add":  false
-                                                            }
-                                                        ]
-                                      },
-                                      {
-                                          "type":  "minecraft:item",
                                           "name":  "gatewayexpansion:arcane_essence",
                                           "weight":  8,
                                           "functions":  [

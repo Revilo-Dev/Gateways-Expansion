@@ -17,11 +17,9 @@ public record GatewayThemeProfile(
         ResourceLocation rareLoot
 ) {
 
-    private static final boolean RUNIC_LOADED = ModCompat.isAnyLoaded("runic");
-
     public static GatewayThemeProfile forTheme(CrystalTheme theme, int level) {
         String tierSuffix = "tier_" + rewardTier(level);
-        String finalLootBase = RUNIC_LOADED ? "rewards/finals/" : "rewards/finals_fallback/";
+        String finalLootBase = ModCompat.isRunicLoaded() ? "rewards/finals/" : "rewards/finals_fallback/";
         return switch (theme) {
             case UNDEAD -> new GatewayThemeProfile(
                     theme,

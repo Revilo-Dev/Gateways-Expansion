@@ -89,7 +89,7 @@ public final class GatewaySellValues {
         if (item == ModItems.LOOT_CATALYST.get()) return 19;
         if (item == ModItems.STAT_CATALYST.get()) return 23;
         if (item == ModItems.HIGHRISK_CATALYST.get()) return 49;
-        if (item == ModItems.STABILITY_PEARL.get()) return 4200;
+        if (item == ModItems.STABILITY_PEARL.get()) return 520;
         if (item == ModItems.MANA_STEEL_PAXEL.get()) return 980;
         if (item == ModItems.MANA_STEEL_SWORD.get()) return 1320;
         if (item == ModItems.ELIXRITE_PAXEL.get()) return 1840;
@@ -133,7 +133,7 @@ public final class GatewaySellValues {
             return;
         }
 
-        tooltipComponents.add(Component.literal("o " + value + " Sell Value").withStyle(ChatFormatting.LIGHT_PURPLE));
+        tooltipComponents.add(Component.literal("⛂ " + value + " Sell Value").withStyle(ChatFormatting.LIGHT_PURPLE));
     }
 
     public static void appendShopRuneSellValueTooltip(ItemStack stack, List<Component> tooltipComponents) {

@@ -8,7 +8,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
-public class LootMaterialItem extends Item {
+public class LootMaterialItem extends Item implements RarityTintedItemName {
 
     private final LootRarity rarity;
 
@@ -22,7 +22,15 @@ public class LootMaterialItem extends Item {
     }
 
     @Override
+    public net.minecraft.ChatFormatting nameColor() {
+        return this.rarity.color();
+    }
+
+    @Override
     public Component getName(ItemStack stack) {
+        if (this.rarity == LootRarity.LEGENDARY) {
+            return RarityTintedItemName.super.tintedName(stack, super.getName(stack));
+        }
         return super.getName(stack).copy().withStyle(this.rarity.color());
     }
 

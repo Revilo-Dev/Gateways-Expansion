@@ -21,7 +21,9 @@ public final class InventoryWalletOverlay {
     private static final int PLAYER_BOX_CENTER_Y = 66;
     private static final int ICON_SIZE = 16;
     private static final float BASE_TEXT_SCALE = 0.75F;
-    private static final float WALLET_Z = 500.0F;
+    // Keep wallet visuals above the player model but under tooltips.
+    private static final float WALLET_Z = 150.0F;
+    private static final float TOOLTIP_Z = 500.0F;
 
     private InventoryWalletOverlay() {
     }
@@ -46,7 +48,7 @@ public final class InventoryWalletOverlay {
         if (hovered) {
             ItemStack coinStack = coinStack();
             event.getGuiGraphics().pose().pushPose();
-            event.getGuiGraphics().pose().translate(0.0F, 0.0F, WALLET_Z);
+            event.getGuiGraphics().pose().translate(0.0F, 0.0F, TOOLTIP_Z);
             event.getGuiGraphics().renderTooltip(
                     minecraft.font,
                     List.of(
@@ -92,14 +94,14 @@ public final class InventoryWalletOverlay {
             int extraDigits = Math.max(0, digits - 4);
             float textScale = Math.max(0.42F, BASE_TEXT_SCALE - (extraDigits * 0.08F));
             float textWidth = minecraft.font.width(text) * textScale;
-            float gap = 3.0F + (extraDigits * 1.5F);
+            float gap = 1.5F + (extraDigits * 1.0F);
             float groupWidth = ICON_SIZE + gap + textWidth;
             float centerX = screen.getGuiLeft() + PLAYER_BOX_CENTER_X;
             float centerY = screen.getGuiTop() + PLAYER_BOX_CENTER_Y + 5.0F;
             float groupLeft = centerX - (groupWidth / 2.0F);
             int iconX = Mth.floor(groupLeft);
             int iconY = Mth.floor(centerY - 8.0F);
-            float textX = groupLeft + ICON_SIZE + gap;
+            float textX = groupLeft + ICON_SIZE + gap - 2.0F;
             float textY = centerY - (4.0F * textScale);
             int hoverLeft = Mth.floor(groupLeft) - 2;
             int hoverTop = Mth.floor(centerY - 10.0F);

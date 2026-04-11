@@ -225,15 +225,28 @@ public final class AugmentDefinitionPool {
     private static ForgeEffect rollReward(ForgeEffect reward, AugmentDifficultyTier tier, RandomSource random, int level) {
         double rewardScale = extremeRewardScale(tier, level);
         return switch (reward.type()) {
-            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), rewardScale), "coin multiplier");
-            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), rewardScale), "level gain");
-            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), rewardScale), "experience");
+            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "coin multiplier");
+            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "level gain");
+            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "experience");
             case REWARD_MULTIPLIER -> {
-                double lootMultiplier = scaleMultiplier(rollLevelRange(random, level), rewardScale);
+                double lootMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), rewardScale);
                 yield rangedReward(reward.type(), lootMultiplier - 1.0D, "loot", lootMultiplier);
             }
-            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollLevelRange(random, level), 1.0D + ((rewardScale - 1.0D) * 0.7D)), "rarity");
-            case EXTRA_RARE_REWARD_ROLLS, EXTRA_FINAL_REWARD_ROLLS, EXTRA_ENTITY_LOOT_ROLLS ->
+            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "rarity");
+            case EXTRA_RARE_REWARD_ROLLS -> {
+                int rareRolls = rareRewardRollBonus(level);
+                int epicRolls = epicRewardRollBonus(level);
+                String description = "+" + rareRolls + " rare rewards, +" + epicRolls + " epic rewards"
+                        + (level >= 40 ? ", +1 legendary reward" : "");
+                yield ForgeEffect.dual(reward.type(), rareRolls, epicRolls, description);
+            }
+            case EXTRA_FINAL_REWARD_ROLLS -> {
+                int epicRolls = epicRewardRollBonus(level);
+                yield ForgeEffect.of(reward.type(), epicRolls, "+" + epicRolls + " epic rewards");
+            }
+            case EXTRA_LEGENDARY_REWARD_ROLLS ->
+                    ForgeEffect.of(reward.type(), level >= 40 ? 1.0D : 0.0D, level >= 40 ? "+1 legendary reward" : "Legendary reward unlocks at level 40");
+            case EXTRA_ENTITY_LOOT_ROLLS ->
                     ForgeEffect.of(reward.type(), Math.max(1.0D, Math.round(reward.value() * rewardScale)), "+" + (int) Math.max(1.0D, Math.round(reward.value() * rewardScale)) + rewardSuffix(reward.type()));
             default -> reward;
         };
@@ -259,19 +272,19 @@ public final class AugmentDefinitionPool {
 
         return switch (type) {
             case REWARD_MULTIPLIER -> {
-                double quantityMultiplier = rollSecondaryMultiplier(random, level, tier, 1.05D, 1.20D, 1.12D, 1.30D);
+                double quantityMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, quantityMultiplier - 1.0D, "item quantity", quantityMultiplier);
             }
             case RARITY_REWARD_MULTIPLIER -> {
-                double rarityMultiplier = rollSecondaryMultiplier(random, level, tier, 1.03D, 1.10D, 1.08D, 1.18D);
+                double rarityMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, rarityMultiplier, "item rarity");
             }
             case COIN_REWARD_MULTIPLIER -> {
-                double coinMultiplier = rollSecondaryMultiplier(random, level, tier, 1.10D, 1.40D, 1.25D, 1.70D);
+                double coinMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, coinMultiplier, "coin multiplier");
             }
             case EXPERIENCE_REWARD_MULTIPLIER -> {
-                double experienceMultiplier = rollSecondaryMultiplier(random, level, tier, 1.10D, 1.35D, 1.25D, 1.60D);
+                double experienceMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, experienceMultiplier, "experience");
             }
             default -> null;
@@ -337,23 +350,16 @@ public final class AugmentDefinitionPool {
         return endgame;
     }
 
-    private static double rollSecondaryMultiplier(RandomSource random, int level, AugmentDifficultyTier tier, double lowMin, double lowMax, double highMin, double highMax) {
-        double progress = Math.min(1.0D, Math.max(0.0D, level / 75.0D));
-        double min = lowMin + ((highMin - lowMin) * progress);
-        double max = lowMax + ((highMax - lowMax) * progress);
-        if (tier == AugmentDifficultyTier.EXTREME && level >= 50) {
-            min += 0.05D;
-            max += 0.10D;
-        }
-        return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
-    }
-
     private static double scaleMultiplier(double multiplier, double rewardScale) {
         return Math.round((1.0D + ((multiplier - 1.0D) * rewardScale)) * 100.0D) / 100.0D;
     }
 
     private static double extremeRewardScale(AugmentDifficultyTier tier, int level) {
         return tier == AugmentDifficultyTier.EXTREME && level >= 50 ? 2.0D : 1.0D;
+    }
+
+    private static double secondaryRewardScale(AugmentDifficultyTier tier, int level) {
+        return tier == AugmentDifficultyTier.EXTREME && level >= 50 ? 1.5D : 1.0D;
     }
 
     private static double secondaryRewardChance(AugmentDifficultyTier tier, int level) {
@@ -373,9 +379,24 @@ public final class AugmentDefinitionPool {
         return switch (type) {
             case EXTRA_RARE_REWARD_ROLLS -> " rare reward rolls";
             case EXTRA_FINAL_REWARD_ROLLS -> " final reward rolls";
+            case EXTRA_LEGENDARY_REWARD_ROLLS -> " legendary reward rolls";
             case EXTRA_ENTITY_LOOT_ROLLS -> " entity loot rolls";
             default -> " reward rolls";
         };
+    }
+
+    private static int rareRewardRollBonus(int level) {
+        if (level >= 90) return 5;
+        if (level >= 70) return 4;
+        if (level >= 50) return 3;
+        if (level >= 20) return 2;
+        return 1;
+    }
+
+    private static int epicRewardRollBonus(int level) {
+        if (level >= 90) return 3;
+        if (level >= 50) return 2;
+        return 1;
     }
 
     private static ForgeEffect rangedReward(ForgeEffectType type, double value, String noun) {
@@ -386,24 +407,24 @@ public final class AugmentDefinitionPool {
         return ForgeEffect.of(type, storedValue, "x" + trim(displayedMultiplier) + " " + noun);
     }
 
-    private static double rollLevelRange(RandomSource random, int level) {
+    private static double rollRewardMultiplier(RandomSource random, int level) {
         double min;
         double max;
         if (level >= 90) {
-            min = 10.0D;
-            max = 20.0D;
-        } else if (level >= 80) {
-            min = 6.0D;
-            max = 10.0D;
-        } else if (level >= 50) {
-            min = 5.0D;
-            max = 8.0D;
-        } else if (level >= 41) {
-            min = 3.0D;
-            max = 6.0D;
-        } else if (level >= 21) {
             min = 2.0D;
+            max = 15.0D;
+        } else if (level >= 75) {
+            min = 2.0D;
+            max = 10.0D;
+        } else if (level >= 51) {
+            min = 1.5D;
+            max = 5.0D;
+        } else if (level >= 31) {
+            min = 1.5D;
             max = 4.0D;
+        } else if (level >= 15) {
+            min = 1.5D;
+            max = 3.0D;
         } else {
             min = 1.5D;
             max = 2.0D;

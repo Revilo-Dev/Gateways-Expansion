@@ -24,8 +24,11 @@ public final class GatewayExpansionClient {
     public static void register(IEventBus modEventBus) {
         if (FMLEnvironment.dist.isClient()) {
             modEventBus.register(ClientEvents.class);
+            modEventBus.addListener(MagnetKeybindHandler::registerKeyMappings);
             NeoForge.EVENT_BUS.register(GatewayHudOverlay.class);
             NeoForge.EVENT_BUS.register(InventoryWalletOverlay.class);
+            NeoForge.EVENT_BUS.register(LevelUpGateOverlay.class);
+            NeoForge.EVENT_BUS.addListener(MagnetKeybindHandler::onClientTick);
         }
     }
 

@@ -49,7 +49,9 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public final class ShopkeeperManager {
 
@@ -216,8 +218,22 @@ public final class ShopkeeperManager {
             return;
         }
 
+        if (trader.level() instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(
+                    ParticleTypes.PORTAL,
+                    trader.getX(),
+                    trader.getY() + 0.9D,
+                    trader.getZ(),
+                    28,
+                    0.35D,
+                    0.45D,
+                    0.35D,
+                    0.15D);
+        }
+
         CompoundTag traderData = trader.getPersistentData();
         if (!traderData.hasUUID(SHOP_GATEWAY_ENTITY_ID) || !(trader.level() instanceof ServerLevel serverLevel)) {
+            trader.remove(Entity.RemovalReason.DISCARDED);
             return;
         }
 
@@ -225,6 +241,8 @@ public final class ShopkeeperManager {
         if (linkedEntity instanceof GatewayEntity gatewayEntity && isGatewayAnimation(gatewayEntity) && !gatewayEntity.isRemoved()) {
             gatewayEntity.remove(Entity.RemovalReason.DISCARDED);
         }
+
+        trader.remove(Entity.RemovalReason.DISCARDED);
     }
 
     public static GatekeeperEntity spawnShopkeeper(Level level, double x, double y, double z, Player summoner) {
@@ -429,6 +447,9 @@ public final class ShopkeeperManager {
 
     private static int rollStockForOffer(ShopOfferDefinition offer, RandomSource random) {
         ItemStack preview = offer.previewStack();
+        if (isRareOptionalModOffer(preview)) {
+            return 1;
+        }
         if (preview.getItem() instanceof PaxelItem || preview.getItem() instanceof MagnetItem || preview.getItem() instanceof SwordItem || preview.getItem() instanceof SmithingTemplateItem) {
             return 1;
         }
@@ -490,7 +511,7 @@ public final class ShopkeeperManager {
             return 2 + random.nextInt(3);
         }
         if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.AugmentItem || preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
-            return 4 + random.nextInt(5);
+            return 7 + random.nextInt(7);
         }
         return 8 + random.nextInt(7);
     }
@@ -508,8 +529,11 @@ public final class ShopkeeperManager {
 
     private static int[] pickTempOfferIndexes(RandomSource random, int tempCount, int playerLevel) {
         List<ShopOfferDefinition> allOffers = ShopOfferDefinition.allOffers();
+        Set<String> activePaxelOfferIds = activePaxelOfferIds(allOffers, playerLevel);
         java.util.List<Integer> eligible = allOffers.stream()
                 .filter(offer -> offer.requiredLevel() <= playerLevel)
+                .filter(offer -> !isSuppressedMidgameMaterialOffer(offer, playerLevel))
+                .filter(offer -> !isRetiredPaxelOffer(offer, activePaxelOfferIds))
                 .map(allOffers::indexOf)
                 .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
         if (eligible.isEmpty()) {
@@ -539,9 +563,44 @@ public final class ShopkeeperManager {
         return picks;
     }
 
+    private static boolean isSuppressedMidgameMaterialOffer(ShopOfferDefinition offer, int playerLevel) {
+        if (playerLevel < 20) {
+            return false;
+        }
+        return offer.id().equals("iron_ingot")
+                || offer.id().equals("gold_ingot")
+                || offer.id().equals("diamond");
+    }
+
+    private static Set<String> activePaxelOfferIds(List<ShopOfferDefinition> allOffers, int playerLevel) {
+        List<ShopOfferDefinition> unlockedPaxels = new ArrayList<>();
+        for (int index = allOffers.size() - 1; index >= 0; index--) {
+            ShopOfferDefinition offer = allOffers.get(index);
+            if (!isPaxelOffer(offer) || offer.requiredLevel() > playerLevel) {
+                continue;
+            }
+            unlockedPaxels.add(offer);
+            if (unlockedPaxels.size() >= 2) {
+                break;
+            }
+        }
+        return unlockedPaxels.stream().map(ShopOfferDefinition::id).collect(java.util.stream.Collectors.toSet());
+    }
+
+    private static boolean isRetiredPaxelOffer(ShopOfferDefinition offer, Set<String> activePaxelOfferIds) {
+        return isPaxelOffer(offer) && !activePaxelOfferIds.contains(offer.id());
+    }
+
+    private static boolean isPaxelOffer(ShopOfferDefinition offer) {
+        return offer.id().endsWith("_paxel");
+    }
+
     private static int getOfferWeight(int offerIndex) {
         ShopOfferDefinition offer = ShopOfferDefinition.allOffers().get(offerIndex);
         ItemStack preview = offer.previewStack();
+        if (isRareOptionalModOffer(preview)) {
+            return 1;
+        }
         if (preview.is(ModItems.STABILITY_PEARL.get())) {
             return 1;
         }
@@ -566,6 +625,9 @@ public final class ShopkeeperManager {
         if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem
                 || preview.getItem() instanceof com.revilo.gatewayexpansion.item.AugmentItem
                 || preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
+            if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
+                return 10;
+            }
             return 5;
         }
         return 9;
@@ -585,7 +647,7 @@ public final class ShopkeeperManager {
 
     private static int getGatewayDropWeight(LootMaterialItem item, GatewayEntity gate) {
         if (item == ModItems.MANA_STEEL_SCRAP.get()) {
-            return isLevel20PlusGate(gate) ? LootRarity.COMMON.weight() : LootRarity.UNCOMMON.weight();
+            return LootRarity.COMMON.weight();
         }
         if (item == ModItems.UPGRADE_BASE.get()) {
             return getGateLevel(gate) >= 5 ? LootRarity.UNCOMMON.weight() : 0;
@@ -597,13 +659,13 @@ public final class ShopkeeperManager {
             return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : 0;
         }
         if (item == ModItems.ELIXRITE_SCRAP.get()) {
-            return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : LootRarity.RARE.weight();
+            return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : 0;
         }
         if (item == ModItems.ASTRITE_SCRAP.get()) {
-            return isLevel20PlusGate(gate) ? LootRarity.RARE.weight() : 0;
+            return isLevel20PlusGate(gate) ? LootRarity.UNCOMMON.weight() : 0;
         }
         if (item == ModItems.LUNARIUM_SCRAP.get()) {
-            return isLevel20PlusGate(gate) ? LootRarity.EPIC.weight() : 0;
+            return isLevel20PlusGate(gate) ? LootRarity.RARE.weight() : 0;
         }
         return item.rarity().weight();
     }
@@ -685,11 +747,21 @@ public final class ShopkeeperManager {
     }
 
     private static boolean isRunicOffer(ItemStack stack) {
-        return ModCompat.isAnyLoaded("runic") && stack.getItem().builtInRegistryHolder().key().location().getNamespace().equals("runic");
+        return ModCompat.isRunicLoaded() && stack.getItem().builtInRegistryHolder().key().location().getNamespace().equals("runic");
     }
 
     private static net.minecraft.world.item.Item runicItem(String path) {
         return BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("runic", path));
+    }
+
+    private static boolean isRareOptionalModOffer(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (id == null) {
+            return false;
+        }
+        return id.equals(ResourceLocation.fromNamespaceAndPath("friendsandfoes", "totem_of_illusion"))
+                || id.equals(ResourceLocation.fromNamespaceAndPath("friendsandfoes", "totem_of_freezing"))
+                || id.equals(ResourceLocation.fromNamespaceAndPath("endermanoverhaul", "enderman_tooth"));
     }
 
     private static int getPlayerLevel(Player player) {

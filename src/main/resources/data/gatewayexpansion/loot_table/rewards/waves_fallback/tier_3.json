@@ -98,17 +98,6 @@
                                                                 "id":  "minecraft:strong_swiftness"
                                                             }
                                                         ]
-                                      },
-                                      {
-                                          "type":  "minecraft:item",
-                                          "name":  "minecraft:potion",
-                                          "weight":  4,
-                                          "functions":  [
-                                                            {
-                                                                "function":  "minecraft:set_potion",
-                                                                "id":  "minecraft:strong_regeneration"
-                                                            }
-                                                        ]
                                       }
                                   ]
                   },

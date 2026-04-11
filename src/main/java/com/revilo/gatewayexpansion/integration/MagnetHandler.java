@@ -1,9 +1,11 @@
 package com.revilo.gatewayexpansion.integration;
 
 import com.revilo.gatewayexpansion.item.MagnetItem;
+import com.revilo.gatewayexpansion.registry.ModAttachments;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -17,7 +19,10 @@ public final class MagnetHandler {
 
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player) || player.tickCount % 2 != 0) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (!isMagnetEnabled(player)) {
             return;
         }
 
@@ -30,25 +35,21 @@ public final class MagnetHandler {
     }
 
     public static void pullNearbyItems(LivingEntity entity, MagnetItem magnet) {
-        if (entity.level().isClientSide) {
+        if (entity.level().isClientSide || !isMagnetEnabled(entity)) {
             return;
         }
 
         double range = magnet.attractionRange();
         AABB area = entity.getBoundingBox().inflate(range);
-        for (ItemEntity itemEntity : entity.level().getEntitiesOfClass(ItemEntity.class, area, item -> item.isAlive() && !item.hasPickUpDelay())) {
+        for (ItemEntity itemEntity : entity.level().getEntitiesOfClass(ItemEntity.class, area, ItemEntity::isAlive)) {
             pullItem(entity, itemEntity, magnet.attractionForce(), range);
         }
     }
 
     private static MagnetItem strongestMagnet(ServerPlayer player) {
         MagnetItem best = null;
-        for (ItemStack stack : player.getInventory().items) {
-            best = selectBetter(best, stack);
-        }
-        for (ItemStack stack : player.getInventory().offhand) {
-            best = selectBetter(best, stack);
-        }
+        best = selectBetter(best, player.getMainHandItem());
+        best = selectBetter(best, player.getOffhandItem());
         return best;
     }
 
@@ -76,8 +77,24 @@ public final class MagnetHandler {
             return;
         }
 
-        double scaledForce = (1.0D - (distance / range)) * force;
-        itemEntity.setDeltaMovement(itemEntity.getDeltaMovement().add(direction.normalize().scale(scaledForce)));
+        Vec3 pullDirection = direction.scale(1.0D / distance);
+        double normalizedDistance = Math.min(distance / range, 1.0D);
+        double pullStrength = force * (0.8D + ((1.0D - normalizedDistance) * 1.6D));
+        double maxSpeed = 0.18D + (force * 1.8D);
+        Vec3 desiredVelocity = pullDirection.scale(Math.min(pullStrength, maxSpeed));
+        Vec3 blendedVelocity = itemEntity.getDeltaMovement().scale(0.45D).add(desiredVelocity.scale(0.55D));
+        if (distance <= 0.85D) {
+            blendedVelocity = blendedVelocity.scale(0.6D);
+        }
+        if (blendedVelocity.lengthSqr() > maxSpeed * maxSpeed) {
+            blendedVelocity = blendedVelocity.normalize().scale(maxSpeed);
+        }
+        itemEntity.setDeltaMovement(blendedVelocity);
+        itemEntity.hasImpulse = true;
         itemEntity.hurtMarked = true;
+    }
+
+    private static boolean isMagnetEnabled(LivingEntity entity) {
+        return !(entity instanceof Player player) || player.getData(ModAttachments.MAGNET_ENABLED);
     }
 }

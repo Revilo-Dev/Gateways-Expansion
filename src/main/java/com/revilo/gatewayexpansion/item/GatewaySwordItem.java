@@ -18,9 +18,10 @@ import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.level.Level;
 import dev.shadowsoffire.apothic_attributes.api.ALObjects;
 
-public class GatewaySwordItem extends SwordItem {
+public class GatewaySwordItem extends SwordItem implements RarityTintedItemName {
 
     private static final ResourceLocation CRIT_DAMAGE_ID = ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "sword_crit_damage");
+    private final ChatFormatting nameColor;
     private final int slownessDuration;
     private final int poisonDuration;
     private final int fireSeconds;
@@ -30,6 +31,7 @@ public class GatewaySwordItem extends SwordItem {
     public GatewaySwordItem(
             Tier tier,
             Properties properties,
+            ChatFormatting nameColor,
             float attackDamage,
             float attackSpeed,
             int slownessDuration,
@@ -39,11 +41,22 @@ public class GatewaySwordItem extends SwordItem {
             int runeSlots,
             List<Component> implicitTooltip) {
         super(tier, properties.attributes(withCritDamage(tier, attackDamage, attackSpeed, critDamageBonus)));
+        this.nameColor = nameColor;
         this.slownessDuration = slownessDuration;
         this.poisonDuration = poisonDuration;
         this.fireSeconds = fireSeconds;
         this.runeSlots = runeSlots;
         this.implicitTooltip = List.copyOf(implicitTooltip);
+    }
+
+    @Override
+    public ChatFormatting nameColor() {
+        return this.nameColor;
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return this.tintedName(stack, super.getName(stack));
     }
 
     @Override

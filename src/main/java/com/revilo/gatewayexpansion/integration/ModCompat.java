@@ -11,6 +11,8 @@ import net.neoforged.fml.ModList;
 
 public final class ModCompat {
 
+    private static final String[] RUNIC_MOD_IDS = {"runic", "runiclib", "runic_reloaded"};
+
     private ModCompat() {
     }
 
@@ -55,8 +57,34 @@ public final class ModCompat {
         return matches;
     }
 
+    public static List<EntityType<?>> findEntitiesByIds(String... ids) {
+        List<EntityType<?>> matches = new ArrayList<>();
+        for (String idString : ids) {
+            EntityType<?> type = findFirstEntity(idString);
+            if (type != null && !matches.contains(type)) {
+                matches.add(type);
+            }
+        }
+        return matches;
+    }
+
     public static void debugDetected(String label, String... modIds) {
         // Intentionally silent to avoid reload/init log spam from repeated pool evaluation.
+    }
+
+    public static boolean isRunicLoaded() {
+        if (isAnyLoaded(RUNIC_MOD_IDS)) {
+            return true;
+        }
+        if (BuiltInRegistries.ITEM.containsKey(ResourceLocation.fromNamespaceAndPath("runic", "enhanced_rune"))) {
+            return true;
+        }
+        for (ResourceLocation id : BuiltInRegistries.ITEM.keySet()) {
+            if ("runic".equals(id.getNamespace())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isHostile(EntityType<?> type) {

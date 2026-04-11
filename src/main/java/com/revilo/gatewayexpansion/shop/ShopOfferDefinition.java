@@ -1,7 +1,6 @@
 package com.revilo.gatewayexpansion.shop;
 
 import com.revilo.gatewayexpansion.augment.AugmentStackData;
-import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.catalyst.CatalystStackData;
 import com.revilo.gatewayexpansion.integration.ModCompat;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
@@ -34,6 +33,8 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         List<ShopOfferDefinition> offers = new ArrayList<>();
         offers.add(simpleOffer("grimstone", "grimstone", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.GRIMSTONE.get())), 0, ModItems.GRIMSTONE.get()));
         offers.add(simpleOffer("mystic_essence", "mystic_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYSTIC_ESSENCE.get())), 0, ModItems.MYSTIC_ESSENCE.get()));
+        offers.add(shopOnlyOffer("rusty_coin", 12, 0, ModItems.RUSTY_COIN.get(), "Cheap filler currency from weak gates."));
+        offers.add(shopOnlyOffer("hardened_flesh", 14, 0, ModItems.HARDENED_FLESH.get(), "Cheap undead residue used in early crafting."));
         offers.add(simpleOffer("scrap_metal", "scrap_metal", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SCRAP_METAL.get())), 0, ModItems.SCRAP_METAL.get()));
         offers.add(simpleOffer("mana_gems", "mana_gems", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_GEMS.get())), 0, ModItems.MANA_GEMS.get()));
         offers.add(simpleOffer("mana_steel_scrap", "mana_steel_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_SCRAP.get())), 5, ModItems.MANA_STEEL_SCRAP.get()));
@@ -94,17 +95,15 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         offers.add(shopOnlyOffer("netherite_scrap", 1500, 35, Items.NETHERITE_SCRAP, ""));
         offers.add(shopOnlyOffer("enchanted_golden_apple", 15000, 40, Items.ENCHANTED_GOLDEN_APPLE, ""));
         appendOptionalRunicOffers(offers);
+        appendOptionalModdedOffers(offers);
         offers.add(shopOnlyOffer("shop_gateway", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SHOP_GATEWAY.get())), 28, ModItems.SHOP_GATEWAY.get(), "Summons a traveling mythic merchant."));
         addCrystalThemeOffers(offers);
         offers.add(augmentOffer("easy_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EASY_AUGMENT.get())), 0, ModItems.EASY_AUGMENT.get(), AugmentDifficultyTier.EASY));
         offers.add(augmentOffer("medium_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MEDIUM_AUGMENT.get())), 20, ModItems.MEDIUM_AUGMENT.get(), AugmentDifficultyTier.MEDIUM));
         offers.add(augmentOffer("hard_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.HARD_AUGMENT.get())), 30, ModItems.HARD_AUGMENT.get(), AugmentDifficultyTier.HARD));
         offers.add(augmentOffer("extreme_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EXTREME_AUGMENT.get())), 50, ModItems.EXTREME_AUGMENT.get(), AugmentDifficultyTier.EXTREME));
-        offers.add(catalystOffer("time_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.TIME_CATALYST.get())), 15, ModItems.TIME_CATALYST.get(), CatalystArchetype.TIME));
+        offers.add(catalystOffer("time_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.TIME_CATALYST.get())), 15, ModItems.TIME_CATALYST.get()));
         offers.add(simpleOffer("stability_pearl", "stability_pearl", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.STABILITY_PEARL.get())), 15, ModItems.STABILITY_PEARL.get()));
-        offers.add(catalystOffer("loot_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LOOT_CATALYST.get())), 25, ModItems.LOOT_CATALYST.get(), CatalystArchetype.LOOT));
-        offers.add(catalystOffer("stat_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.STAT_CATALYST.get())), 35, ModItems.STAT_CATALYST.get(), CatalystArchetype.STAT));
-        offers.add(catalystOffer("volatile_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.HIGHRISK_CATALYST.get())), 60, ModItems.HIGHRISK_CATALYST.get(), CatalystArchetype.VOLATILE));
         return offers;
     }
 
@@ -154,7 +153,7 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
     }
 
     private static void appendOptionalRunicOffers(List<ShopOfferDefinition> offers) {
-        if (!ModCompat.isAnyLoaded("runic")) {
+        if (!ModCompat.isRunicLoaded()) {
             return;
         }
 
@@ -166,6 +165,12 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         addOptionalRegistryOffer(offers, "runic:wild_inscription", 45, "A volatile inscription with broader outcomes.");
         addOptionalRegistryOffer(offers, "runic:extraction_inscription", 50, "Extracts existing runic power.");
         addOptionalRegistryOffer(offers, "runic:cursed_inscription", 55, "A risky inscription with stronger variance.");
+    }
+
+    private static void appendOptionalModdedOffers(List<ShopOfferDefinition> offers) {
+        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_illusion", 40, "A rare charm that distorts enemy perception.");
+        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_freezing", 40, "A rare charm infused with freezing illager magic.");
+        addOptionalRegistryOffer(offers, "endermanoverhaul:enderman_tooth", 35, "A rare trophy pulled from a warped end stalker.");
     }
 
     private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int requiredLevel, String description) {
@@ -194,7 +199,7 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         );
     }
 
-    private static ShopOfferDefinition catalystOffer(String id, int price, int requiredLevel, ItemLike item, CatalystArchetype archetype) {
+    private static ShopOfferDefinition catalystOffer(String id, int price, int requiredLevel, ItemLike item) {
         return new ShopOfferDefinition(
                 id,
                 price,
@@ -205,7 +210,7 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 Component.translatable("shop.gatewayexpansion.offer." + id + ".desc"),
                 (random, playerLevel) -> {
                     ItemStack stack = new ItemStack(item);
-                    CatalystStackData.ensureDefinition(stack, archetype, random, playerLevel);
+                    CatalystStackData.ensureDefinition(stack, com.revilo.gatewayexpansion.catalyst.CatalystArchetype.TIME, random, playerLevel);
                     return stack;
                 }
         );
@@ -215,9 +220,9 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         offers.add(crystalOffer("tier_1_crystal_undead", 8, 0, ModItems.TIER_1_CRYSTAL.get(), 0, 19, CrystalTheme.UNDEAD));
         offers.add(crystalOffer("tier_2_crystal_undead", 15, 10, ModItems.TIER_2_CRYSTAL.get(), 20, 49, CrystalTheme.UNDEAD));
         offers.add(crystalOffer("tier_2_crystal_nether", 18, 25, ModItems.TIER_2_CRYSTAL.get(), 20, 49, CrystalTheme.NETHER));
-        offers.add(crystalOffer("tier_3_crystal_undead", 42, 30, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.UNDEAD));
-        offers.add(crystalOffer("tier_3_crystal_raider", 46, 30, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.RAIDER));
-        offers.add(crystalOffer("tier_3_crystal_nether", 48, 30, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.NETHER));
+        offers.add(crystalOffer("tier_3_crystal_undead", 42, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.UNDEAD));
+        offers.add(crystalOffer("tier_3_crystal_raider", 46, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.RAIDER));
+        offers.add(crystalOffer("tier_3_crystal_nether", 48, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.NETHER));
         offers.add(crystalOffer("tier_3_crystal_arcane", 54, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.ARCANE));
         offers.add(crystalOffer("tier_4_crystal_undead", 68, 50, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.UNDEAD));
         offers.add(crystalOffer("tier_4_crystal_raider", 74, 50, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.RAIDER));
