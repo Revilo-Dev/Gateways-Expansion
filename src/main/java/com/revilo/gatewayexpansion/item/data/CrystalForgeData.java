@@ -218,43 +218,25 @@ public final class CrystalForgeData {
 
     private static CrystalTheme randomThemeForLevel(int level, long seed) {
         RandomSource random = RandomSource.create(seed ^ ((long) level << 32) ^ 0x5F3759D5L);
-        int undeadWeight;
-        int netherWeight;
-        int raiderWeight;
-        int arcaneWeight;
-        if (level >= 50) {
-            undeadWeight = 45;
-            netherWeight = 25;
-            raiderWeight = 18;
-            arcaneWeight = 12;
-        } else if (level >= 30) {
-            undeadWeight = 58;
-            netherWeight = 24;
-            raiderWeight = 10;
-            arcaneWeight = 8;
-        } else if (level >= 25) {
-            undeadWeight = 70;
-            netherWeight = 22;
-            raiderWeight = 8;
-            arcaneWeight = 0;
-        } else {
-            undeadWeight = 100;
-            netherWeight = 0;
-            raiderWeight = 0;
-            arcaneWeight = 0;
+        if (level >= 30) {
+            return switch (random.nextInt(4)) {
+                case 0 -> CrystalTheme.UNDEAD;
+                case 1 -> CrystalTheme.RAIDER;
+                case 2 -> CrystalTheme.NETHER;
+                default -> CrystalTheme.ARCANE;
+            };
         }
-
-        int roll = random.nextInt(undeadWeight + netherWeight + raiderWeight + arcaneWeight);
-        if ((roll -= undeadWeight) < 0) {
-            return CrystalTheme.UNDEAD;
+        if (level >= 25) {
+            return switch (random.nextInt(3)) {
+                case 0 -> CrystalTheme.UNDEAD;
+                case 1 -> CrystalTheme.RAIDER;
+                default -> CrystalTheme.NETHER;
+            };
         }
-        if ((roll -= netherWeight) < 0) {
-            return CrystalTheme.NETHER;
+        if (level >= 15) {
+            return random.nextBoolean() ? CrystalTheme.UNDEAD : CrystalTheme.RAIDER;
         }
-        if ((roll -= raiderWeight) < 0) {
-            return CrystalTheme.RAIDER;
-        }
-        return CrystalTheme.ARCANE;
+        return CrystalTheme.UNDEAD;
     }
 
     private static void syncModelData(ItemStack stack, int level) {

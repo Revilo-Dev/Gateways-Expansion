@@ -59,6 +59,7 @@ public final class ShopkeeperManager {
     private static final String SHOPKEEPER_KEY = "gatewayexpansion.shopkeeper";
     private static final String TEMP_TRADE_KEY = "gatewayexpansion.temp_trades";
     private static final String STOCK_KEY = "gatewayexpansion.stock";
+    private static final String PRICE_KEY = "gatewayexpansion.price";
     private static final String REROLL_COUNT_KEY = "gatewayexpansion.reroll_count";
     private static final String SHOP_GATEWAY_ANIMATION_KEY = "gatewayexpansion.shop_gateway_animation";
     private static final String SHOP_GATEWAY_TRADER_ID = "gatewayexpansion.shop_gateway_trader";
@@ -314,6 +315,17 @@ public final class ShopkeeperManager {
         return normalized;
     }
 
+    public static int[] getOfferPrices(GatekeeperEntity trader) {
+        int[] prices = trader.getPersistentData().getIntArray(PRICE_KEY);
+        if (prices.length == ShopkeeperMenu.GRID_SLOT_COUNT) {
+            return prices;
+        }
+
+        int[] normalized = new int[ShopkeeperMenu.GRID_SLOT_COUNT];
+        System.arraycopy(prices, 0, normalized, 0, Math.min(prices.length, normalized.length));
+        return normalized;
+    }
+
     public static boolean rerollOffers(ServerPlayer player, GatekeeperEntity trader) {
         int rerollCount = Math.max(0, trader.getPersistentData().getInt(REROLL_COUNT_KEY));
         if (rerollCount >= MAX_REROLLS) {
@@ -429,8 +441,10 @@ public final class ShopkeeperManager {
         List<ShopOfferDefinition> allOffers = ShopOfferDefinition.allOffers();
         int tempCount = Math.min(ShopkeeperMenu.GRID_SLOT_COUNT, allOffers.size());
         int[] picks = pickTempOfferIndexes(random, tempCount, playerLevel);
+        List<ShopOfferDefinition> offers = buildOffers(picks);
         trader.getPersistentData().putIntArray(TEMP_TRADE_KEY, picks);
-        trader.getPersistentData().putIntArray(STOCK_KEY, rollStocks(buildOffers(picks), random));
+        trader.getPersistentData().putIntArray(STOCK_KEY, rollStocks(offers, random));
+        trader.getPersistentData().putIntArray(PRICE_KEY, rollPrices(offers, random));
     }
 
     private static int[] rollStocks(java.util.List<ShopOfferDefinition> offers, RandomSource random) {
@@ -441,80 +455,22 @@ public final class ShopkeeperManager {
                 continue;
             }
 
-            stocks[index] = rollStockForOffer(offers.get(index), random);
+            stocks[index] = offers.get(index).rollStock(random);
         }
         return stocks;
     }
 
-    private static int rollStockForOffer(ShopOfferDefinition offer, RandomSource random) {
-        ItemStack preview = offer.previewStack();
-        if (isRareOptionalModOffer(preview)) {
-            return 1;
+    private static int[] rollPrices(java.util.List<ShopOfferDefinition> offers, RandomSource random) {
+        int[] prices = new int[ShopkeeperMenu.GRID_SLOT_COUNT];
+        for (int index = 0; index < prices.length; index++) {
+            if (index >= offers.size()) {
+                prices[index] = 0;
+                continue;
+            }
+
+            prices[index] = offers.get(index).rollPrice(random);
         }
-        if (preview.getItem() instanceof PaxelItem || preview.getItem() instanceof MagnetItem || preview.getItem() instanceof SwordItem || preview.getItem() instanceof SmithingTemplateItem) {
-            return 1;
-        }
-        if (preview.is(ModItems.UPGRADE_BASE.get())) {
-            return 1 + random.nextInt(3);
-        }
-        if (preview.is(ModItems.STABILITY_PEARL.get())) {
-            return 1 + random.nextInt(2);
-        }
-        if (preview.is(ModItems.GRIMSTONE.get()) || preview.is(ModItems.MYSTIC_ESSENCE.get()) || preview.is(ModItems.SCRAP_METAL.get())) {
-            return 32 + random.nextInt(17);
-        }
-        if (preview.is(ModItems.MANA_STEEL_SCRAP.get()) || preview.is(ModItems.ELIXRITE_SCRAP.get())) {
-            return 1 + random.nextInt(7);
-        }
-        if (preview.is(ModItems.ASTRITE_SCRAP.get())) {
-            return 1 + random.nextInt(5);
-        }
-        if (preview.is(ModItems.MANA_STEEL_INGOT.get()) || preview.is(ModItems.ELIXRITE_INGOT.get())) {
-            return 1 + random.nextInt(2);
-        }
-        if (preview.is(ModItems.ASTRITE_INGOT.get())) {
-            return 1 + random.nextInt(2);
-        }
-        if (preview.is(Items.IRON_INGOT) || preview.is(Items.GOLD_INGOT)) {
-            return 6 + random.nextInt(7);
-        }
-        if (preview.is(Items.DIAMOND)) {
-            return 2 + random.nextInt(4);
-        }
-        if (preview.is(Items.GOLDEN_APPLE)) {
-            return 1 + random.nextInt(3);
-        }
-        if (preview.is(Items.NETHERITE_SCRAP)) {
-            return 1 + random.nextInt(2);
-        }
-        if (isRunicOffer(preview)) {
-            return preview.is(runicItem("enhanced_rune")) ? 1 + random.nextInt(2) : 1;
-        }
-        if (preview.is(ModItems.MANA_GEMS.get()) || preview.is(ModItems.ARCANE_ESSENCE.get()) || preview.is(ModItems.MANASTONES.get())) {
-            return 18 + random.nextInt(11);
-        }
-        if (preview.is(ModItems.SOLAR_SHARD.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
-            return 10 + random.nextInt(7);
-        }
-        if (preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
-            return 6 + random.nextInt(5);
-        }
-        if (preview.is(ModItems.LUNARIUM_SCRAP.get())) {
-            return 1 + random.nextInt(4);
-        }
-        if (preview.is(ModItems.LUNARIUM_INGOT.get())) {
-            return 1 + random.nextInt(2);
-        }
-        if (preview.is(ModItems.PRISMATIC_CORE.get())) {
-            return 3 + random.nextInt(3);
-        }
-        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem) {
-            return 2 + random.nextInt(3);
-        }
-        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.AugmentItem || preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
-            return 7 + random.nextInt(7);
-        }
-        return 8 + random.nextInt(7);
+        return prices;
     }
 
     private static java.util.List<ShopOfferDefinition> buildOffers(int[] tempIndexes) {
@@ -745,14 +701,6 @@ public final class ShopkeeperManager {
         int extraPlayers = GatewayPartyScaling.getExtraPlayers(gate);
         int base = 6 + tier * 2 + Math.max(0, level / 8) + extraPlayers * (3 + tier * 2);
         return base + random.nextInt(3 + tier);
-    }
-
-    private static boolean isRunicOffer(ItemStack stack) {
-        return ModCompat.isRunicLoaded() && stack.getItem().builtInRegistryHolder().key().location().getNamespace().equals("runic");
-    }
-
-    private static net.minecraft.world.item.Item runicItem(String path) {
-        return BuiltInRegistries.ITEM.get(ResourceLocation.fromNamespaceAndPath("runic", path));
     }
 
     private static boolean isRareOptionalModOffer(ItemStack stack) {

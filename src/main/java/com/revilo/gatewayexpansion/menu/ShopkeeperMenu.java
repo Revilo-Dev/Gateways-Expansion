@@ -33,7 +33,8 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     private static final int DATA_REROLL_COUNT = 1;
     private static final int DATA_TEMP_START = 2;
     private static final int DATA_STOCK_START = DATA_TEMP_START + TEMP_OFFER_COUNT;
-    private static final int DATA_SIZE = DATA_STOCK_START + GRID_SLOT_COUNT;
+    private static final int DATA_PRICE_START = DATA_STOCK_START + GRID_SLOT_COUNT;
+    private static final int DATA_SIZE = DATA_PRICE_START + GRID_SLOT_COUNT;
     private static final int SELL_GRID_X = 8;
     private static final int SELL_GRID_Y = 14;
     private static final int SELL_COLUMNS = 6;
@@ -143,7 +144,8 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         if (!ShopkeeperManager.consumeStock(trader, id)) {
             return false;
         }
-        if (!MythicCoinWallet.spend(serverPlayer, offer.price())) {
+        int price = this.getOfferPrice(id);
+        if (price <= 0 || !MythicCoinWallet.spend(serverPlayer, price)) {
             ShopkeeperManager.restoreStock(trader, id);
             return false;
         }
@@ -166,12 +168,17 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             return false;
         }
 
+        int price = this.getOfferPrice(slotIndex);
+        if (price <= 0) {
+            return false;
+        }
+
         boolean boughtAny = false;
-        while (this.getOfferStock(slotIndex) > 0 && this.canAfford(offer)) {
+        while (this.getOfferStock(slotIndex) > 0 && this.getWalletBalance() >= price) {
             if (!ShopkeeperManager.consumeStock(trader, slotIndex)) {
                 break;
             }
-            if (!MythicCoinWallet.spend(serverPlayer, offer.price())) {
+            if (!MythicCoinWallet.spend(serverPlayer, price)) {
                 ShopkeeperManager.restoreStock(trader, slotIndex);
                 break;
             }
@@ -248,8 +255,21 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         return Math.max(0, this.syncedData.get(DATA_STOCK_START + slotIndex));
     }
 
+    public int getOfferPrice(int slotIndex) {
+        if (slotIndex < 0 || slotIndex >= GRID_SLOT_COUNT) {
+            return 0;
+        }
+        return Math.max(0, this.syncedData.get(DATA_PRICE_START + slotIndex));
+    }
+
+    public boolean canAfford(int slotIndex) {
+        int price = this.getOfferPrice(slotIndex);
+        return price > 0 && this.getWalletBalance() >= price;
+    }
+
     public boolean canAfford(ShopOfferDefinition offer) {
-        return offer != null && this.getWalletBalance() >= offer.price();
+        int slotIndex = this.cachedOffers.indexOf(offer);
+        return offer != null && slotIndex >= 0 && this.canAfford(slotIndex);
     }
 
     public int getRerollCost() {
@@ -326,6 +346,9 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         for (int index = 0; index < GRID_SLOT_COUNT; index++) {
             this.syncedData.set(DATA_STOCK_START + index, 0);
         }
+        for (int index = 0; index < GRID_SLOT_COUNT; index++) {
+            this.syncedData.set(DATA_PRICE_START + index, 0);
+        }
         this.refreshOffersFromData();
     }
 
@@ -343,9 +366,14 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             this.syncedData.set(DATA_TEMP_START + index, value);
         }
         int[] stocks = ShopkeeperManager.getOfferStocks(trader);
+        int[] prices = ShopkeeperManager.getOfferPrices(trader);
         for (int index = 0; index < GRID_SLOT_COUNT; index++) {
             int value = index < stocks.length ? stocks[index] : 0;
             this.syncedData.set(DATA_STOCK_START + index, value);
+        }
+        for (int index = 0; index < GRID_SLOT_COUNT; index++) {
+            int value = index < prices.length ? prices[index] : 0;
+            this.syncedData.set(DATA_PRICE_START + index, value);
         }
         this.refreshOffersFromData();
     }

@@ -239,7 +239,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
             boolean unlocked = this.menu.isOfferSlotUnlocked(slotIndex);
             ShopOfferDefinition offer = this.menu.getOfferDefinition(slotIndex);
             boolean outOfStock = offer == null || this.menu.getOfferStock(slotIndex) <= 0;
-            boolean unaffordable = offer != null && !this.menu.canAfford(offer);
+            boolean unaffordable = offer != null && !this.menu.canAfford(slotIndex);
 
             ResourceLocation slotTexture = SLOT_TEXTURE;
             if (!unlocked) {
@@ -336,7 +336,8 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         guiGraphics.pose().scale(this.selectedItemHoverScale, this.selectedItemHoverScale, 1.0F);
         guiGraphics.renderItem(offer.previewStack(), -8, -8);
         guiGraphics.pose().popPose();
-        this.renderCoinPrice(guiGraphics, this.leftPos + BUY_PRICE_X, this.topPos + BUY_PRICE_Y, offer.price(), 0.75F, this.menu.canAfford(offer) ? 0xB06CFF : 0xE07A7A, BUY_PRICE_ICON_SHIFT_X);
+        int slotPrice = this.menu.getOfferPrice(this.selectedSlot);
+        this.renderCoinPrice(guiGraphics, this.leftPos + BUY_PRICE_X, this.topPos + BUY_PRICE_Y, slotPrice, 0.75F, this.menu.canAfford(this.selectedSlot) ? 0xB06CFF : 0xE07A7A, BUY_PRICE_ICON_SHIFT_X);
     }
 
     private void renderCoinPrice(GuiGraphics guiGraphics, int x, int y, int price, float scale, int textColor) {
@@ -470,11 +471,10 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
 
         ShopOfferDefinition offer = this.getSelectedOffer();
         boolean canBuy = offer != null
-                && offer != null
                 && this.menu.isOfferSlotUnlocked(this.selectedSlot)
                 && this.menu.getOfferStock(this.selectedSlot) > 0
-                && this.menu.canAfford(offer);
-        boolean tooExpensive = offer != null && this.menu.isOfferSlotUnlocked(this.selectedSlot) && this.menu.getOfferStock(this.selectedSlot) > 0 && !this.menu.canAfford(offer);
+                && this.menu.canAfford(this.selectedSlot);
+        boolean tooExpensive = offer != null && this.menu.isOfferSlotUnlocked(this.selectedSlot) && this.menu.getOfferStock(this.selectedSlot) > 0 && !this.menu.canAfford(this.selectedSlot);
         this.buyButton.visible = this.activePage == Page.BUY;
         this.buyButton.active = this.activePage == Page.BUY && canBuy;
         this.buyButton.setMessage(tooExpensive
@@ -487,19 +487,24 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         if (offer == null
                 || !this.menu.isOfferSlotUnlocked(this.selectedSlot)
                 || this.menu.getOfferStock(this.selectedSlot) <= 0
-                || !this.menu.canAfford(offer)
+                || !this.menu.canAfford(this.selectedSlot)
                 || this.minecraft == null
                 || this.minecraft.gameMode == null) {
             return;
         }
 
+        int slotPrice = this.menu.getOfferPrice(this.selectedSlot);
+        if (slotPrice <= 0) {
+            return;
+        }
+
         int stock = this.menu.getOfferStock(this.selectedSlot);
-        int purchases = hasShiftDown() ? Math.min(stock, offer.price() <= 0 ? stock : this.menu.getWalletBalance() / offer.price()) : 1;
+        int purchases = hasShiftDown() ? Math.min(stock, this.menu.getWalletBalance() / slotPrice) : 1;
         if (purchases <= 0) {
             return;
         }
 
-        this.createBuyCoinFlights(offer.price(), purchases);
+        this.createBuyCoinFlights(slotPrice, purchases);
         int buttonId = hasShiftDown() ? ShopkeeperMenu.BUY_ALL_BUTTON_ID_OFFSET + this.selectedSlot : this.selectedSlot;
         this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, buttonId);
     }

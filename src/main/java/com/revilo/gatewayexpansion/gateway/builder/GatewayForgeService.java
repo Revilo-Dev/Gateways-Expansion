@@ -747,22 +747,35 @@ public final class GatewayForgeService {
             baseFloorSeconds = 34;
         } else if (level < 60) {
             baseFloorSeconds = 40;
-        } else {
+        } else if (level < 75) {
             baseFloorSeconds = 48;
+        } else if (level < 90) {
+            baseFloorSeconds = 54;
+        } else {
+            baseFloorSeconds = 60;
         }
         double extraThreat = Math.max(0.0D, totalStrength - totalEnemies);
+        double healthPressure = Math.max(0.0D, state.healthMultiplier);
+        double damagePressure = Math.max(0.0D, state.damageMultiplier);
+        int durabilityTime = (int) Math.round(
+                healthPressure * (totalEnemies * 10.0D + totalStrength * 7.0D)
+                        + damagePressure * (totalEnemies * 3.0D));
+        int lateLevelPressure = level >= 75 ? (level - 74) * 4 : 0;
         int baseFloor = baseFloorSeconds * 20;
         int minimumPlayableTime = Math.max(30 * 20, baseFloor
                 + totalEnemies * 12
                 + (int) Math.round(extraThreat * 28.0D)
-                + waveIndex * 40);
+                + waveIndex * 40
+                + durabilityTime
+                + lateLevelPressure);
 
         int enemyTime = totalEnemies * 6;
         int strengthTime = (int) Math.round(totalStrength * 10.0D);
         int tankPressureTime = (int) Math.round(extraThreat * 18.0D);
+        int durabilityScaledTime = durabilityTime / 2;
         int progressionTime = waveIndex * 30 + state.crystalTier.tier() * 20 + Math.max(0, state.minionsPerWave) * 10;
         int lateWaveBonus = waveIndex >= waveCount - 2 ? state.lateWaveTimeBonus : 0;
-        int scaledTime = baseFloor + enemyTime + strengthTime + tankPressureTime + progressionTime + lateWaveBonus;
+        int scaledTime = baseFloor + enemyTime + strengthTime + tankPressureTime + progressionTime + lateWaveBonus + durabilityScaledTime + lateLevelPressure;
         int adjustedTime = scaledTime + Math.max(-8 * 20, state.waveTimeDelta);
         return Mth.clamp(Math.max(minimumPlayableTime, adjustedTime), 30 * 20, 2400);
     }

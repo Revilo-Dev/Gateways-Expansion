@@ -3,9 +3,13 @@ package com.revilo.gatewayexpansion.shop;
 import com.revilo.gatewayexpansion.augment.AugmentStackData;
 import com.revilo.gatewayexpansion.catalyst.CatalystStackData;
 import com.revilo.gatewayexpansion.integration.ModCompat;
+import com.revilo.gatewayexpansion.item.LootMaterialItem;
+import com.revilo.gatewayexpansion.item.MagnetItem;
+import com.revilo.gatewayexpansion.item.PaxelItem;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import com.revilo.gatewayexpansion.item.data.CrystalForgeData;
 import com.revilo.gatewayexpansion.item.data.CrystalTheme;
+import com.revilo.gatewayexpansion.item.data.LootRarity;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,11 +20,36 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SmithingTemplateItem;
+import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.level.ItemLike;
 
-public record ShopOfferDefinition(String id, int price, int requiredLevel, boolean material, ItemStack previewStack, Component title, Component description, OfferFactory factory) {
+public record ShopOfferDefinition(
+        String id,
+        int price,
+        int requiredLevel,
+        int minStock,
+        int maxStock,
+        int minPriceFluctuationPercent,
+        int maxPriceFluctuationPercent,
+        boolean material,
+        ItemStack previewStack,
+        Component title,
+        Component description,
+        OfferFactory factory
+) {
 
     private static List<ShopOfferDefinition> allOffers;
+
+    public ShopOfferDefinition {
+        if (minStock < 0 || maxStock < minStock) {
+            throw new IllegalArgumentException("Invalid stock range for " + id + ": " + minStock + "-" + maxStock);
+        }
+        if (minPriceFluctuationPercent > maxPriceFluctuationPercent) {
+            throw new IllegalArgumentException(
+                    "Invalid price fluctuation range for " + id + ": " + minPriceFluctuationPercent + "-" + maxPriceFluctuationPercent);
+        }
+    }
 
     public static List<ShopOfferDefinition> allOffers() {
         if (allOffers == null) {
@@ -109,10 +138,16 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
 
     private static ShopOfferDefinition simpleOffer(String id, String descKey, int price, int requiredLevel, ItemLike item) {
         ItemStack previewStack = new ItemStack(item);
+        IntRange stockRange = defaultStockRange(previewStack);
+        IntRange fluctuationRange = defaultPriceFluctuation(previewStack);
         return new ShopOfferDefinition(
                 id,
                 price,
                 requiredLevel,
+                stockRange.min(),
+                stockRange.max(),
+                fluctuationRange.min(),
+                fluctuationRange.max(),
                 true,
                 previewStack,
                 previewStack.getHoverName(),
@@ -123,10 +158,21 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
 
     private static ShopOfferDefinition shopOnlyOffer(String id, int price, int requiredLevel, ItemLike item, String description) {
         ItemStack previewStack = new ItemStack(item);
+        IntRange stockRange = defaultStockRange(previewStack);
+        IntRange fluctuationRange = defaultPriceFluctuation(previewStack);
+        return shopOnlyOffer(id, price, requiredLevel, stockRange.min(), stockRange.max(), fluctuationRange.min(), fluctuationRange.max(), item, description);
+    }
+
+    private static ShopOfferDefinition shopOnlyOffer(String id, int price, int requiredLevel, int minStock, int maxStock, int minPriceFluctuationPercent, int maxPriceFluctuationPercent, ItemLike item, String description) {
+        ItemStack previewStack = new ItemStack(item);
         return new ShopOfferDefinition(
                 id,
                 price,
                 requiredLevel,
+                minStock,
+                maxStock,
+                minPriceFluctuationPercent,
+                maxPriceFluctuationPercent,
                 true,
                 previewStack,
                 previewStack.getHoverName(),
@@ -144,6 +190,10 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 id,
                 price,
                 requiredLevel,
+                1,
+                1,
+                0,
+                0,
                 true,
                 previewStack,
                 previewStack.getHoverName(),
@@ -168,8 +218,9 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
     }
 
     private static void appendOptionalModdedOffers(List<ShopOfferDefinition> offers) {
-        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_illusion", 40, "A rare charm that distorts enemy perception.");
-        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_freezing", 40, "A rare charm infused with freezing illager magic.");
+        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_illusion", 12000, 40, 1, 1, -5, 5, "A rare charm that distorts enemy perception.");
+        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_freezing", 14000, 40, 1, 1, -5, 5, "A rare freezing charm that uses illager magic.");
+        addOptionalRegistryOffer(offers, "minecraft:totem_of_undying", 10000, 30, 1, 1, -5, 5, "A totem that prevents death once.");
         addOptionalRegistryOffer(offers, "endermanoverhaul:enderman_tooth", 35, "A rare trophy pulled from a warped end stalker.");
     }
 
@@ -182,11 +233,33 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         offers.add(shopOnlyOffer(id.getPath(), GatewaySellValues.getSuggestedBuyPrice(new ItemStack(item)), requiredLevel, item, description));
     }
 
+    private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int fixedPrice, int requiredLevel, String description) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
+            return;
+        }
+        ItemLike item = BuiltInRegistries.ITEM.get(id);
+        offers.add(shopOnlyOffer(id.getPath(), fixedPrice, requiredLevel, item, description));
+    }
+
+    private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int fixedPrice, int requiredLevel, int minStock, int maxStock, int minPriceFluctuationPercent, int maxPriceFluctuationPercent, String description) {
+        ResourceLocation id = ResourceLocation.tryParse(itemId);
+        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
+            return;
+        }
+        ItemLike item = BuiltInRegistries.ITEM.get(id);
+        offers.add(shopOnlyOffer(id.getPath(), fixedPrice, requiredLevel, minStock, maxStock, minPriceFluctuationPercent, maxPriceFluctuationPercent, item, description));
+    }
+
     private static ShopOfferDefinition augmentOffer(String id, int price, int requiredLevel, ItemLike item, AugmentDifficultyTier difficultyTier) {
         return new ShopOfferDefinition(
                 id,
                 price,
                 requiredLevel,
+                7,
+                13,
+                0,
+                0,
                 false,
                 new ItemStack(item),
                 Component.translatable("shop.gatewayexpansion.offer." + id),
@@ -204,6 +277,10 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 id,
                 price,
                 requiredLevel,
+                7,
+                13,
+                0,
+                0,
                 false,
                 new ItemStack(item),
                 Component.translatable("shop.gatewayexpansion.offer." + id),
@@ -242,6 +319,10 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
                 id,
                 price,
                 requiredLevel,
+                2,
+                4,
+                0,
+                0,
                 false,
                 previewStack,
                 previewStack.getHoverName(),
@@ -255,12 +336,132 @@ public record ShopOfferDefinition(String id, int price, int requiredLevel, boole
         );
     }
 
+    public int rollStock(RandomSource random) {
+        if (this.maxStock <= this.minStock) {
+            return this.minStock;
+        }
+        return this.minStock + random.nextInt(this.maxStock - this.minStock + 1);
+    }
+
+    public int rollPrice(RandomSource random) {
+        if (this.minPriceFluctuationPercent == 0 && this.maxPriceFluctuationPercent == 0) {
+            return this.price;
+        }
+        int deltaPercent = this.minPriceFluctuationPercent;
+        if (this.maxPriceFluctuationPercent > this.minPriceFluctuationPercent) {
+            deltaPercent += random.nextInt(this.maxPriceFluctuationPercent - this.minPriceFluctuationPercent + 1);
+        }
+        double multiplier = 1.0D + (deltaPercent / 100.0D);
+        return Math.max(1, (int) Math.round(this.price * multiplier));
+    }
+
     public ItemStack createStack(RandomSource random, int playerLevel) {
         return this.factory.create(random, playerLevel);
+    }
+
+    private static IntRange defaultStockRange(ItemStack preview) {
+        if (isRareOptionalModOffer(preview)) {
+            return IntRange.of(1, 1);
+        }
+        if (preview.getItem() instanceof PaxelItem || preview.getItem() instanceof MagnetItem || preview.getItem() instanceof SwordItem || preview.getItem() instanceof SmithingTemplateItem) {
+            return IntRange.of(1, 1);
+        }
+        if (preview.is(ModItems.UPGRADE_BASE.get())) {
+            return IntRange.of(1, 3);
+        }
+        if (preview.is(ModItems.STABILITY_PEARL.get())) {
+            return IntRange.of(1, 2);
+        }
+        if (preview.is(ModItems.GRIMSTONE.get()) || preview.is(ModItems.MYSTIC_ESSENCE.get()) || preview.is(ModItems.SCRAP_METAL.get())) {
+            return IntRange.of(32, 48);
+        }
+        if (preview.is(ModItems.MANA_STEEL_SCRAP.get()) || preview.is(ModItems.ELIXRITE_SCRAP.get())) {
+            return IntRange.of(1, 7);
+        }
+        if (preview.is(ModItems.ASTRITE_SCRAP.get())) {
+            return IntRange.of(1, 5);
+        }
+        if (preview.is(ModItems.MANA_STEEL_INGOT.get()) || preview.is(ModItems.ELIXRITE_INGOT.get())) {
+            return IntRange.of(1, 2);
+        }
+        if (preview.is(ModItems.ASTRITE_INGOT.get())) {
+            return IntRange.of(1, 2);
+        }
+        if (preview.is(Items.IRON_INGOT) || preview.is(Items.GOLD_INGOT)) {
+            return IntRange.of(6, 12);
+        }
+        if (preview.is(Items.DIAMOND)) {
+            return IntRange.of(2, 5);
+        }
+        if (preview.is(Items.GOLDEN_APPLE)) {
+            return IntRange.of(1, 3);
+        }
+        if (preview.is(Items.NETHERITE_SCRAP)) {
+            return IntRange.of(1, 2);
+        }
+        if (isRunicOffer(preview)) {
+            return IntRange.of(1, 1);
+        }
+        if (preview.is(ModItems.MANA_GEMS.get()) || preview.is(ModItems.ARCANE_ESSENCE.get()) || preview.is(ModItems.MANASTONES.get())) {
+            return IntRange.of(18, 28);
+        }
+        if (preview.is(ModItems.SOLAR_SHARD.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
+            return IntRange.of(10, 16);
+        }
+        if (preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
+            return IntRange.of(6, 10);
+        }
+        if (preview.is(ModItems.LUNARIUM_SCRAP.get())) {
+            return IntRange.of(1, 4);
+        }
+        if (preview.is(ModItems.LUNARIUM_INGOT.get())) {
+            return IntRange.of(1, 2);
+        }
+        if (preview.is(ModItems.PRISMATIC_CORE.get())) {
+            return IntRange.of(3, 5);
+        }
+        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem) {
+            return IntRange.of(2, 4);
+        }
+        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.AugmentItem || preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
+            return IntRange.of(7, 13);
+        }
+        return IntRange.of(8, 14);
+    }
+
+    private static IntRange defaultPriceFluctuation(ItemStack preview) {
+        if (preview.getItem() instanceof LootMaterialItem lootMaterialItem && lootMaterialItem.rarity().ordinal() >= LootRarity.RARE.ordinal()) {
+            return IntRange.of(-5, 5);
+        }
+        if (isRareOptionalModOffer(preview)) {
+            return IntRange.of(-5, 5);
+        }
+        return IntRange.of(0, 0);
+    }
+
+    private static boolean isRunicOffer(ItemStack stack) {
+        return ModCompat.isRunicLoaded() && stack.getItem().builtInRegistryHolder().key().location().getNamespace().equals("runic");
+    }
+
+    private static boolean isRareOptionalModOffer(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (id == null) {
+            return false;
+        }
+        return id.equals(ResourceLocation.fromNamespaceAndPath("friendsandfoes", "totem_of_illusion"))
+                || id.equals(ResourceLocation.fromNamespaceAndPath("friendsandfoes", "totem_of_freezing"))
+                || id.equals(ResourceLocation.fromNamespaceAndPath("endermanoverhaul", "enderman_tooth"))
+                || id.equals(ResourceLocation.fromNamespaceAndPath("minecraft", "totem_of_undying"));
     }
 
     @FunctionalInterface
     public interface OfferFactory {
         ItemStack create(RandomSource random, int playerLevel);
+    }
+
+    private record IntRange(int min, int max) {
+        private static IntRange of(int min, int max) {
+            return new IntRange(min, max);
+        }
     }
 }
