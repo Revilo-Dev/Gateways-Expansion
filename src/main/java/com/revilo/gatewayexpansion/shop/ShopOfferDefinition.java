@@ -3,16 +3,13 @@ package com.revilo.gatewayexpansion.shop;
 import com.revilo.gatewayexpansion.augment.AugmentStackData;
 import com.revilo.gatewayexpansion.catalyst.CatalystStackData;
 import com.revilo.gatewayexpansion.integration.ModCompat;
-import com.revilo.gatewayexpansion.item.LootMaterialItem;
-import com.revilo.gatewayexpansion.item.MagnetItem;
-import com.revilo.gatewayexpansion.item.PaxelItem;
 import com.revilo.gatewayexpansion.item.data.AugmentDifficultyTier;
 import com.revilo.gatewayexpansion.item.data.CrystalForgeData;
 import com.revilo.gatewayexpansion.item.data.CrystalTheme;
-import com.revilo.gatewayexpansion.item.data.LootRarity;
 import com.revilo.gatewayexpansion.registry.ModItems;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -20,14 +17,13 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.SmithingTemplateItem;
-import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.level.ItemLike;
 
 public record ShopOfferDefinition(
         String id,
         int price,
-        int requiredLevel,
+        int minLevel,
+        int maxLevel,
         int minStock,
         int maxStock,
         int minPriceFluctuationPercent,
@@ -39,15 +35,18 @@ public record ShopOfferDefinition(
         OfferFactory factory
 ) {
 
+    private static final int MAX_PLAYER_LEVEL = 100;
     private static List<ShopOfferDefinition> allOffers;
 
     public ShopOfferDefinition {
         if (minStock < 0 || maxStock < minStock) {
             throw new IllegalArgumentException("Invalid stock range for " + id + ": " + minStock + "-" + maxStock);
         }
+        if (minLevel < 0 || maxLevel < minLevel) {
+            throw new IllegalArgumentException("Invalid level range for " + id + ": " + minLevel + "-" + maxLevel);
+        }
         if (minPriceFluctuationPercent > maxPriceFluctuationPercent) {
-            throw new IllegalArgumentException(
-                    "Invalid price fluctuation range for " + id + ": " + minPriceFluctuationPercent + "-" + maxPriceFluctuationPercent);
+            throw new IllegalArgumentException("Invalid price fluctuation range for " + id + ": " + minPriceFluctuationPercent + "-" + maxPriceFluctuationPercent);
         }
     }
 
@@ -60,136 +59,114 @@ public record ShopOfferDefinition(
 
     private static List<ShopOfferDefinition> buildOffers() {
         List<ShopOfferDefinition> offers = new ArrayList<>();
-        offers.add(simpleOffer("grimstone", "grimstone", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.GRIMSTONE.get())), 0, ModItems.GRIMSTONE.get()));
-        offers.add(simpleOffer("mystic_essence", "mystic_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYSTIC_ESSENCE.get())), 0, ModItems.MYSTIC_ESSENCE.get()));
-        offers.add(shopOnlyOffer("rusty_coin", 12, 0, ModItems.RUSTY_COIN.get(), "Cheap filler currency from weak gates."));
-        offers.add(shopOnlyOffer("hardened_flesh", 14, 0, ModItems.HARDENED_FLESH.get(), "Cheap undead residue used in early crafting."));
-        offers.add(simpleOffer("scrap_metal", "scrap_metal", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SCRAP_METAL.get())), 0, ModItems.SCRAP_METAL.get()));
-        offers.add(simpleOffer("mana_gems", "mana_gems", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_GEMS.get())), 0, ModItems.MANA_GEMS.get()));
-        offers.add(simpleOffer("mana_steel_scrap", "mana_steel_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_SCRAP.get())), 5, ModItems.MANA_STEEL_SCRAP.get()));
-        offers.add(simpleOffer("mana_steel_ingot", "mana_steel_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_INGOT.get())), 5, ModItems.MANA_STEEL_INGOT.get()));
-        offers.add(simpleOffer("upgrade_base", "upgrade_base", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.UPGRADE_BASE.get())), 5, ModItems.UPGRADE_BASE.get()));
-        offers.add(swordTemplateOffer("mana_steel_upgrade_template", 5, ModItems.MANA_STEEL_UPGRADE_TEMPLATE.get(), ModItems.MANA_STEEL_SCRAP.get(), 8));
-        offers.add(simpleOffer("mana_steel_magnet", "mana_steel_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_MAGNET.get())), 15, ModItems.MANA_STEEL_MAGNET.get()));
-        offers.add(simpleOffer("mana_steel_paxel", "mana_steel_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_PAXEL.get())), 5, ModItems.MANA_STEEL_PAXEL.get()));
-        offers.add(simpleOffer("arcane_essence", "arcane_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANE_ESSENCE.get())), 0, ModItems.ARCANE_ESSENCE.get()));
-        offers.add(simpleOffer("manastones", "manastones", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANASTONES.get())), 0, ModItems.MANASTONES.get()));
-        offers.add(simpleOffer("elixrite_scrap", "elixrite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_SCRAP.get())), 5, ModItems.ELIXRITE_SCRAP.get()));
-        offers.add(simpleOffer("elixrite_ingot", "elixrite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_INGOT.get())), 5, ModItems.ELIXRITE_INGOT.get()));
-        offers.add(swordTemplateOffer("elixrite_upgrade_template", 5, ModItems.ELIXRITE_UPGRADE_TEMPLATE.get(), ModItems.ELIXRITE_SCRAP.get(), 8));
-        offers.add(simpleOffer("elixrite_magnet", "elixrite_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_MAGNET.get())), 25, ModItems.ELIXRITE_MAGNET.get()));
-        offers.add(simpleOffer("elixrite_paxel", "elixrite_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_PAXEL.get())), 5, ModItems.ELIXRITE_PAXEL.get()));
-        offers.add(simpleOffer("astrite_scrap", "astrite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_SCRAP.get())), 21, ModItems.ASTRITE_SCRAP.get()));
-        offers.add(simpleOffer("astrite_ingot", "astrite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_INGOT.get())), 21, ModItems.ASTRITE_INGOT.get()));
-        offers.add(swordTemplateOffer("astrite_upgrade_template", 21, ModItems.ASTRITE_UPGRADE_TEMPLATE.get(), ModItems.ASTRITE_SCRAP.get(), 8));
-        offers.add(simpleOffer("astrite_magnet", "astrite_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_MAGNET.get())), 32, ModItems.ASTRITE_MAGNET.get()));
-        offers.add(simpleOffer("astrite_paxel", "astrite_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_PAXEL.get())), 21, ModItems.ASTRITE_PAXEL.get()));
-        offers.add(simpleOffer("solar_shard", "solar_shard", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SOLAR_SHARD.get())), 30, ModItems.SOLAR_SHARD.get()));
-        offers.add(simpleOffer("dark_essence", "dark_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.DARK_ESSENCE.get())), 35, ModItems.DARK_ESSENCE.get()));
-        offers.add(simpleOffer("prismatic_diamond", "prismatic_diamond", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_DIAMOND.get())), 40, ModItems.PRISMATIC_DIAMOND.get()));
-        offers.add(simpleOffer("lunarium_scrap", "lunarium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_SCRAP.get())), 21, ModItems.LUNARIUM_SCRAP.get()));
-        offers.add(simpleOffer("lunarium_ingot", "lunarium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_INGOT.get())), 21, ModItems.LUNARIUM_INGOT.get()));
-        offers.add(swordTemplateOffer("lunarium_upgrade_template", 21, ModItems.LUNARIUM_UPGRADE_TEMPLATE.get(), ModItems.LUNARIUM_SCRAP.get(), 8));
-        offers.add(simpleOffer("lunarium_magnet", "lunarium_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_MAGNET.get())), 40, ModItems.LUNARIUM_MAGNET.get()));
-        offers.add(simpleOffer("lunarium_paxel", "lunarium_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_PAXEL.get())), 21, ModItems.LUNARIUM_PAXEL.get()));
-        offers.add(simpleOffer("ignite_scrap", "ignite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_SCRAP.get())), 41, ModItems.IGNITE_SCRAP.get()));
-        offers.add(simpleOffer("ignite_ingot", "ignite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_INGOT.get())), 41, ModItems.IGNITE_INGOT.get()));
-        offers.add(swordTemplateOffer("ignite_upgrade_template", 41, ModItems.IGNITE_UPGRADE_TEMPLATE.get(), ModItems.IGNITE_SCRAP.get(), 8));
-        offers.add(simpleOffer("ignite_magnet", "ignite_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_MAGNET.get())), 48, ModItems.IGNITE_MAGNET.get()));
-        offers.add(simpleOffer("ignite_paxel", "ignite_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_PAXEL.get())), 41, ModItems.IGNITE_PAXEL.get()));
-        offers.add(simpleOffer("iridium_scrap", "iridium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_SCRAP.get())), 41, ModItems.IRIDIUM_SCRAP.get()));
-        offers.add(simpleOffer("iridium_ingot", "iridium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_INGOT.get())), 41, ModItems.IRIDIUM_INGOT.get()));
-        offers.add(swordTemplateOffer("iridium_upgrade_template", 41, ModItems.IRIDIUM_UPGRADE_TEMPLATE.get(), ModItems.IRIDIUM_SCRAP.get(), 8));
-        offers.add(simpleOffer("iridium_magnet", "iridium_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_MAGNET.get())), 55, ModItems.IRIDIUM_MAGNET.get()));
-        offers.add(simpleOffer("iridium_paxel", "iridium_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_PAXEL.get())), 41, ModItems.IRIDIUM_PAXEL.get()));
-        offers.add(simpleOffer("mythril_scrap", "mythril_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_SCRAP.get())), 61, ModItems.MYTHRIL_SCRAP.get()));
-        offers.add(simpleOffer("mythril_ingot", "mythril_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_INGOT.get())), 61, ModItems.MYTHRIL_INGOT.get()));
-        offers.add(swordTemplateOffer("mythril_upgrade_template", 61, ModItems.MYTHRIL_UPGRADE_TEMPLATE.get(), ModItems.MYTHRIL_INGOT.get(), 8));
-        offers.add(simpleOffer("mythril_magnet", "mythril_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_MAGNET.get())), 68, ModItems.MYTHRIL_MAGNET.get()));
-        offers.add(simpleOffer("mythril_paxel", "mythril_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_PAXEL.get())), 61, ModItems.MYTHRIL_PAXEL.get()));
-        offers.add(simpleOffer("arcanium_scrap", "arcanium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_SCRAP.get())), 61, ModItems.ARCANIUM_SCRAP.get()));
-        offers.add(simpleOffer("arcanium_ingot", "arcanium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_INGOT.get())), 61, ModItems.ARCANIUM_INGOT.get()));
-        offers.add(swordTemplateOffer("arcanium_upgrade_template", 61, ModItems.ARCANIUM_UPGRADE_TEMPLATE.get(), ModItems.ARCANIUM_INGOT.get(), 8));
-        offers.add(simpleOffer("arcanium_magnet", "arcanium_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_MAGNET.get())), 76, ModItems.ARCANIUM_MAGNET.get()));
-        offers.add(simpleOffer("arcanium_paxel", "arcanium_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_PAXEL.get())), 61, ModItems.ARCANIUM_PAXEL.get()));
-        offers.add(simpleOffer("prismatic_steel_scrap", "prismatic_steel_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_STEEL_SCRAP.get())), 81, ModItems.PRISMATIC_STEEL_SCRAP.get()));
-        offers.add(simpleOffer("prismatic_steel_ingot", "prismatic_steel_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_STEEL_INGOT.get())), 81, ModItems.PRISMATIC_STEEL_INGOT.get()));
-        offers.add(simpleOffer("prismatic_steel_magnet", "prismatic_steel_magnet", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_STEEL_MAGNET.get())), 90, ModItems.PRISMATIC_STEEL_MAGNET.get()));
-        offers.add(simpleOffer("prismatic_steel_paxel", "prismatic_steel_paxel", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_STEEL_PAXEL.get())), 81, ModItems.PRISMATIC_STEEL_PAXEL.get()));
-        offers.add(simpleOffer("prismatic_core", "prismatic_core", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_CORE.get())), 60, ModItems.PRISMATIC_CORE.get()));
-        offers.add(shopOnlyOffer("iron_ingot", 90, 0, Items.IRON_INGOT, ""));
-        offers.add(shopOnlyOffer("gold_ingot", 120, 0, Items.GOLD_INGOT, ""));
-        offers.add(shopOnlyOffer("diamond", 420, 10, Items.DIAMOND, ""));
-        offers.add(shopOnlyOffer("golden_apple", 850, 0, Items.GOLDEN_APPLE, ""));
-        offers.add(shopOnlyOffer("netherite_scrap", 1500, 35, Items.NETHERITE_SCRAP, ""));
-        offers.add(shopOnlyOffer("enchanted_golden_apple", 15000, 40, Items.ENCHANTED_GOLDEN_APPLE, ""));
+
+        // id, price, minLevel, maxLevel, minStock, maxStock, minFluct, maxFluct
+        addMaterialOffer(offers, "grimstone", "grimstone", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.GRIMSTONE.get())), 0, MAX_PLAYER_LEVEL, 32, 48, 0, 0, ModItems.GRIMSTONE.get());
+        addMaterialOffer(offers, "mystic_essence", "mystic_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYSTIC_ESSENCE.get())), 0, MAX_PLAYER_LEVEL, 32, 48, 0, 0, ModItems.MYSTIC_ESSENCE.get());
+        addShopOnlyOffer(offers, "rusty_coin", 12, 0, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.RUSTY_COIN.get(), "Cheap filler currency from weak gates.");
+        addShopOnlyOffer(offers, "hardened_flesh", 14, 0, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.HARDENED_FLESH.get(), "Cheap undead residue used in early crafting.");
+        addMaterialOffer(offers, "scrap_metal", "scrap_metal", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SCRAP_METAL.get())), 0, MAX_PLAYER_LEVEL, 32, 48, 0, 0, ModItems.SCRAP_METAL.get());
+        addMaterialOffer(offers, "mana_gems", "mana_gems", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_GEMS.get())), 0, MAX_PLAYER_LEVEL, 18, 28, 0, 0, ModItems.MANA_GEMS.get());
+        addMaterialOffer(offers, "mana_steel_scrap", "mana_steel_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_SCRAP.get())), 5, MAX_PLAYER_LEVEL, 1, 7, 0, 0, ModItems.MANA_STEEL_SCRAP.get());
+        addMaterialOffer(offers, "mana_steel_ingot", "mana_steel_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANA_STEEL_INGOT.get())), 5, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.MANA_STEEL_INGOT.get());
+        addMaterialOffer(offers, "upgrade_base", "upgrade_base", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.UPGRADE_BASE.get())), 5, MAX_PLAYER_LEVEL, 1, 3, 0, 0, ModItems.UPGRADE_BASE.get());
+        addSwordTemplateOffer(offers, "mana_steel_upgrade_template", 5, MAX_PLAYER_LEVEL, ModItems.MANA_STEEL_UPGRADE_TEMPLATE.get(), ModItems.MANA_STEEL_SCRAP.get(), 8);
+        addMaterialOffer(offers, "arcane_essence", "arcane_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANE_ESSENCE.get())), 0, MAX_PLAYER_LEVEL, 18, 28, 0, 0, ModItems.ARCANE_ESSENCE.get());
+        addMaterialOffer(offers, "manastones", "manastones", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MANASTONES.get())), 0, MAX_PLAYER_LEVEL, 18, 28, 0, 0, ModItems.MANASTONES.get());
+        addMaterialOffer(offers, "elixrite_scrap", "elixrite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_SCRAP.get())), 5, MAX_PLAYER_LEVEL, 1, 7, 0, 0, ModItems.ELIXRITE_SCRAP.get());
+        addMaterialOffer(offers, "elixrite_ingot", "elixrite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ELIXRITE_INGOT.get())), 5, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.ELIXRITE_INGOT.get());
+        addSwordTemplateOffer(offers, "elixrite_upgrade_template", 5, MAX_PLAYER_LEVEL, ModItems.ELIXRITE_UPGRADE_TEMPLATE.get(), ModItems.ELIXRITE_SCRAP.get(), 8);
+        addMaterialOffer(offers, "astrite_scrap", "astrite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_SCRAP.get())), 21, MAX_PLAYER_LEVEL, 1, 5, 0, 0, ModItems.ASTRITE_SCRAP.get());
+        addMaterialOffer(offers, "astrite_ingot", "astrite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ASTRITE_INGOT.get())), 21, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.ASTRITE_INGOT.get());
+        addSwordTemplateOffer(offers, "astrite_upgrade_template", 21, MAX_PLAYER_LEVEL, ModItems.ASTRITE_UPGRADE_TEMPLATE.get(), ModItems.ASTRITE_SCRAP.get(), 8);
+        addMaterialOffer(offers, "solar_shard", "solar_shard", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SOLAR_SHARD.get())), 30, MAX_PLAYER_LEVEL, 10, 16, 0, 0, ModItems.SOLAR_SHARD.get());
+        addMaterialOffer(offers, "arcane_apple", "arcane_apple", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANE_APPLE.get())), 10, MAX_PLAYER_LEVEL, 2, 4, 0, 0, ModItems.ARCANE_APPLE.get());
+        addMaterialOffer(offers, "enchanted_arcane_apple", "enchanted_arcane_apple", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ENCHANTED_ARCANE_APPLE.get())), 35, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.ENCHANTED_ARCANE_APPLE.get());
+        addMaterialOffer(offers, "dark_essence", "dark_essence", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.DARK_ESSENCE.get())), 35, MAX_PLAYER_LEVEL, 10, 16, 0, 0, ModItems.DARK_ESSENCE.get());
+        addMaterialOffer(offers, "prismatic_diamond", "prismatic_diamond", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_DIAMOND.get())), 40, MAX_PLAYER_LEVEL, 6, 10, -5, 5, ModItems.PRISMATIC_DIAMOND.get());
+        addMaterialOffer(offers, "lunarium_scrap", "lunarium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_SCRAP.get())), 21, MAX_PLAYER_LEVEL, 1, 4, -5, 5, ModItems.LUNARIUM_SCRAP.get());
+        addMaterialOffer(offers, "lunarium_ingot", "lunarium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.LUNARIUM_INGOT.get())), 21, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.LUNARIUM_INGOT.get());
+        addSwordTemplateOffer(offers, "lunarium_upgrade_template", 21, MAX_PLAYER_LEVEL, ModItems.LUNARIUM_UPGRADE_TEMPLATE.get(), ModItems.LUNARIUM_SCRAP.get(), 8);
+        addMaterialOffer(offers, "ignite_scrap", "ignite_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_SCRAP.get())), 41, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.IGNITE_SCRAP.get());
+        addMaterialOffer(offers, "ignite_ingot", "ignite_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IGNITE_INGOT.get())), 41, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.IGNITE_INGOT.get());
+        addSwordTemplateOffer(offers, "ignite_upgrade_template", 41, MAX_PLAYER_LEVEL, ModItems.IGNITE_UPGRADE_TEMPLATE.get(), ModItems.IGNITE_SCRAP.get(), 8);
+        addMaterialOffer(offers, "iridium_scrap", "iridium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_SCRAP.get())), 41, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.IRIDIUM_SCRAP.get());
+        addMaterialOffer(offers, "iridium_ingot", "iridium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.IRIDIUM_INGOT.get())), 41, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.IRIDIUM_INGOT.get());
+        addSwordTemplateOffer(offers, "iridium_upgrade_template", 41, MAX_PLAYER_LEVEL, ModItems.IRIDIUM_UPGRADE_TEMPLATE.get(), ModItems.IRIDIUM_SCRAP.get(), 8);
+        addMaterialOffer(offers, "mythril_scrap", "mythril_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_SCRAP.get())), 61, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.MYTHRIL_SCRAP.get());
+        addMaterialOffer(offers, "mythril_ingot", "mythril_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MYTHRIL_INGOT.get())), 61, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.MYTHRIL_INGOT.get());
+        addSwordTemplateOffer(offers, "mythril_upgrade_template", 61, MAX_PLAYER_LEVEL, ModItems.MYTHRIL_UPGRADE_TEMPLATE.get(), ModItems.MYTHRIL_INGOT.get(), 8);
+        addMaterialOffer(offers, "arcanium_scrap", "arcanium_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_SCRAP.get())), 61, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.ARCANIUM_SCRAP.get());
+        addMaterialOffer(offers, "arcanium_ingot", "arcanium_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.ARCANIUM_INGOT.get())), 61, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.ARCANIUM_INGOT.get());
+        addSwordTemplateOffer(offers, "arcanium_upgrade_template", 61, MAX_PLAYER_LEVEL, ModItems.ARCANIUM_UPGRADE_TEMPLATE.get(), ModItems.ARCANIUM_INGOT.get(), 8);
+        addMaterialOffer(offers, "prismatic_steel_scrap", "prismatic_steel_scrap", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_STEEL_SCRAP.get())), 81, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.PRISMATIC_STEEL_SCRAP.get());
+        addMaterialOffer(offers, "prismatic_steel_ingot", "prismatic_steel_ingot", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_STEEL_INGOT.get())), 81, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.PRISMATIC_STEEL_INGOT.get());
+        addMaterialOffer(offers, "prismatic_core", "prismatic_core", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_CORE.get())), 60, MAX_PLAYER_LEVEL, 3, 5, -5, 5, ModItems.PRISMATIC_CORE.get());
+
+        addShopOnlyOffer(offers, "iron_ingot", 90, 0, MAX_PLAYER_LEVEL, 6, 12, 0, 0, Items.IRON_INGOT, "");
+        addShopOnlyOffer(offers, "gold_ingot", 120, 0, MAX_PLAYER_LEVEL, 6, 12, 0, 0, Items.GOLD_INGOT, "");
+        addShopOnlyOffer(offers, "diamond", 420, 10, MAX_PLAYER_LEVEL, 2, 5, 0, 0, Items.DIAMOND, "");
+        addShopOnlyOffer(offers, "golden_apple", 850, 0, MAX_PLAYER_LEVEL, 1, 3, 0, 0, Items.GOLDEN_APPLE, "");
+        addShopOnlyOffer(offers, "netherite_scrap", 1500, 35, MAX_PLAYER_LEVEL, 1, 2, 0, 0, Items.NETHERITE_SCRAP, "");
+        addShopOnlyOffer(offers, "enchanted_golden_apple", 15000, 40, MAX_PLAYER_LEVEL, 1, 1, 0, 0, Items.ENCHANTED_GOLDEN_APPLE, "");
+        addShopOnlyOffer(offers, "shop_gateway", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SHOP_GATEWAY.get())), 28, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.SHOP_GATEWAY.get(), "Summons a traveling mythic merchant.");
+
         appendOptionalRunicOffers(offers);
         appendOptionalModdedOffers(offers);
-        offers.add(shopOnlyOffer("shop_gateway", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SHOP_GATEWAY.get())), 28, ModItems.SHOP_GATEWAY.get(), "Summons a traveling mythic merchant."));
         addCrystalThemeOffers(offers);
-        offers.add(augmentOffer("easy_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EASY_AUGMENT.get())), 0, ModItems.EASY_AUGMENT.get(), AugmentDifficultyTier.EASY));
-        offers.add(augmentOffer("medium_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MEDIUM_AUGMENT.get())), 20, ModItems.MEDIUM_AUGMENT.get(), AugmentDifficultyTier.MEDIUM));
-        offers.add(augmentOffer("hard_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.HARD_AUGMENT.get())), 30, ModItems.HARD_AUGMENT.get(), AugmentDifficultyTier.HARD));
-        offers.add(augmentOffer("extreme_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EXTREME_AUGMENT.get())), 50, ModItems.EXTREME_AUGMENT.get(), AugmentDifficultyTier.EXTREME));
-        offers.add(catalystOffer("time_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.TIME_CATALYST.get())), 15, ModItems.TIME_CATALYST.get()));
-        offers.add(simpleOffer("stability_pearl", "stability_pearl", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.STABILITY_PEARL.get())), 15, ModItems.STABILITY_PEARL.get()));
+        addAugmentAndCatalystOffers(offers);
+        addMaterialOffer(offers, "stability_pearl", "stability_pearl", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.STABILITY_PEARL.get())), 15, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.STABILITY_PEARL.get());
         return offers;
     }
 
-    private static ShopOfferDefinition simpleOffer(String id, String descKey, int price, int requiredLevel, ItemLike item) {
+    private static void addMaterialOffer(List<ShopOfferDefinition> offers, String id, String descKey, int price, int minLevel, int maxLevel, int minStock, int maxStock, int minFluctuation, int maxFluctuation, ItemLike item) {
         ItemStack previewStack = new ItemStack(item);
-        IntRange stockRange = defaultStockRange(previewStack);
-        IntRange fluctuationRange = defaultPriceFluctuation(previewStack);
-        return new ShopOfferDefinition(
+        offers.add(new ShopOfferDefinition(
                 id,
                 price,
-                requiredLevel,
-                stockRange.min(),
-                stockRange.max(),
-                fluctuationRange.min(),
-                fluctuationRange.max(),
+                minLevel,
+                maxLevel,
+                minStock,
+                maxStock,
+                minFluctuation,
+                maxFluctuation,
                 true,
                 previewStack,
                 previewStack.getHoverName(),
                 Component.translatable("shop.gatewayexpansion.offer." + descKey + ".desc"),
                 (random, playerLevel) -> new ItemStack(item)
-        );
+        ));
     }
 
-    private static ShopOfferDefinition shopOnlyOffer(String id, int price, int requiredLevel, ItemLike item, String description) {
+    private static void addShopOnlyOffer(List<ShopOfferDefinition> offers, String id, int price, int minLevel, int maxLevel, int minStock, int maxStock, int minFluctuation, int maxFluctuation, ItemLike item, String description) {
         ItemStack previewStack = new ItemStack(item);
-        IntRange stockRange = defaultStockRange(previewStack);
-        IntRange fluctuationRange = defaultPriceFluctuation(previewStack);
-        return shopOnlyOffer(id, price, requiredLevel, stockRange.min(), stockRange.max(), fluctuationRange.min(), fluctuationRange.max(), item, description);
-    }
-
-    private static ShopOfferDefinition shopOnlyOffer(String id, int price, int requiredLevel, int minStock, int maxStock, int minPriceFluctuationPercent, int maxPriceFluctuationPercent, ItemLike item, String description) {
-        ItemStack previewStack = new ItemStack(item);
-        return new ShopOfferDefinition(
+        offers.add(new ShopOfferDefinition(
                 id,
                 price,
-                requiredLevel,
+                minLevel,
+                maxLevel,
                 minStock,
                 maxStock,
-                minPriceFluctuationPercent,
-                maxPriceFluctuationPercent,
+                minFluctuation,
+                maxFluctuation,
                 true,
                 previewStack,
                 previewStack.getHoverName(),
                 Component.literal(description),
                 (random, playerLevel) -> new ItemStack(item)
-        );
+        ));
     }
 
-    private static ShopOfferDefinition swordTemplateOffer(String id, int requiredLevel, ItemLike template, Item ingredient, int ingredientCount) {
+    private static void addSwordTemplateOffer(List<ShopOfferDefinition> offers, String id, int minLevel, int maxLevel, ItemLike template, Item ingredient, int ingredientCount) {
         ItemStack previewStack = new ItemStack(template);
         int ingredientValue = GatewaySellValues.getUnitValue(new ItemStack(ingredient));
         int baseValue = GatewaySellValues.getUnitValue(new ItemStack(ModItems.UPGRADE_BASE.get()));
         int price = Math.max(1, (int) Math.ceil((baseValue + ingredientValue * ingredientCount) * 1.1D));
-        return new ShopOfferDefinition(
+        offers.add(new ShopOfferDefinition(
                 id,
                 price,
-                requiredLevel,
+                minLevel,
+                maxLevel,
                 1,
                 1,
                 0,
@@ -199,7 +176,7 @@ public record ShopOfferDefinition(
                 previewStack.getHoverName(),
                 Component.translatable("shop.gatewayexpansion.offer." + id + ".desc"),
                 (random, playerLevel) -> new ItemStack(template)
-        );
+        ));
     }
 
     private static void appendOptionalRunicOffers(List<ShopOfferDefinition> offers) {
@@ -207,55 +184,46 @@ public record ShopOfferDefinition(
             return;
         }
 
-        addOptionalRegistryOffer(offers, "runic:repair_rune", 10, "A utility rune focused on restoration.");
-        addOptionalRegistryOffer(offers, "runic:reroll_inscription", 25, "Lets you reroll a runic result.");
-        addOptionalRegistryOffer(offers, "runic:expansion_rune", 30, "Expands the potential of runic gear.");
-        addOptionalRegistryOffer(offers, "runic:nullification_rune", 35, "Cancels an unwanted runic trait.");
-        addOptionalRegistryOffer(offers, "runic:upgrade_rune", 40, "Upgrades a runic result upward.");
-        addOptionalRegistryOffer(offers, "runic:wild_inscription", 45, "A volatile inscription with broader outcomes.");
-        addOptionalRegistryOffer(offers, "runic:extraction_inscription", 50, "Extracts existing runic power.");
-        addOptionalRegistryOffer(offers, "runic:cursed_inscription", 55, "A risky inscription with stronger variance.");
+        addOptionalRegistryOffer(offers, "runic:repair_rune", 10, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "A utility rune focused on restoration.");
+        addOptionalRegistryOffer(offers, "runic:reroll_inscription", 25, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "Lets you reroll a runic result.");
+        addOptionalRegistryOffer(offers, "runic:expansion_rune", 30, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "Expands the potential of runic gear.");
+        addOptionalRegistryOffer(offers, "runic:nullification_rune", 35, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "Cancels an unwanted runic trait.");
+        addOptionalRegistryOffer(offers, "runic:upgrade_rune", 40, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "Upgrades a runic result upward.");
+        addOptionalRegistryOffer(offers, "runic:wild_inscription", 45, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "A volatile inscription with broader outcomes.");
+        addOptionalRegistryOffer(offers, "runic:extraction_inscription", 50, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "Extracts existing runic power.");
+        addOptionalRegistryOffer(offers, "runic:cursed_inscription", 55, 0, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "A risky inscription with stronger variance.");
     }
 
     private static void appendOptionalModdedOffers(List<ShopOfferDefinition> offers) {
-        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_illusion", 12000, 40, 1, 1, -5, 5, "A rare charm that distorts enemy perception.");
-        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_freezing", 14000, 40, 1, 1, -5, 5, "A rare freezing charm that uses illager magic.");
-        addOptionalRegistryOffer(offers, "minecraft:totem_of_undying", 10000, 30, 1, 1, -5, 5, "A totem that prevents death once.");
-        addOptionalRegistryOffer(offers, "endermanoverhaul:enderman_tooth", 35, "A rare trophy pulled from a warped end stalker.");
+        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_illusion", 12000, 40, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A rare charm that distorts enemy perception.");
+        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_freezing", 14000, 40, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A rare freezing charm that uses illager magic.");
+        addOptionalRegistryOffer(offers, "minecraft:totem_of_undying", 10000, 30, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A totem that prevents death once.");
+        addOptionalRegistryOffer(offers, "endermanoverhaul:enderman_tooth", 35, 0, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A rare trophy pulled from a warped end stalker.");
     }
 
-    private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int requiredLevel, String description) {
+    private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int fixedPrice, int minLevel, int maxLevel, int minStock, int maxStock, int minFluctuation, int maxFluctuation, String description) {
         ResourceLocation id = ResourceLocation.tryParse(itemId);
         if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
             return;
         }
         ItemLike item = BuiltInRegistries.ITEM.get(id);
-        offers.add(shopOnlyOffer(id.getPath(), GatewaySellValues.getSuggestedBuyPrice(new ItemStack(item)), requiredLevel, item, description));
+        addShopOnlyOffer(offers, id.getPath(), fixedPrice, minLevel, maxLevel, minStock, maxStock, minFluctuation, maxFluctuation, item, description);
     }
 
-    private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int fixedPrice, int requiredLevel, String description) {
-        ResourceLocation id = ResourceLocation.tryParse(itemId);
-        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
-            return;
-        }
-        ItemLike item = BuiltInRegistries.ITEM.get(id);
-        offers.add(shopOnlyOffer(id.getPath(), fixedPrice, requiredLevel, item, description));
+    private static void addAugmentAndCatalystOffers(List<ShopOfferDefinition> offers) {
+        offers.add(augmentOffer("easy_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EASY_AUGMENT.get())), 0, MAX_PLAYER_LEVEL, ModItems.EASY_AUGMENT.get(), AugmentDifficultyTier.EASY));
+        offers.add(augmentOffer("medium_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.MEDIUM_AUGMENT.get())), 20, MAX_PLAYER_LEVEL, ModItems.MEDIUM_AUGMENT.get(), AugmentDifficultyTier.MEDIUM));
+        offers.add(augmentOffer("hard_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.HARD_AUGMENT.get())), 30, MAX_PLAYER_LEVEL, ModItems.HARD_AUGMENT.get(), AugmentDifficultyTier.HARD));
+        offers.add(augmentOffer("extreme_augment", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.EXTREME_AUGMENT.get())), 50, MAX_PLAYER_LEVEL, ModItems.EXTREME_AUGMENT.get(), AugmentDifficultyTier.EXTREME));
+        offers.add(catalystOffer("time_catalyst", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.TIME_CATALYST.get())), 15, MAX_PLAYER_LEVEL, ModItems.TIME_CATALYST.get()));
     }
 
-    private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int fixedPrice, int requiredLevel, int minStock, int maxStock, int minPriceFluctuationPercent, int maxPriceFluctuationPercent, String description) {
-        ResourceLocation id = ResourceLocation.tryParse(itemId);
-        if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
-            return;
-        }
-        ItemLike item = BuiltInRegistries.ITEM.get(id);
-        offers.add(shopOnlyOffer(id.getPath(), fixedPrice, requiredLevel, minStock, maxStock, minPriceFluctuationPercent, maxPriceFluctuationPercent, item, description));
-    }
-
-    private static ShopOfferDefinition augmentOffer(String id, int price, int requiredLevel, ItemLike item, AugmentDifficultyTier difficultyTier) {
+    private static ShopOfferDefinition augmentOffer(String id, int price, int minLevel, int maxLevel, ItemLike item, AugmentDifficultyTier difficultyTier) {
         return new ShopOfferDefinition(
                 id,
                 price,
-                requiredLevel,
+                minLevel,
+                maxLevel,
                 7,
                 13,
                 0,
@@ -272,11 +240,12 @@ public record ShopOfferDefinition(
         );
     }
 
-    private static ShopOfferDefinition catalystOffer(String id, int price, int requiredLevel, ItemLike item) {
+    private static ShopOfferDefinition catalystOffer(String id, int price, int minLevel, int maxLevel, ItemLike item) {
         return new ShopOfferDefinition(
                 id,
                 price,
-                requiredLevel,
+                minLevel,
+                maxLevel,
                 7,
                 13,
                 0,
@@ -294,31 +263,32 @@ public record ShopOfferDefinition(
     }
 
     private static void addCrystalThemeOffers(List<ShopOfferDefinition> offers) {
-        offers.add(crystalOffer("tier_1_crystal_undead", 8, 0, ModItems.TIER_1_CRYSTAL.get(), 0, 19, CrystalTheme.UNDEAD));
-        offers.add(crystalOffer("tier_2_crystal_undead", 15, 10, ModItems.TIER_2_CRYSTAL.get(), 20, 49, CrystalTheme.UNDEAD));
-        offers.add(crystalOffer("tier_2_crystal_nether", 18, 25, ModItems.TIER_2_CRYSTAL.get(), 20, 49, CrystalTheme.NETHER));
-        offers.add(crystalOffer("tier_3_crystal_undead", 42, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.UNDEAD));
-        offers.add(crystalOffer("tier_3_crystal_raider", 46, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.RAIDER));
-        offers.add(crystalOffer("tier_3_crystal_nether", 48, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.NETHER));
-        offers.add(crystalOffer("tier_3_crystal_arcane", 54, 50, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.ARCANE));
-        offers.add(crystalOffer("tier_4_crystal_undead", 68, 50, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.UNDEAD));
-        offers.add(crystalOffer("tier_4_crystal_raider", 74, 50, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.RAIDER));
-        offers.add(crystalOffer("tier_4_crystal_nether", 76, 50, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.NETHER));
-        offers.add(crystalOffer("tier_4_crystal_arcane", 82, 50, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.ARCANE));
-        offers.add(crystalOffer("tier_5_crystal_undead", 102, 70, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.UNDEAD));
-        offers.add(crystalOffer("tier_5_crystal_raider", 110, 70, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.RAIDER));
-        offers.add(crystalOffer("tier_5_crystal_nether", 112, 70, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.NETHER));
-        offers.add(crystalOffer("tier_5_crystal_arcane", 120, 70, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.ARCANE));
+        offers.add(crystalOffer("tier_1_crystal_undead", 8, 0, MAX_PLAYER_LEVEL, ModItems.TIER_1_CRYSTAL.get(), 0, 19, CrystalTheme.UNDEAD));
+        offers.add(crystalOffer("tier_2_crystal_undead", 15, 10, MAX_PLAYER_LEVEL, ModItems.TIER_2_CRYSTAL.get(), 20, 49, CrystalTheme.UNDEAD));
+        offers.add(crystalOffer("tier_2_crystal_nether", 18, 25, MAX_PLAYER_LEVEL, ModItems.TIER_2_CRYSTAL.get(), 20, 49, CrystalTheme.NETHER));
+        offers.add(crystalOffer("tier_3_crystal_undead", 42, 50, MAX_PLAYER_LEVEL, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.UNDEAD));
+        offers.add(crystalOffer("tier_3_crystal_raider", 46, 50, MAX_PLAYER_LEVEL, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.RAIDER));
+        offers.add(crystalOffer("tier_3_crystal_nether", 48, 50, MAX_PLAYER_LEVEL, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.NETHER));
+        offers.add(crystalOffer("tier_3_crystal_arcane", 54, 50, MAX_PLAYER_LEVEL, ModItems.TIER_3_CRYSTAL.get(), 50, 69, CrystalTheme.ARCANE));
+        offers.add(crystalOffer("tier_4_crystal_undead", 68, 50, MAX_PLAYER_LEVEL, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.UNDEAD));
+        offers.add(crystalOffer("tier_4_crystal_raider", 74, 50, MAX_PLAYER_LEVEL, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.RAIDER));
+        offers.add(crystalOffer("tier_4_crystal_nether", 76, 50, MAX_PLAYER_LEVEL, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.NETHER));
+        offers.add(crystalOffer("tier_4_crystal_arcane", 82, 50, MAX_PLAYER_LEVEL, ModItems.TIER_4_CRYSTAL.get(), 70, 89, CrystalTheme.ARCANE));
+        offers.add(crystalOffer("tier_5_crystal_undead", 102, 70, MAX_PLAYER_LEVEL, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.UNDEAD));
+        offers.add(crystalOffer("tier_5_crystal_raider", 110, 70, MAX_PLAYER_LEVEL, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.RAIDER));
+        offers.add(crystalOffer("tier_5_crystal_nether", 112, 70, MAX_PLAYER_LEVEL, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.NETHER));
+        offers.add(crystalOffer("tier_5_crystal_arcane", 120, 70, MAX_PLAYER_LEVEL, ModItems.TIER_5_CRYSTAL.get(), 90, 100, CrystalTheme.ARCANE));
     }
 
-    private static ShopOfferDefinition crystalOffer(String id, int price, int requiredLevel, ItemLike item, int minLevel, int maxLevel, CrystalTheme theme) {
+    private static ShopOfferDefinition crystalOffer(String id, int price, int minLevel, int maxLevel, ItemLike item, int crystalMinLevel, int crystalMaxLevel, CrystalTheme theme) {
         ItemStack previewStack = new ItemStack(item);
-        CrystalForgeData.ensureProfile(previewStack, minLevel, maxLevel, RandomSource.create(0L));
+        CrystalForgeData.ensureProfile(previewStack, crystalMinLevel, crystalMaxLevel, RandomSource.create(0L));
         CrystalForgeData.attuneTheme(previewStack, theme);
         return new ShopOfferDefinition(
                 id,
                 price,
-                requiredLevel,
+                minLevel,
+                maxLevel,
                 2,
                 4,
                 0,
@@ -329,7 +299,7 @@ public record ShopOfferDefinition(
                 Component.translatable("shop.gatewayexpansion.offer." + id + ".desc"),
                 (random, playerLevel) -> {
                     ItemStack stack = new ItemStack(item);
-                    CrystalForgeData.ensureProfile(stack, minLevel, maxLevel, random);
+                    CrystalForgeData.ensureProfile(stack, crystalMinLevel, crystalMaxLevel, random);
                     CrystalForgeData.attuneTheme(stack, theme);
                     return stack;
                 }
@@ -359,109 +329,8 @@ public record ShopOfferDefinition(
         return this.factory.create(random, playerLevel);
     }
 
-    private static IntRange defaultStockRange(ItemStack preview) {
-        if (isRareOptionalModOffer(preview)) {
-            return IntRange.of(1, 1);
-        }
-        if (preview.getItem() instanceof PaxelItem || preview.getItem() instanceof MagnetItem || preview.getItem() instanceof SwordItem || preview.getItem() instanceof SmithingTemplateItem) {
-            return IntRange.of(1, 1);
-        }
-        if (preview.is(ModItems.UPGRADE_BASE.get())) {
-            return IntRange.of(1, 3);
-        }
-        if (preview.is(ModItems.STABILITY_PEARL.get())) {
-            return IntRange.of(1, 2);
-        }
-        if (preview.is(ModItems.GRIMSTONE.get()) || preview.is(ModItems.MYSTIC_ESSENCE.get()) || preview.is(ModItems.SCRAP_METAL.get())) {
-            return IntRange.of(32, 48);
-        }
-        if (preview.is(ModItems.MANA_STEEL_SCRAP.get()) || preview.is(ModItems.ELIXRITE_SCRAP.get())) {
-            return IntRange.of(1, 7);
-        }
-        if (preview.is(ModItems.ASTRITE_SCRAP.get())) {
-            return IntRange.of(1, 5);
-        }
-        if (preview.is(ModItems.MANA_STEEL_INGOT.get()) || preview.is(ModItems.ELIXRITE_INGOT.get())) {
-            return IntRange.of(1, 2);
-        }
-        if (preview.is(ModItems.ASTRITE_INGOT.get())) {
-            return IntRange.of(1, 2);
-        }
-        if (preview.is(Items.IRON_INGOT) || preview.is(Items.GOLD_INGOT)) {
-            return IntRange.of(6, 12);
-        }
-        if (preview.is(Items.DIAMOND)) {
-            return IntRange.of(2, 5);
-        }
-        if (preview.is(Items.GOLDEN_APPLE)) {
-            return IntRange.of(1, 3);
-        }
-        if (preview.is(Items.NETHERITE_SCRAP)) {
-            return IntRange.of(1, 2);
-        }
-        if (isRunicOffer(preview)) {
-            return IntRange.of(1, 1);
-        }
-        if (preview.is(ModItems.MANA_GEMS.get()) || preview.is(ModItems.ARCANE_ESSENCE.get()) || preview.is(ModItems.MANASTONES.get())) {
-            return IntRange.of(18, 28);
-        }
-        if (preview.is(ModItems.SOLAR_SHARD.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
-            return IntRange.of(10, 16);
-        }
-        if (preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
-            return IntRange.of(6, 10);
-        }
-        if (preview.is(ModItems.LUNARIUM_SCRAP.get())) {
-            return IntRange.of(1, 4);
-        }
-        if (preview.is(ModItems.LUNARIUM_INGOT.get())) {
-            return IntRange.of(1, 2);
-        }
-        if (preview.is(ModItems.PRISMATIC_CORE.get())) {
-            return IntRange.of(3, 5);
-        }
-        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.CrystalItem) {
-            return IntRange.of(2, 4);
-        }
-        if (preview.getItem() instanceof com.revilo.gatewayexpansion.item.AugmentItem || preview.getItem() instanceof com.revilo.gatewayexpansion.item.CatalystItem) {
-            return IntRange.of(7, 13);
-        }
-        return IntRange.of(8, 14);
-    }
-
-    private static IntRange defaultPriceFluctuation(ItemStack preview) {
-        if (preview.getItem() instanceof LootMaterialItem lootMaterialItem && lootMaterialItem.rarity().ordinal() >= LootRarity.RARE.ordinal()) {
-            return IntRange.of(-5, 5);
-        }
-        if (isRareOptionalModOffer(preview)) {
-            return IntRange.of(-5, 5);
-        }
-        return IntRange.of(0, 0);
-    }
-
-    private static boolean isRunicOffer(ItemStack stack) {
-        return ModCompat.isRunicLoaded() && stack.getItem().builtInRegistryHolder().key().location().getNamespace().equals("runic");
-    }
-
-    private static boolean isRareOptionalModOffer(ItemStack stack) {
-        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (id == null) {
-            return false;
-        }
-        return id.equals(ResourceLocation.fromNamespaceAndPath("friendsandfoes", "totem_of_illusion"))
-                || id.equals(ResourceLocation.fromNamespaceAndPath("friendsandfoes", "totem_of_freezing"))
-                || id.equals(ResourceLocation.fromNamespaceAndPath("endermanoverhaul", "enderman_tooth"))
-                || id.equals(ResourceLocation.fromNamespaceAndPath("minecraft", "totem_of_undying"));
-    }
-
     @FunctionalInterface
     public interface OfferFactory {
         ItemStack create(RandomSource random, int playerLevel);
-    }
-
-    private record IntRange(int min, int max) {
-        private static IntRange of(int min, int max) {
-            return new IntRange(min, max);
-        }
     }
 }

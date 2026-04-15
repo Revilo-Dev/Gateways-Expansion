@@ -228,7 +228,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         this.refreshOffersFromData();
         ShopOfferDefinition offer = this.getOfferDefinition(slotIndex);
         int slotRequirement = slotIndex <= 1 ? 0 : (slotIndex - 1) * 10;
-        int itemRequirement = offer == null ? 0 : offer.requiredLevel();
+        int itemRequirement = offer == null ? 0 : offer.minLevel();
         return Math.max(slotRequirement, itemRequirement);
     }
 

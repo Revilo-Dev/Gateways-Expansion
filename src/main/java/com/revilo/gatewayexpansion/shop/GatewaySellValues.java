@@ -49,6 +49,8 @@ public final class GatewaySellValues {
         if (item == ModItems.ASTRITE_UPGRADE_TEMPLATE.get()) return 968;
         if (item == ModItems.ASTRITE_MAGNET.get()) return 1860;
         if (item == ModItems.SOLAR_SHARD.get()) return 140;
+        if (item == ModItems.ARCANE_APPLE.get()) return 180;
+        if (item == ModItems.ENCHANTED_ARCANE_APPLE.get()) return 420;
         if (item == ModItems.PRISMATIC_DIAMOND.get()) return 260;
         if (item == ModItems.LUNARIUM_SCRAP.get()) return 180;
         if (item == ModItems.LUNARIUM_INGOT.get()) return 1620;

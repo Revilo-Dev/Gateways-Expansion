@@ -27,7 +27,6 @@ public final class GatewayExpansionClient {
             modEventBus.addListener(MagnetKeybindHandler::registerKeyMappings);
             NeoForge.EVENT_BUS.register(GatewayHudOverlay.class);
             NeoForge.EVENT_BUS.register(InventoryWalletOverlay.class);
-            NeoForge.EVENT_BUS.register(LevelUpGateOverlay.class);
             NeoForge.EVENT_BUS.addListener(MagnetKeybindHandler::onClientTick);
         }
     }

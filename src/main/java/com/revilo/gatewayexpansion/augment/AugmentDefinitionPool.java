@@ -234,18 +234,19 @@ public final class AugmentDefinitionPool {
             }
             case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "rarity");
             case EXTRA_RARE_REWARD_ROLLS -> {
-                int rareRolls = rareRewardRollBonus(level);
-                int epicRolls = epicRewardRollBonus(level);
-                String description = "+" + rareRolls + " rare rewards, +" + epicRolls + " epic rewards"
-                        + (level >= 40 ? ", +1 legendary reward" : "");
-                yield ForgeEffect.dual(reward.type(), rareRolls, epicRolls, description);
+                RareEpicRoll roll = rollRareEpicRewards(random, level);
+                yield ForgeEffect.dual(
+                        reward.type(),
+                        roll.rareRolls(),
+                        roll.epicRolls(),
+                        rareEpicDescription(roll.rareRolls(), roll.epicRolls()));
             }
             case EXTRA_FINAL_REWARD_ROLLS -> {
                 int epicRolls = epicRewardRollBonus(level);
                 yield ForgeEffect.of(reward.type(), epicRolls, "+" + epicRolls + " epic rewards");
             }
             case EXTRA_LEGENDARY_REWARD_ROLLS ->
-                    ForgeEffect.of(reward.type(), level >= 40 ? 1.0D : 0.0D, level >= 40 ? "+1 legendary reward" : "Legendary reward unlocks at level 40");
+                    ForgeEffect.of(reward.type(), rollLegendaryRewardBonus(random, level), legendaryRewardDescription(level));
             case EXTRA_ENTITY_LOOT_ROLLS ->
                     ForgeEffect.of(reward.type(), Math.max(1.0D, Math.round(reward.value() * rewardScale)), "+" + (int) Math.max(1.0D, Math.round(reward.value() * rewardScale)) + rewardSuffix(reward.type()));
             default -> reward;
@@ -257,11 +258,16 @@ public final class AugmentDefinitionPool {
             return null;
         }
 
-        List<ForgeEffectType> pool = List.of(
+        List<ForgeEffectType> pool = new ArrayList<>(List.of(
                 ForgeEffectType.REWARD_MULTIPLIER,
                 ForgeEffectType.RARITY_REWARD_MULTIPLIER,
                 ForgeEffectType.COIN_REWARD_MULTIPLIER,
-                ForgeEffectType.EXPERIENCE_REWARD_MULTIPLIER);
+                ForgeEffectType.EXPERIENCE_REWARD_MULTIPLIER,
+                ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS,
+                ForgeEffectType.EXTRA_RARE_REWARD_ROLLS));
+        if (level >= 40) {
+            pool.add(ForgeEffectType.EXTRA_LEGENDARY_REWARD_ROLLS);
+        }
         ForgeEffectType type = pool.get(random.nextInt(pool.size()));
         for (ForgeEffect reward : existingRewards) {
             if (reward.type() == type) {
@@ -286,6 +292,18 @@ public final class AugmentDefinitionPool {
             case EXPERIENCE_REWARD_MULTIPLIER -> {
                 double experienceMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, experienceMultiplier, "experience");
+            }
+            case EXTRA_FINAL_REWARD_ROLLS -> {
+                int epicRolls = epicRewardRollBonus(level);
+                yield ForgeEffect.of(type, epicRolls, "+" + epicRolls + " epic rewards");
+            }
+            case EXTRA_RARE_REWARD_ROLLS -> {
+                RareEpicRoll roll = rollRareEpicRewards(random, level);
+                yield ForgeEffect.dual(type, roll.rareRolls(), roll.epicRolls(), rareEpicDescription(roll.rareRolls(), roll.epicRolls()));
+            }
+            case EXTRA_LEGENDARY_REWARD_ROLLS -> {
+                int legendary = rollLegendaryRewardBonus(random, level);
+                yield ForgeEffect.of(type, legendary, legendaryRewardDescription(level));
             }
             default -> null;
         };
@@ -386,17 +404,54 @@ public final class AugmentDefinitionPool {
     }
 
     private static int rareRewardRollBonus(int level) {
-        if (level >= 90) return 5;
-        if (level >= 70) return 4;
-        if (level >= 50) return 3;
-        if (level >= 20) return 2;
-        return 1;
+        if (level >= 90) return 6;
+        if (level >= 70) return 5;
+        if (level >= 50) return 4;
+        if (level >= 20) return 3;
+        return 2;
     }
 
     private static int epicRewardRollBonus(int level) {
-        if (level >= 90) return 3;
+        if (level >= 90) return 4;
+        if (level >= 70) return 3;
         if (level >= 50) return 2;
         return 1;
+    }
+
+    private static RareEpicRoll rollRareEpicRewards(RandomSource random, int level) {
+        int rareMax = rareRewardRollBonus(level);
+        int epicMax = epicRewardRollBonus(level);
+        int rareMin = level >= 50 ? 2 : 1;
+        int rare = random.nextInt(rareMin, rareMax + 1);
+        int epic = random.nextInt(0, epicMax + 1);
+        if (rare <= 1 && epic <= 0) {
+            epic = 1;
+        }
+        return new RareEpicRoll(rare, epic);
+    }
+
+    private static String rareEpicDescription(int rareRolls, int epicRolls) {
+        if (epicRolls <= 0) {
+            return "+" + rareRolls + " rare rewards";
+        }
+        return "+" + rareRolls + " rare rewards, +" + epicRolls + " epic rewards";
+    }
+
+    private static int rollLegendaryRewardBonus(RandomSource random, int level) {
+        if (level < 40) {
+            return 0;
+        }
+        if (level >= 90) {
+            return random.nextBoolean() ? 1 : 2;
+        }
+        if (level >= 70) {
+            return random.nextFloat() < 0.35F ? 2 : 1;
+        }
+        return 1;
+    }
+
+    private static String legendaryRewardDescription(int level) {
+        return level >= 40 ? "+legendary rewards" : "Legendary rewards unlock at level 40";
     }
 
     private static ForgeEffect rangedReward(ForgeEffectType type, double value, String noun) {
@@ -484,5 +539,8 @@ public final class AugmentDefinitionPool {
     }
 
     private record Range(double min, double max) {
+    }
+
+    private record RareEpicRoll(int rareRolls, int epicRolls) {
     }
 }

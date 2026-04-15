@@ -3,24 +3,19 @@ package com.revilo.gatewayexpansion.client;
 import com.revilo.gatewayexpansion.integration.LevelUpIntegration;
 import com.revilo.gatewayexpansion.shop.ShopkeeperManager;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
+import java.lang.reflect.Method;
+import java.util.Objects;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 
 public final class LevelUpGateOverlay {
 
-    private static final ResourceLocation BAR_BACKGROUND =
-            ResourceLocation.fromNamespaceAndPath("gui", "skill_bar/xp-bar-background.png");
-    private static final ResourceLocation BAR_PROGRESS =
-            ResourceLocation.fromNamespaceAndPath("gui", "skill_bar/xp-bar-progress.png");
-    private static final int BAR_WIDTH = 184;
-    private static final int BAR_HEIGHT = 11;
+    private static final String LEVELUP_OVERLAY_CLASS = "com.revilo.levelup.client.hud.TopCenterLevelOverlay";
+    private static Method setStayOnScreenLockMethod;
+    private static boolean stayOnScreenLookupAttempted;
+    private static Boolean currentStayOnScreenLock;
 
     private LevelUpGateOverlay() {
     }
@@ -30,15 +25,13 @@ public final class LevelUpGateOverlay {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (minecraft.level == null || player == null || minecraft.options.hideGui || !LevelUpIntegration.isLoaded()) {
+            applyStayOnScreenLock(null);
             return;
         }
 
         GatewayEntity gateway = findNearbyGateway(player);
-        if (gateway == null) {
-            return;
-        }
-
-        renderLevelBar(event.getGuiGraphics(), minecraft, player);
+        boolean gateActive = gateway != null;
+        applyStayOnScreenLock(gateActive ? Boolean.TRUE : null);
     }
 
     private static GatewayEntity findNearbyGateway(LocalPlayer player) {
@@ -58,21 +51,54 @@ public final class LevelUpGateOverlay {
         return nearest;
     }
 
-    private static void renderLevelBar(GuiGraphics guiGraphics, Minecraft minecraft, LocalPlayer player) {
-        int level = Math.max(1, LevelUpIntegration.getPlayerLevel(player));
-        float progress = Mth.clamp(LevelUpIntegration.getProgressToNextLevel(player), 0.0F, 1.0F);
-        int progressWidth = Mth.clamp(Math.round(progress * BAR_WIDTH), 0, BAR_WIDTH);
-        int x = (minecraft.getWindow().getGuiScaledWidth() - BAR_WIDTH) / 2;
-        int y = 4;
+    private static boolean isStayOnScreenHookAvailable() {
+        initStayOnScreenHook();
+        return setStayOnScreenLockMethod != null;
+    }
 
-        guiGraphics.blit(BAR_BACKGROUND, x, y, 0.0F, 0.0F, BAR_WIDTH, BAR_HEIGHT, BAR_WIDTH, BAR_HEIGHT);
-        if (progressWidth > 0) {
-            guiGraphics.blit(BAR_PROGRESS, x, y, 0.0F, 0.0F, progressWidth, BAR_HEIGHT, BAR_WIDTH, BAR_HEIGHT);
+    private static void applyStayOnScreenLock(Boolean lockState) {
+        if (!isStayOnScreenHookAvailable()) {
+            return;
         }
+        if (Objects.equals(currentStayOnScreenLock, lockState)) {
+            return;
+        }
+        currentStayOnScreenLock = lockState;
+        try {
+            setStayOnScreenLockMethod.invoke(null, lockState);
+        } catch (ReflectiveOperationException ignored) {
+        }
+    }
 
-        Component label = Component.translatable("levelup.ui.level", level);
-        Font font = minecraft.font;
-        int textX = x + ((BAR_WIDTH - font.width(label)) / 2);
-        guiGraphics.drawString(font, label, textX, y - 10, 0x53A4BC, false);
+    private static void initStayOnScreenHook() {
+        if (stayOnScreenLookupAttempted) {
+            return;
+        }
+        stayOnScreenLookupAttempted = true;
+        try {
+            Class<?> overlayClass = Class.forName(LEVELUP_OVERLAY_CLASS);
+            setStayOnScreenLockMethod = resolveStayOnScreenMethod(overlayClass);
+        } catch (ReflectiveOperationException ignored) {
+            setStayOnScreenLockMethod = null;
+        }
+    }
+
+    private static Method resolveStayOnScreenMethod(Class<?> overlayClass) {
+        Method method = findMethod(overlayClass, "setEventStayOnScreenLock", Boolean.class);
+        return method != null ? method : findMethod(overlayClass, "setEventStayOnScreenLock", boolean.class);
+    }
+
+    private static Method findMethod(Class<?> targetClass, String name, Class<?> parameterType) {
+        try {
+            return targetClass.getMethod(name, parameterType);
+        } catch (NoSuchMethodException ignored) {
+            try {
+                Method declared = targetClass.getDeclaredMethod(name, parameterType);
+                declared.setAccessible(true);
+                return declared;
+            } catch (ReflectiveOperationException ignoredAgain) {
+                return null;
+            }
+        }
     }
 }

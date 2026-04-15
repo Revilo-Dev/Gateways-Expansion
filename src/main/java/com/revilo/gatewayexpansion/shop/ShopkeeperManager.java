@@ -70,7 +70,7 @@ public final class ShopkeeperManager {
     private static final int SHOP_GATEWAY_ANIMATION_TICKS = 50;
     private static final double COIN_ATTRACTION_RANGE = 7.5D;
     private static final double COIN_ATTRACTION_FORCE = 0.022D;
-    private static final List<DeferredHolder<net.minecraft.world.item.Item, LootMaterialItem>> GATEWAY_DROP_ITEMS = List.of(
+    private static final List<DeferredHolder<net.minecraft.world.item.Item, ? extends LootMaterialItem>> GATEWAY_DROP_ITEMS = List.of(
             ModItems.GRIMSTONE,
             ModItems.MYSTIC_ESSENCE,
             ModItems.SCRAP_METAL,
@@ -84,6 +84,8 @@ public final class ShopkeeperManager {
             ModItems.MAGNETITE_INGOT,
             ModItems.ASTRITE_SCRAP,
             ModItems.SOLAR_SHARD,
+            ModItems.ARCANE_APPLE,
+            ModItems.ENCHANTED_ARCANE_APPLE,
             ModItems.PRISMATIC_DIAMOND,
             ModItems.LUNARIUM_SCRAP,
             ModItems.DARK_ESSENCE,
@@ -488,7 +490,7 @@ public final class ShopkeeperManager {
         List<ShopOfferDefinition> allOffers = ShopOfferDefinition.allOffers();
         Set<String> activePaxelOfferIds = activePaxelOfferIds(allOffers, playerLevel);
         java.util.List<Integer> eligible = allOffers.stream()
-                .filter(offer -> offer.requiredLevel() <= playerLevel)
+                .filter(offer -> offer.minLevel() <= playerLevel && playerLevel <= offer.maxLevel())
                 .filter(offer -> !isSuppressedMidgameMaterialOffer(offer, playerLevel))
                 .filter(offer -> !isRetiredPaxelOffer(offer, activePaxelOfferIds))
                 .map(allOffers::indexOf)
@@ -533,7 +535,7 @@ public final class ShopkeeperManager {
         List<ShopOfferDefinition> unlockedPaxels = new ArrayList<>();
         for (int index = allOffers.size() - 1; index >= 0; index--) {
             ShopOfferDefinition offer = allOffers.get(index);
-            if (!isPaxelOffer(offer) || offer.requiredLevel() > playerLevel) {
+            if (!isPaxelOffer(offer) || offer.minLevel() > playerLevel || playerLevel > offer.maxLevel()) {
                 continue;
             }
             unlockedPaxels.add(offer);
@@ -677,7 +679,9 @@ public final class ShopkeeperManager {
     }
 
     private static int applyGatewayCoinMultiplier(GatewayEntity gate, int amount) {
-        return Math.max(0, (int) Math.round(amount * GatewayForgeService.getGatewayCoinRewardMultiplier(gate.getGateway())));
+        int scaled = (int) Math.round(amount * GatewayForgeService.getGatewayCoinRewardMultiplier(gate.getGateway()));
+        int withFlatBonus = scaled + GatewayForgeService.getGatewayFlatCoinBonus(gate.getGateway());
+        return Math.max(0, withFlatBonus);
     }
 
     private static String formatElapsedTime(int ticks) {

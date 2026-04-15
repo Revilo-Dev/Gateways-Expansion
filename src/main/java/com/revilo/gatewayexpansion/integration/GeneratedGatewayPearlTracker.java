@@ -3,6 +3,7 @@ package com.revilo.gatewayexpansion.integration;
 import com.revilo.gatewayexpansion.gateway.builder.GatewayForgeService;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -27,8 +28,15 @@ public final class GeneratedGatewayPearlTracker {
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             GatewayForgeService.restorePersistedGateways(player.serverLevel());
-            restoreFromInventory(player);
+            restoreFromPlayerStorage(player);
             GatewayForgeService.syncGatewayRegistry(player);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            restoreFromPlayerStorage(player);
         }
     }
 
@@ -37,6 +45,23 @@ public final class GeneratedGatewayPearlTracker {
         if (event.getLevel() instanceof ServerLevel level && level == level.getServer().overworld()) {
             GatewayForgeService.restorePersistedGateways(level);
         }
+    }
+
+    @SubscribeEvent
+    public static void onLevelSave(LevelEvent.Save event) {
+        if (!(event.getLevel() instanceof ServerLevel level) || level != level.getServer().overworld()) {
+            return;
+        }
+
+        for (ServerPlayer player : level.getServer().getPlayerList().getPlayers()) {
+            restoreFromPlayerStorage(player);
+        }
+    }
+
+    private static boolean restoreFromPlayerStorage(ServerPlayer player) {
+        boolean restored = restoreFromInventory(player);
+        restored |= restoreFromContainer(player, player.getEnderChestInventory());
+        return restored;
     }
 
     private static boolean restoreFromInventory(ServerPlayer player) {
@@ -49,6 +74,14 @@ public final class GeneratedGatewayPearlTracker {
         }
         for (ItemStack stack : player.getInventory().offhand) {
             restored |= GatewayForgeService.restoreGatewayFromPearl(stack, player.serverLevel());
+        }
+        return restored;
+    }
+
+    private static boolean restoreFromContainer(ServerPlayer player, Container container) {
+        boolean restored = false;
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            restored |= GatewayForgeService.restoreGatewayFromPearl(container.getItem(slot), player.serverLevel());
         }
         return restored;
     }

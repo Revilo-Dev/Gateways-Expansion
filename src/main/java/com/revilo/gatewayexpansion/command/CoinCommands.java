@@ -74,7 +74,13 @@ public final class CoinCommands {
                         .then(Commands.argument("count", IntegerArgumentType.integer(1))
                                 .executes(context -> withdrawCoins(
                                         context.getSource(),
-                                        IntegerArgumentType.getInteger(context, "count"))))));
+                                        IntegerArgumentType.getInteger(context, "count")))))
+                .then(Commands.literal("givecoin")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.argument("value", IntegerArgumentType.integer(1))
+                                .executes(context -> giveCoin(
+                                        context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "value"))))));
 
         dispatcher.register(Commands.literal("coin")
                 .requires(source -> source.hasPermission(2))
@@ -165,6 +171,13 @@ public final class CoinCommands {
         giveCoinsAsItems(player, amount);
         source.sendSuccess(() -> Component.translatable("command.gatewayexpansion.coins.withdraw", amount), false);
         return amount;
+    }
+
+    private static int giveCoin(CommandSourceStack source, int value) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        giveCoinsAsItems(player, value);
+        source.sendSuccess(() -> Component.literal("Granted 1 mythic coin worth " + value + "."), false);
+        return value;
     }
 
     private static void giveCoinsAsItems(ServerPlayer player, int amount) {

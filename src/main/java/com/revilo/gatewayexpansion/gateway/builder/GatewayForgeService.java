@@ -41,6 +41,9 @@ import dev.shadowsoffire.gateways.gate.normal.NormalGateway;
 import dev.shadowsoffire.gateways.item.GatePearlItem;
 import dev.shadowsoffire.placebo.reload.DynamicRegistry;
 import dev.shadowsoffire.placebo.reload.ReloadListenerPayloads;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -50,6 +53,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -83,6 +88,7 @@ public final class GatewayForgeService {
     private static final String ROOT_KEY = GatewayExpansion.MOD_ID;
     private static final String GATEWAY_ID_KEY = "gateway_id";
     private static final String GATEWAY_JSON_KEY = "gateway_json";
+    private static final String GATEWAY_JSON_COMPRESSED_KEY = "gateway_json_gzip";
     private static final String DIFFICULTY_KEY = "difficulty";
     private static final String THEME_KEY = "theme";
     private static final String LEVEL_KEY = "level";
@@ -91,15 +97,19 @@ public final class GatewayForgeService {
     private static final String SUMMARY_KEY = "summary";
     private static final String DISPLAY_NAME_KEY = "display_name";
     private static final String TIER_KEY = "tier";
+    private static final String FLAT_COIN_BONUS_KEY = "flat_coin_bonus";
     private static final String COIN_REWARD_MULTIPLIER_KEY = "coin_reward_multiplier";
     private static final String LEVEL_XP_MULTIPLIER_KEY = "level_xp_multiplier";
     private static final String EXPERIENCE_REWARD_MULTIPLIER_KEY = "experience_reward_multiplier";
+    private static final String THORNS_DAMAGE_KEY = "thorns_damage";
     private static final Map<ResourceLocation, String> GENERATED_GATEWAY_NAMES = new HashMap<>();
     private static final Map<ResourceLocation, Integer> GENERATED_GATEWAY_TIERS = new HashMap<>();
     private static final Map<ResourceLocation, Integer> GENERATED_GATEWAY_LEVELS = new HashMap<>();
+    private static final Map<ResourceLocation, Integer> GENERATED_GATEWAY_FLAT_COIN_BONUSES = new HashMap<>();
     private static final Map<ResourceLocation, Double> GENERATED_GATEWAY_COIN_MULTIPLIERS = new HashMap<>();
     private static final Map<ResourceLocation, Double> GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS = new HashMap<>();
     private static final Map<ResourceLocation, Double> GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS = new HashMap<>();
+    private static final Map<ResourceLocation, Double> GENERATED_GATEWAY_THORNS_DAMAGE = new HashMap<>();
     private static final ItemStack[] LEATHER_ARMOR_SET = createArmorSet(Items.LEATHER_BOOTS, Items.LEATHER_LEGGINGS, Items.LEATHER_CHESTPLATE, Items.LEATHER_HELMET);
     private static final ItemStack[] CHAINMAIL_ARMOR_SET = createArmorSet(Items.CHAINMAIL_BOOTS, Items.CHAINMAIL_LEGGINGS, Items.CHAINMAIL_CHESTPLATE, Items.CHAINMAIL_HELMET);
     private static final ItemStack[] IRON_ARMOR_SET = createArmorSet(Items.IRON_BOOTS, Items.IRON_LEGGINGS, Items.IRON_CHESTPLATE, Items.IRON_HELMET);
@@ -194,8 +204,11 @@ public final class GatewayForgeService {
         GENERATED_GATEWAY_NAMES.put(result.gatewayId(), result.name());
         GENERATED_GATEWAY_TIERS.put(result.gatewayId(), result.crystalTier());
         GENERATED_GATEWAY_LEVELS.put(result.gatewayId(), result.crystalLevel());
+        GENERATED_GATEWAY_FLAT_COIN_BONUSES.put(result.gatewayId(), result.flatCoinBonus());
         GENERATED_GATEWAY_COIN_MULTIPLIERS.put(result.gatewayId(), result.coinRewardMultiplier());
         GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.put(result.gatewayId(), result.levelXpMultiplier());
+        GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.put(result.gatewayId(), result.experienceRewardMultiplier());
+        GENERATED_GATEWAY_THORNS_DAMAGE.put(result.gatewayId(), result.thornsDamage());
         persistGeneratedGateway(player.serverLevel(), result);
         syncGatewayRegistry(player);
 
@@ -219,35 +232,112 @@ public final class GatewayForgeService {
         }
 
         ResourceLocation gatewayId = ResourceLocation.parse(root.getString(GATEWAY_ID_KEY));
-        if (!root.contains(GATEWAY_JSON_KEY)) {
+        if (!containsGatewayJson(root)) {
             if (serverLevel != null) {
                 GeneratedGatewayStorage.StoredGateway stored = GeneratedGatewayStorage.get(serverLevel).entries().get(gatewayId);
                 if (stored != null && stored.json() != null && !stored.json().isBlank()) {
+                    writeGatewayJsonToPearl(stack, stored.json());
                     restoreGeneratedGateway(
                             gatewayId,
                             stored.json(),
                             stored.displayName(),
                             stored.crystalTier(),
                             stored.crystalLevel(),
+                            stored.flatCoinBonus(),
                             stored.coinRewardMultiplier(),
                             stored.levelXpMultiplier(),
-                            stored.experienceRewardMultiplier());
+                            stored.experienceRewardMultiplier(),
+                            stored.thornsDamage());
                 }
             }
             return bindPearlIfResolved(stack, root, gatewayId);
         }
         int crystalLevel = root.contains(LEVEL_KEY) ? root.getInt(LEVEL_KEY) : 0;
         int crystalTier = root.contains(TIER_KEY) ? root.getInt(TIER_KEY) : inferCrystalTierFromLevel(crystalLevel);
+        int flatCoinBonus = root.contains(FLAT_COIN_BONUS_KEY) ? root.getInt(FLAT_COIN_BONUS_KEY) : 0;
         double coinRewardMultiplier = root.contains(COIN_REWARD_MULTIPLIER_KEY) ? root.getDouble(COIN_REWARD_MULTIPLIER_KEY) : 1.0D;
         double levelXpMultiplier = root.contains(LEVEL_XP_MULTIPLIER_KEY) ? root.getDouble(LEVEL_XP_MULTIPLIER_KEY) : 1.0D;
         double experienceRewardMultiplier = root.contains(EXPERIENCE_REWARD_MULTIPLIER_KEY) ? root.getDouble(EXPERIENCE_REWARD_MULTIPLIER_KEY) : 1.0D;
+        double thornsDamage = root.contains(THORNS_DAMAGE_KEY) ? root.getDouble(THORNS_DAMAGE_KEY) : 0.0D;
         String displayName = root.contains(DISPLAY_NAME_KEY) ? root.getString(DISPLAY_NAME_KEY) : "Lv " + crystalLevel + " Gateway";
-        String gatewayJson = root.getString(GATEWAY_JSON_KEY);
-        if (serverLevel != null) {
-            persistGeneratedGateway(serverLevel, gatewayId, gatewayJson, displayName, crystalTier, crystalLevel, coinRewardMultiplier, levelXpMultiplier, experienceRewardMultiplier);
+        String gatewayJson = readGatewayJson(root);
+        if (gatewayJson == null || gatewayJson.isBlank()) {
+            return false;
         }
-        restoreGeneratedGateway(gatewayId, gatewayJson, displayName, crystalTier, crystalLevel, coinRewardMultiplier, levelXpMultiplier, experienceRewardMultiplier);
+        if (serverLevel != null) {
+            persistGeneratedGateway(serverLevel, gatewayId, gatewayJson, displayName, crystalTier, crystalLevel, flatCoinBonus, coinRewardMultiplier, levelXpMultiplier,
+                    experienceRewardMultiplier, thornsDamage);
+        }
+        restoreGeneratedGateway(gatewayId, gatewayJson, displayName, crystalTier, crystalLevel, flatCoinBonus, coinRewardMultiplier, levelXpMultiplier,
+                experienceRewardMultiplier, thornsDamage);
         return bindPearlIfResolved(stack, root, gatewayId);
+    }
+
+    private static void writeGatewayJsonToPearl(ItemStack stack, String gatewayJson) {
+        if (gatewayJson == null || gatewayJson.isBlank()) {
+            return;
+        }
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
+            CompoundTag root = tag.getCompound(ROOT_KEY);
+            writeGatewayJson(root, gatewayJson);
+            tag.put(ROOT_KEY, root);
+        });
+    }
+
+    private static boolean containsGatewayJson(CompoundTag root) {
+        return root.contains(GATEWAY_JSON_COMPRESSED_KEY) || root.contains(GATEWAY_JSON_KEY);
+    }
+
+    private static void writeGatewayJson(CompoundTag root, String gatewayJson) {
+        root.remove(GATEWAY_JSON_COMPRESSED_KEY);
+        root.remove(GATEWAY_JSON_KEY);
+
+        byte[] compressed = compressGatewayJson(gatewayJson);
+        if (compressed != null && compressed.length > 0) {
+            root.putByteArray(GATEWAY_JSON_COMPRESSED_KEY, compressed);
+        } else if (gatewayJson != null) {
+            root.putString(GATEWAY_JSON_KEY, gatewayJson);
+        }
+    }
+
+    private static String readGatewayJson(CompoundTag root) {
+        if (root.contains(GATEWAY_JSON_COMPRESSED_KEY)) {
+            String decompressed = decompressGatewayJson(root.getByteArray(GATEWAY_JSON_COMPRESSED_KEY));
+            if (decompressed != null && !decompressed.isBlank()) {
+                return decompressed;
+            }
+        }
+        return root.contains(GATEWAY_JSON_KEY) ? root.getString(GATEWAY_JSON_KEY) : null;
+    }
+
+    private static byte[] compressGatewayJson(String gatewayJson) {
+        if (gatewayJson == null || gatewayJson.isBlank()) {
+            return null;
+        }
+
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            try (GZIPOutputStream gzip = new GZIPOutputStream(output)) {
+                gzip.write(gatewayJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            return output.toByteArray();
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private static String decompressGatewayJson(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return null;
+        }
+
+        try (GZIPInputStream gzip = new GZIPInputStream(new ByteArrayInputStream(bytes));
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            gzip.transferTo(output);
+            return output.toString(java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
+            return null;
+        }
     }
 
     public static void syncGatewayRegistry(ServerPlayer player) {
@@ -518,9 +608,11 @@ public final class GatewayForgeService {
                 state.waveCount(),
                 state.difficultyEstimate,
                 state.rewardMultiplier,
+                state.flatCoinBonus,
                 state.coinRewardMultiplier,
                 state.levelXpMultiplier,
                 state.experienceRewardMultiplier,
+                state.thornsDamage,
                 state.rarityRewardMultiplier,
                 Math.max(0, state.rareRewardRolls),
                 Math.max(1, state.finalRewardRolls),
@@ -1348,6 +1440,7 @@ public final class GatewayForgeService {
         CustomData.update(DataComponents.CUSTOM_DATA, pearl, tag -> {
             CompoundTag root = tag.getCompound(ROOT_KEY);
             root.putString(GATEWAY_ID_KEY, result.gatewayId().toString());
+            writeGatewayJson(root, result.gatewayJson());
             root.putString(DISPLAY_NAME_KEY, result.name());
             root.putString(DIFFICULTY_KEY, difficultyLabel(result.difficultyEstimate(), result.crystalLevel()));
             root.putString(THEME_KEY, result.theme().name());
@@ -1355,9 +1448,11 @@ public final class GatewayForgeService {
             root.putInt(TIER_KEY, result.crystalTier());
             root.putInt(PLAYER_LEVEL_KEY, result.playerLevel());
             root.putBoolean(OVERLEVELED_KEY, result.overleveled());
+            root.putInt(FLAT_COIN_BONUS_KEY, result.flatCoinBonus());
             root.putDouble(COIN_REWARD_MULTIPLIER_KEY, result.coinRewardMultiplier());
             root.putDouble(LEVEL_XP_MULTIPLIER_KEY, result.levelXpMultiplier());
             root.putDouble(EXPERIENCE_REWARD_MULTIPLIER_KEY, result.experienceRewardMultiplier());
+            root.putDouble(THORNS_DAMAGE_KEY, result.thornsDamage());
             tag.put(ROOT_KEY, root);
         });
         return pearl;
@@ -1375,9 +1470,11 @@ public final class GatewayForgeService {
                     entry.getValue().displayName(),
                     entry.getValue().crystalTier(),
                     entry.getValue().crystalLevel(),
+                    entry.getValue().flatCoinBonus(),
                     entry.getValue().coinRewardMultiplier(),
                     entry.getValue().levelXpMultiplier(),
-                    entry.getValue().experienceRewardMultiplier());
+                    entry.getValue().experienceRewardMultiplier(),
+                    entry.getValue().thornsDamage());
         }
     }
 
@@ -1411,6 +1508,14 @@ public final class GatewayForgeService {
         return GENERATED_GATEWAY_LEVELS.getOrDefault(id, 0);
     }
 
+    public static int getGatewayFlatCoinBonus(Gateway gateway) {
+        ResourceLocation id = GatewayRegistry.INSTANCE.getKey(gateway);
+        if (id == null) {
+            return 0;
+        }
+        return GENERATED_GATEWAY_FLAT_COIN_BONUSES.getOrDefault(id, 0);
+    }
+
     public static double getGatewayCoinRewardMultiplier(Gateway gateway) {
         ResourceLocation id = GatewayRegistry.INSTANCE.getKey(gateway);
         if (id == null) {
@@ -1433,6 +1538,14 @@ public final class GatewayForgeService {
             return 1.0D;
         }
         return GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.getOrDefault(id, 1.0D);
+    }
+
+    public static double getGatewayThornsDamage(Gateway gateway) {
+        ResourceLocation id = GatewayRegistry.INSTANCE.getKey(gateway);
+        if (id == null) {
+            return 0.0D;
+        }
+        return GENERATED_GATEWAY_THORNS_DAMAGE.getOrDefault(id, 0.0D);
     }
 
     private static void consumeInputs(Container container) {
@@ -1469,14 +1582,17 @@ public final class GatewayForgeService {
         return GSON.toJson(element);
     }
 
-    private static boolean restoreGeneratedGateway(ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier, int crystalLevel, double coinRewardMultiplier, double levelXpMultiplier, double experienceRewardMultiplier) {
+    private static boolean restoreGeneratedGateway(ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier, int crystalLevel, int flatCoinBonus,
+            double coinRewardMultiplier, double levelXpMultiplier, double experienceRewardMultiplier, double thornsDamage) {
         if (GatewayRegistry.INSTANCE.getValue(gatewayId) != null) {
             GENERATED_GATEWAY_NAMES.putIfAbsent(gatewayId, displayName);
             GENERATED_GATEWAY_TIERS.putIfAbsent(gatewayId, crystalTier);
             GENERATED_GATEWAY_LEVELS.putIfAbsent(gatewayId, crystalLevel);
+            GENERATED_GATEWAY_FLAT_COIN_BONUSES.putIfAbsent(gatewayId, flatCoinBonus);
             GENERATED_GATEWAY_COIN_MULTIPLIERS.putIfAbsent(gatewayId, coinRewardMultiplier);
             GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.putIfAbsent(gatewayId, levelXpMultiplier);
             GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.putIfAbsent(gatewayId, experienceRewardMultiplier);
+            GENERATED_GATEWAY_THORNS_DAMAGE.putIfAbsent(gatewayId, thornsDamage);
             return false;
         }
 
@@ -1497,9 +1613,11 @@ public final class GatewayForgeService {
             GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
             GENERATED_GATEWAY_TIERS.put(gatewayId, crystalTier);
             GENERATED_GATEWAY_LEVELS.put(gatewayId, crystalLevel);
+            GENERATED_GATEWAY_FLAT_COIN_BONUSES.put(gatewayId, flatCoinBonus);
             GENERATED_GATEWAY_COIN_MULTIPLIERS.put(gatewayId, coinRewardMultiplier);
             GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.put(gatewayId, levelXpMultiplier);
             GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.put(gatewayId, experienceRewardMultiplier);
+            GENERATED_GATEWAY_THORNS_DAMAGE.put(gatewayId, thornsDamage);
             return true;
         } catch (Exception exception) {
             GatewayExpansion.LOGGER.warn("Skipping persisted generated gateway {} because it could not be restored.", gatewayId, exception);
@@ -1523,6 +1641,9 @@ public final class GatewayForgeService {
         String displayName = root.contains(DISPLAY_NAME_KEY)
                 ? root.getString(DISPLAY_NAME_KEY)
                 : GENERATED_GATEWAY_NAMES.getOrDefault(gatewayId, "Lv " + crystalLevel + " Gateway");
+        int flatCoinBonus = root.contains(FLAT_COIN_BONUS_KEY)
+                ? root.getInt(FLAT_COIN_BONUS_KEY)
+                : GENERATED_GATEWAY_FLAT_COIN_BONUSES.getOrDefault(gatewayId, 0);
         double coinRewardMultiplier = root.contains(COIN_REWARD_MULTIPLIER_KEY)
                 ? root.getDouble(COIN_REWARD_MULTIPLIER_KEY)
                 : GENERATED_GATEWAY_COIN_MULTIPLIERS.getOrDefault(gatewayId, 1.0D);
@@ -1532,13 +1653,18 @@ public final class GatewayForgeService {
         double experienceRewardMultiplier = root.contains(EXPERIENCE_REWARD_MULTIPLIER_KEY)
                 ? root.getDouble(EXPERIENCE_REWARD_MULTIPLIER_KEY)
                 : GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.getOrDefault(gatewayId, 1.0D);
+        double thornsDamage = root.contains(THORNS_DAMAGE_KEY)
+                ? root.getDouble(THORNS_DAMAGE_KEY)
+                : GENERATED_GATEWAY_THORNS_DAMAGE.getOrDefault(gatewayId, 0.0D);
 
         GENERATED_GATEWAY_NAMES.put(gatewayId, displayName);
         GENERATED_GATEWAY_TIERS.put(gatewayId, crystalTier);
         GENERATED_GATEWAY_LEVELS.put(gatewayId, crystalLevel);
+        GENERATED_GATEWAY_FLAT_COIN_BONUSES.put(gatewayId, flatCoinBonus);
         GENERATED_GATEWAY_COIN_MULTIPLIERS.put(gatewayId, coinRewardMultiplier);
         GENERATED_GATEWAY_LEVEL_XP_MULTIPLIERS.put(gatewayId, levelXpMultiplier);
         GENERATED_GATEWAY_EXPERIENCE_MULTIPLIERS.put(gatewayId, experienceRewardMultiplier);
+        GENERATED_GATEWAY_THORNS_DAMAGE.put(gatewayId, thornsDamage);
     }
 
     private static void persistGeneratedGateway(ServerLevel level, GatewayBuildResult result) {
@@ -1549,13 +1675,17 @@ public final class GatewayForgeService {
                 result.name(),
                 result.crystalTier(),
                 result.crystalLevel(),
+                result.flatCoinBonus(),
                 result.coinRewardMultiplier(),
                 result.levelXpMultiplier(),
-                result.experienceRewardMultiplier());
+                result.experienceRewardMultiplier(),
+                result.thornsDamage());
     }
 
-    private static void persistGeneratedGateway(ServerLevel level, ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier, int crystalLevel, double coinRewardMultiplier, double levelXpMultiplier, double experienceRewardMultiplier) {
-        GeneratedGatewayStorage.get(level).put(gatewayId, gatewayJson, displayName, crystalTier, crystalLevel, coinRewardMultiplier, levelXpMultiplier, experienceRewardMultiplier);
+    private static void persistGeneratedGateway(ServerLevel level, ResourceLocation gatewayId, String gatewayJson, String displayName, int crystalTier, int crystalLevel,
+            int flatCoinBonus, double coinRewardMultiplier, double levelXpMultiplier, double experienceRewardMultiplier, double thornsDamage) {
+        GeneratedGatewayStorage.get(level).put(gatewayId, gatewayJson, displayName, crystalTier, crystalLevel, flatCoinBonus, coinRewardMultiplier, levelXpMultiplier,
+                experienceRewardMultiplier, thornsDamage);
     }
 
     private static int inferCrystalTierFromLevel(int crystalLevel) {
@@ -1626,10 +1756,12 @@ public final class GatewayForgeService {
             case WAVE_TIME_DELTA -> state.waveTimeDelta += (int) Math.round(effect.value());
             case SETUP_TIME_DELTA -> state.setupTimeDelta += (int) Math.round(effect.value());
             case MOB_SPAWN_MULTIPLIER -> state.mobSpawnMultiplier += effect.value();
+            case BONUS_COINS_FLAT -> state.flatCoinBonus += Math.max(0, (int) Math.round(effect.value()));
             case REWARD_MULTIPLIER -> state.rewardMultiplier += effect.value();
             case COIN_REWARD_MULTIPLIER -> state.coinRewardMultiplier *= Math.max(0.05D, effect.value());
             case LEVEL_XP_MULTIPLIER -> state.levelXpMultiplier *= Math.max(0.05D, effect.value());
             case EXPERIENCE_REWARD_MULTIPLIER -> state.experienceRewardMultiplier *= Math.max(0.05D, effect.value());
+            case THORNS_DAMAGE -> state.thornsDamage += Math.max(0.0D, effect.value());
             case RARITY_REWARD_MULTIPLIER -> state.rarityRewardMultiplier *= Math.max(0.05D, effect.value());
             case EXTRA_RARE_REWARD_ROLLS -> {
                 int rareBonus = Math.max(1, (int) Math.round(effect.value()));
@@ -1908,9 +2040,11 @@ public final class GatewayForgeService {
         private int setupTimeDelta;
         private double mobSpawnMultiplier;
         private double rewardMultiplier = 1.0D;
+        private int flatCoinBonus;
         private double coinRewardMultiplier = 1.0D;
         private double levelXpMultiplier = 1.0D;
         private double experienceRewardMultiplier = 1.0D;
+        private double thornsDamage;
         private double rarityRewardMultiplier = 1.0D;
         private int rareRewardRolls = 1;
         private int finalRewardRolls = 1;
@@ -1950,9 +2084,11 @@ public final class GatewayForgeService {
             this.mobSpawnMultiplier = Mth.clamp(this.mobSpawnMultiplier, 0.0D, 1.5D);
             this.eliteChance = Mth.clamp(this.eliteChance, 0.02F, 0.60F);
             this.rewardMultiplier = Math.max(0.40D, this.rewardMultiplier);
+            this.flatCoinBonus = Math.max(0, this.flatCoinBonus);
             this.coinRewardMultiplier = Mth.clamp(this.coinRewardMultiplier, 0.10D, 25.0D);
             this.levelXpMultiplier = Mth.clamp(this.levelXpMultiplier, 0.10D, 25.0D);
             this.experienceRewardMultiplier = Mth.clamp(this.experienceRewardMultiplier, 0.10D, 25.0D);
+            this.thornsDamage = Mth.clamp(this.thornsDamage, 0.0D, 20.0D);
             this.rarityRewardMultiplier = Mth.clamp(this.rarityRewardMultiplier, 0.10D, 25.0D);
             this.entityLootRolls = Math.max(0, this.entityLootRolls);
             this.finalRewardRolls = Math.max(0, this.finalRewardRolls);

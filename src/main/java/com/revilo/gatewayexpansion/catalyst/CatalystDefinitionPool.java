@@ -55,7 +55,7 @@ public final class CatalystDefinitionPool {
     private static ForgeEffect rollPositive(RandomSource random, int level) {
         int roll = random.nextInt(9);
         return switch (roll) {
-            case 0 -> rollRareRewards(level);
+            case 0 -> rollRareRewards(random, level);
             case 1 -> rollPositiveSeconds(random, level);
             case 2 -> rollFlatCoinBoost(random, level);
             case 3 -> rollPercentMultiplier(ForgeEffectType.REWARD_MULTIPLIER, random, level, "item quantity");
@@ -68,12 +68,18 @@ public final class CatalystDefinitionPool {
     }
 
     private static ForgeEffect rollNegative(RandomSource random, ForgeEffect positive, int level) {
+        if (positive.type() == ForgeEffectType.EXTRA_RARE_REWARD_ROLLS
+                || positive.type() == ForgeEffectType.EXTRA_FINAL_REWARD_ROLLS
+                || positive.type() == ForgeEffectType.EXTRA_LEGENDARY_REWARD_ROLLS) {
+            return rewardTradeoffNegative(random, positive, level);
+        }
+
         boolean positiveIsPercentType = isPercentPositiveType(positive.type());
         if (positiveIsPercentType && random.nextFloat() < 0.45F) {
             return crossTaxNegative(random, positive, level);
         }
 
-        int roll = random.nextInt(9);
+        int roll = random.nextInt(10);
         return switch (roll) {
             case 0 -> negativeSeconds(random, positive, level);
             case 1 -> percentPenalty(ForgeEffectType.MOB_SPAWN_MULTIPLIER, random, level, "mob spawns");
@@ -83,16 +89,18 @@ public final class CatalystDefinitionPool {
             case 5 -> packPenalty(ForgeEffectType.HOARD_PACKS, random, level, "hoard mobs");
             case 6 -> packPenalty(ForgeEffectType.ARCHER_PACKS, random, level, "archers");
             case 7 -> percentPenalty(ForgeEffectType.HEALTH_MULTIPLIER, random, level, "mob health");
+            case 8 -> thornsPenalty(random, level);
             default -> random.nextBoolean() ? ForgeEffect.of(ForgeEffectType.SETUP_TIME_DELTA, -40, "-2s cooldown") : wavePenalty(random, level);
         };
     }
 
-    private static ForgeEffect rollRareRewards(int level) {
-        int rareRolls = rareRewardRollBonus(level);
-        int epicRolls = epicRewardRollBonus(level);
-        String description = "+" + rareRolls + " rare rewards, +" + epicRolls + " epic rewards"
-                + (level >= 40 ? ", +1 legendary reward" : "");
-        return ForgeEffect.dual(ForgeEffectType.EXTRA_RARE_REWARD_ROLLS, rareRolls, epicRolls, description);
+    private static ForgeEffect rollRareRewards(RandomSource random, int level) {
+        RareEpicRoll roll = rollRareEpicRewards(random, level);
+        return ForgeEffect.dual(
+                ForgeEffectType.EXTRA_RARE_REWARD_ROLLS,
+                roll.rareRolls(),
+                roll.epicRolls(),
+                rareEpicDescription(roll.rareRolls(), roll.epicRolls()));
     }
 
     private static ForgeEffect rollPositiveSeconds(RandomSource random, int level) {
@@ -103,11 +111,30 @@ public final class CatalystDefinitionPool {
     }
 
     private static ForgeEffect rollFlatCoinBoost(RandomSource random, int level) {
-        int minCoins = 20 + Math.max(0, level) * 2;
-        int maxCoins = 55 + Math.max(0, level) * 4;
+        int minCoins = 100;
+        int maxCoins;
+        if (level >= 90) {
+            maxCoins = 1000;
+        } else if (level >= 70) {
+            maxCoins = 850;
+        } else if (level >= 50) {
+            maxCoins = 700;
+        } else if (level >= 30) {
+            maxCoins = 550;
+        } else if (level >= 10) {
+            maxCoins = 350;
+        } else {
+            maxCoins = 200;
+        }
         int coins = random.nextInt(minCoins, Math.max(minCoins + 1, maxCoins + 1));
-        double asMultiplier = 1.0D + Math.min(2.5D, coins / 100.0D);
-        return ForgeEffect.of(ForgeEffectType.COIN_REWARD_MULTIPLIER, asMultiplier, "+" + coins + " coins");
+        return ForgeEffect.of(ForgeEffectType.BONUS_COINS_FLAT, coins, "+" + coins + " coins");
+    }
+
+    private static ForgeEffect thornsPenalty(RandomSource random, int level) {
+        double min = level >= 50 ? 3.0D : 1.0D;
+        double max = level >= 90 ? 8.0D : (level >= 50 ? 6.0D : 4.0D);
+        double damage = Math.round((min + random.nextDouble() * (max - min)) * 10.0D) / 10.0D;
+        return ForgeEffect.of(ForgeEffectType.THORNS_DAMAGE, damage, "Enemies have thorns (" + trimPercent(damage) + " dmg)");
     }
 
     private static ForgeEffect rollPercentMultiplier(ForgeEffectType type, RandomSource random, int level, String label) {
@@ -144,6 +171,31 @@ public final class CatalystDefinitionPool {
         int maxWavePenalty = Math.max(1, 1 + Math.max(0, level) / 20);
         int waves = random.nextInt(1, maxWavePenalty + 1);
         return ForgeEffect.of(ForgeEffectType.BONUS_WAVES, waves, "+" + waves + " wave");
+    }
+
+    private static ForgeEffect rewardTradeoffNegative(RandomSource random, ForgeEffect positive, int level) {
+        boolean lowLevel = level < 40;
+        if (lowLevel) {
+            if (random.nextBoolean()) {
+                int seconds = random.nextInt(2, 6);
+                return ForgeEffect.of(ForgeEffectType.WAVE_TIME_DELTA, -seconds * 20.0D, "-" + seconds + "s seconds");
+            }
+            double spawnPenalty = Math.round((0.08D + random.nextDouble() * 0.12D) * 100.0D) / 100.0D;
+            return ForgeEffect.of(ForgeEffectType.MOB_SPAWN_MULTIPLIER, spawnPenalty, "+" + trimPercent(spawnPenalty * 100.0D) + "% mob spawns");
+        }
+
+        if (positive.type() == ForgeEffectType.EXTRA_LEGENDARY_REWARD_ROLLS) {
+            int waves = random.nextInt(1, 3);
+            return ForgeEffect.of(ForgeEffectType.BONUS_WAVES, waves, "+" + waves + " wave");
+        }
+
+        if (random.nextFloat() < 0.45F) {
+            double damagePenalty = Math.round((0.16D + random.nextDouble() * 0.20D) * 100.0D) / 100.0D;
+            return ForgeEffect.of(ForgeEffectType.DAMAGE_MULTIPLIER, damagePenalty, "+" + trimPercent(damagePenalty * 100.0D) + "% mob damage");
+        }
+
+        int seconds = random.nextInt(5, 11);
+        return ForgeEffect.of(ForgeEffectType.WAVE_TIME_DELTA, -seconds * 20.0D, "-" + seconds + "s seconds");
     }
 
     private static ForgeEffect crossTaxNegative(RandomSource random, ForgeEffect positive, int level) {
@@ -196,17 +248,37 @@ public final class CatalystDefinitionPool {
     }
 
     private static int rareRewardRollBonus(int level) {
-        if (level >= 90) return 5;
-        if (level >= 70) return 4;
-        if (level >= 50) return 3;
-        if (level >= 20) return 2;
-        return 1;
+        if (level >= 90) return 6;
+        if (level >= 70) return 5;
+        if (level >= 50) return 4;
+        if (level >= 20) return 3;
+        return 2;
     }
 
     private static int epicRewardRollBonus(int level) {
-        if (level >= 90) return 3;
+        if (level >= 90) return 4;
+        if (level >= 70) return 3;
         if (level >= 50) return 2;
         return 1;
+    }
+
+    private static RareEpicRoll rollRareEpicRewards(RandomSource random, int level) {
+        int rareMax = rareRewardRollBonus(level);
+        int epicMax = epicRewardRollBonus(level);
+        int rareMin = level >= 50 ? 2 : 1;
+        int rare = random.nextInt(rareMin, rareMax + 1);
+        int epic = random.nextInt(0, epicMax + 1);
+        if (rare <= 1 && epic <= 0) {
+            epic = 1;
+        }
+        return new RareEpicRoll(rare, epic);
+    }
+
+    private static String rareEpicDescription(int rareRolls, int epicRolls) {
+        if (epicRolls <= 0) {
+            return "+" + rareRolls + " rare rewards";
+        }
+        return "+" + rareRolls + " rare rewards, +" + epicRolls + " epic rewards";
     }
 
     private static double rollRewardMultiplier(RandomSource random, int level) {
@@ -248,5 +320,8 @@ public final class CatalystDefinitionPool {
 
     private static String trimPercent(double value) {
         return String.format(java.util.Locale.ROOT, "%.0f", value);
+    }
+
+    private record RareEpicRoll(int rareRolls, int epicRolls) {
     }
 }

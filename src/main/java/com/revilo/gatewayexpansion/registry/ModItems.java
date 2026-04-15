@@ -1,6 +1,7 @@
 package com.revilo.gatewayexpansion.registry;
 
 import com.revilo.gatewayexpansion.GatewayExpansion;
+import com.revilo.gatewayexpansion.item.ArcaneAppleItem;
 import com.revilo.gatewayexpansion.catalyst.CatalystArchetype;
 import com.revilo.gatewayexpansion.item.AugmentItem;
 import com.revilo.gatewayexpansion.item.CatalystItem;
@@ -20,6 +21,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -33,6 +35,7 @@ public final class ModItems {
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(GatewayExpansion.MOD_ID);
     private static final List<ResourceLocation> SWORD_SLOT_ICONS = List.of(ResourceLocation.withDefaultNamespace("item/empty_slot_sword"));
     private static final List<ResourceLocation> INGOT_SLOT_ICONS = List.of(ResourceLocation.withDefaultNamespace("item/empty_slot_ingot"));
+    private static final FoodProperties ARCANE_APPLE_FOOD = new FoodProperties.Builder().nutrition(4).saturationModifier(0.3F).alwaysEdible().build();
 
     public static final DeferredHolder<Item, CrystalItem> TIER_1_CRYSTAL = ITEMS.register("tier_1_crystal",
             () -> new CrystalItem(new CrystalItem.CrystalTier(1, 0, 19), new Item.Properties()));
@@ -110,6 +113,22 @@ public final class ModItems {
             () -> new LootMaterialItem(LootRarity.LEGENDARY, new Item.Properties().stacksTo(64)));
     public static final DeferredHolder<Item, LootMaterialItem> SOLAR_SHARD = ITEMS.register("solar_shard",
             () -> new LootMaterialItem(LootRarity.RARE, new Item.Properties().stacksTo(64).rarity(Rarity.RARE)));
+    public static final DeferredHolder<Item, ArcaneAppleItem> ARCANE_APPLE = ITEMS.register("arcane_apple",
+            () -> new ArcaneAppleItem(
+                    LootRarity.RARE,
+                    new Item.Properties().stacksTo(16).rarity(Rarity.RARE).food(ARCANE_APPLE_FOOD),
+                    ResourceLocation.fromNamespaceAndPath("codex", "ability_power_boost"),
+                    10 * 20,
+                    0,
+                    false));
+    public static final DeferredHolder<Item, ArcaneAppleItem> ENCHANTED_ARCANE_APPLE = ITEMS.register("enchanted_arcane_apple",
+            () -> new ArcaneAppleItem(
+                    LootRarity.EPIC,
+                    new Item.Properties().stacksTo(16).rarity(Rarity.EPIC).food(ARCANE_APPLE_FOOD),
+                    ResourceLocation.fromNamespaceAndPath("codex", "ability_power_boost"),
+                    5 * 20,
+                    2,
+                    true));
     public static final DeferredHolder<Item, LootMaterialItem> PRISMATIC_DIAMOND = ITEMS.register("prismatic_diamond",
             () -> new LootMaterialItem(LootRarity.EPIC, new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)));
     public static final DeferredHolder<Item, LootMaterialItem> LUNARIUM_SCRAP = ITEMS.register("lunarium_scrap",

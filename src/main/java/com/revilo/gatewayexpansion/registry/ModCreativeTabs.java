@@ -62,7 +62,9 @@ public final class ModCreativeTabs {
                         output.accept(ModItems.ASTRITE_SWORD.get());
                         output.accept(ModItems.ASTRITE_PAXEL.get());
                         output.accept(ModItems.PRISMATIC_CORE.get());
-        output.accept(ModItems.SOLAR_SHARD.get());
+                        output.accept(ModItems.SOLAR_SHARD.get());
+                        output.accept(ModItems.ARCANE_APPLE.get());
+                        output.accept(ModItems.ENCHANTED_ARCANE_APPLE.get());
                         output.accept(ModItems.PRISMATIC_DIAMOND.get());
                         output.accept(ModItems.LUNARIUM_SCRAP.get());
                         output.accept(ModItems.LUNARIUM_INGOT.get());
