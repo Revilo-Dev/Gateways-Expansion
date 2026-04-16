@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "gatesofavarice:block/gateway_workbench"
+    }
+  }
+}

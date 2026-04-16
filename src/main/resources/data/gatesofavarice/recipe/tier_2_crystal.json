@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": {
+      "item": "gatesofavarice:grimstone"
+    },
+    "C": {
+      "item": "gatesofavarice:mystic_essence"
+    }
+  },
+  "pattern": [
+    "GGG",
+    "GCG",
+    "GGG"
+  ],
+  "result": {
+    "count": 1,
+    "id": "gatesofavarice:tier_2_crystal"
+  }
+}

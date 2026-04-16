@@ -1,0 +1,39 @@
+package com.revilo.gatesofavarice.workbench;
+
+import com.revilo.gatesofavarice.GatewayExpansion;
+import com.revilo.gatesofavarice.gateway.builder.GatewayForgeService;
+import com.revilo.gatesofavarice.gateway.builder.GatewayPreview;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.player.Player;
+
+public final class GatewayWorkbenchForgeLogic {
+
+    private GatewayWorkbenchForgeLogic() {
+    }
+
+    public static boolean canForge(Player player, Container container) {
+        return GatewayForgeService.canForge(player, container);
+    }
+
+    public static boolean forge(Player player, Container container) {
+        if (!(player instanceof ServerPlayer serverPlayer) || !canForge(player, container)) {
+            return false;
+        }
+
+        try {
+            GatewayForgeService.forge(serverPlayer, container);
+            return true;
+        } catch (Exception ex) {
+            GatewayExpansion.LOGGER.error("Failed to forge gateway pearl for {}", player.getScoreboardName(), ex);
+            player.sendSystemMessage(Component.literal("Gateway forge failed. Check the logs for details.").withStyle(ChatFormatting.RED));
+            return false;
+        }
+    }
+
+    public static GatewayPreview buildPreview(Player player, Container container) {
+        return GatewayForgeService.buildPreview(player, container);
+    }
+}

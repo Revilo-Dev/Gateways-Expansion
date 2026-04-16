@@ -1,0 +1,189 @@
+{
+    "type":  "minecraft:chest",
+    "pools":  [
+                  {
+                      "rolls":  1,
+                      "entries":  [
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:amethyst_shard",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  6.0,
+                                                                              "max":  12.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "gatesofavarice:arcane_essence",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  3.0,
+                                                                              "max":  6.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:ender_pearl",
+                                          "weight":  5,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  1.0,
+                                                                              "max":  3.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:experience_bottle",
+                                          "weight":  4,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  1.0,
+                                                                              "max":  3.0
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:potion",
+                                          "weight":  3,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_potion",
+                                                                "id":  "minecraft:night_vision"
+                                                            }
+                                                        ]
+                                      }
+                                  ]
+                  },
+                  {
+                      "name":  "gatesofavarice:fallback_bonus",
+                      "rolls":  {
+                                    "type":  "minecraft:uniform",
+                                    "min":  0,
+                                    "max":  4
+                                },
+                      "entries":  [
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "gatesofavarice:arcane_essence",
+                                          "weight":  8,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  1,
+                                                                              "max":  3
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:amethyst_shard",
+                                          "weight":  6,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  3,
+                                                                              "max":  6
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:emerald",
+                                          "weight":  5,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  1,
+                                                                              "max":  3
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:experience_bottle",
+                                          "weight":  4,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  1,
+                                                                              "max":  2
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:ender_pearl",
+                                          "weight":  3,
+                                          "functions":  [
+                                                            {
+                                                                "function":  "minecraft:set_count",
+                                                                "count":  {
+                                                                              "type":  "minecraft:uniform",
+                                                                              "min":  1,
+                                                                              "max":  2
+                                                                          },
+                                                                "add":  false
+                                                            }
+                                                        ]
+                                      },
+                                      {
+                                          "type":  "minecraft:item",
+                                          "name":  "minecraft:golden_apple",
+                                          "weight":  1
+                                      }
+                                  ]
+                  }
+              ],
+    "neoforge:conditions":  [
+                                {
+                                    "value":  {
+                                                  "type":  "neoforge:mod_loaded",
+                                                  "modid":  "runic"
+                                              },
+                                    "type":  "neoforge:not"
+                                }
+                            ]
+}

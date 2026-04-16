@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "EEE",
+    "EEE",
+    "EEE"
+  ],
+  "key": {
+    "E": {
+      "item": "gatesofavarice:lunarium_scrap"
+    }
+  },
+  "result": {
+    "id": "gatesofavarice:lunarium_ingot",
+    "count": 1
+  }
+}

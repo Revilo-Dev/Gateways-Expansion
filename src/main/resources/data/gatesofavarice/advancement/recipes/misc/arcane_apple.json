@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_ingredients": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:apple"
+          },
+          {
+            "items": "gatesofavarice:arcane_essence"
+          }
+        ]
+      }
+    },
+    "has_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "gatesofavarice:arcane_apple"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ingredients",
+      "has_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "gatesofavarice:arcane_apple"
+    ]
+  }
+}

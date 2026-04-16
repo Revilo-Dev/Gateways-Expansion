@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "D": {
+      "item": "gatesofavarice:solar_shard"
+    },
+    "C": {
+      "item": "gatesofavarice:dark_essence"
+    }
+  },
+  "pattern": [
+    "DDD",
+    "DCD",
+    "DDD"
+  ],
+  "result": {
+    "count": 1,
+    "id": "gatesofavarice:tier_4_crystal"
+  }
+}

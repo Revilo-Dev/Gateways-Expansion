@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "EEE",
+    "ESE",
+    " S "
+  ],
+  "key": {
+    "E": {
+      "item": "gatesofavarice:elixrite_ingot"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "id": "gatesofavarice:elixrite_paxel",
+    "count": 1
+  }
+}

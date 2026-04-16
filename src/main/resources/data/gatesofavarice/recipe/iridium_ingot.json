@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "MMM",
+    "MMM",
+    "MMM"
+  ],
+  "key": {
+    "M": {
+      "item": "gatesofavarice:iridium_scrap"
+    }
+  },
+  "result": {
+    "id": "gatesofavarice:iridium_ingot",
+    "count": 1
+  }
+}

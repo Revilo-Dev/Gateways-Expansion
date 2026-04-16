@@ -1,0 +1,31 @@
+{
+  "items": {
+    "gatesofavarice:mana_steel_paxel": 3,
+    "gatesofavarice:elixrite_paxel": 4,
+    "gatesofavarice:astrite_paxel": 5,
+    "gatesofavarice:lunarium_paxel": 6,
+    "gatesofavarice:ignite_paxel": 7,
+    "gatesofavarice:iridium_paxel": 8,
+    "gatesofavarice:mythril_paxel": 9,
+    "gatesofavarice:arcanium_paxel": 10,
+    "gatesofavarice:prismatic_steel_paxel": 11,
+    "gatesofavarice:mana_steel_sword": 2,
+    "gatesofavarice:elixrite_sword": 2,
+    "gatesofavarice:astrite_sword": 3,
+    "gatesofavarice:lunarium_sword": 3,
+    "gatesofavarice:ignite_sword": 4,
+    "gatesofavarice:iridium_sword": 4,
+    "gatesofavarice:mythril_sword": 5,
+    "gatesofavarice:arcanium_sword": 5,
+    "gatesofavarice:prismatic_steel_sword": 6,
+    "gatesofavarice:mana_steel_magnet": 2,
+    "gatesofavarice:elixrite_magnet": 2,
+    "gatesofavarice:astrite_magnet": 2,
+    "gatesofavarice:lunarium_magnet": 2,
+    "gatesofavarice:ignite_magnet": 2,
+    "gatesofavarice:iridium_magnet": 2,
+    "gatesofavarice:mythril_magnet": 2,
+    "gatesofavarice:arcanium_magnet": 2,
+    "gatesofavarice:prismatic_steel_magnet": 3
+  }
+}

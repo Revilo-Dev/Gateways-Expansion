@@ -1,0 +1,20 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "gatesofavarice:item/crystal-4"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 2
+      },
+      "model": "gatesofavarice:item/crystal_medium"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 3
+      },
+      "model": "gatesofavarice:item/crystal_large"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "EEE",
+    "EEE",
+    "EEE"
+  ],
+  "key": {
+    "E": {
+      "item": "gatesofavarice:elixrite_scrap"
+    }
+  },
+  "result": {
+    "id": "gatesofavarice:elixrite_ingot",
+    "count": 1
+  }
+}

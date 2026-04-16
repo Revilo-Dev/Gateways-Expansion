@@ -1,14 +1,14 @@
 {
   "replace": false,
   "values": [
-    "gatewayexpansion:mana_steel_magnet",
-    "gatewayexpansion:elixrite_magnet",
-    "gatewayexpansion:astrite_magnet",
-    "gatewayexpansion:lunarium_magnet",
-    "gatewayexpansion:ignite_magnet",
-    "gatewayexpansion:iridium_magnet",
-    "gatewayexpansion:mythril_magnet",
-    "gatewayexpansion:arcanium_magnet",
-    "gatewayexpansion:prismatic_steel_magnet"
+    "gatesofavarice:mana_steel_magnet",
+    "gatesofavarice:elixrite_magnet",
+    "gatesofavarice:astrite_magnet",
+    "gatesofavarice:lunarium_magnet",
+    "gatesofavarice:ignite_magnet",
+    "gatesofavarice:iridium_magnet",
+    "gatesofavarice:mythril_magnet",
+    "gatesofavarice:arcanium_magnet",
+    "gatesofavarice:prismatic_steel_magnet"
   ]
 }

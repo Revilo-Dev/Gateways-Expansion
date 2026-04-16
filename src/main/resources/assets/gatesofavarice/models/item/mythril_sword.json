@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "gatesofavarice:item/weapon/mythril_sword"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "gatesofavarice:item/weapon/mana-steel_sword"
+  }
+}

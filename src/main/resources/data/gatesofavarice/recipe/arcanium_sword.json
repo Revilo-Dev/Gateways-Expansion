@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:arcanium_upgrade_template"
+  },
+  "base": {
+    "item": "gatesofavarice:mythril_sword"
+  },
+  "addition": {
+    "item": "gatesofavarice:arcanium_ingot"
+  },
+  "result": {
+    "id": "gatesofavarice:arcanium_sword",
+    "count": 1
+  }
+}

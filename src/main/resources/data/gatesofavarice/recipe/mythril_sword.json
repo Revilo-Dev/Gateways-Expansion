@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:mythril_upgrade_template"
+  },
+  "base": {
+    "item": "gatesofavarice:iridium_sword"
+  },
+  "addition": {
+    "item": "gatesofavarice:mythril_ingot"
+  },
+  "result": {
+    "id": "gatesofavarice:mythril_sword",
+    "count": 1
+  }
+}

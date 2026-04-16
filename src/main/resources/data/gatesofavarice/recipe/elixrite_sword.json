@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:elixrite_upgrade_template"
+  },
+  "base": {
+    "item": "gatesofavarice:mana_steel_sword"
+  },
+  "addition": {
+    "item": "gatesofavarice:elixrite_ingot"
+  },
+  "result": {
+    "id": "gatesofavarice:elixrite_sword",
+    "count": 1
+  }
+}
