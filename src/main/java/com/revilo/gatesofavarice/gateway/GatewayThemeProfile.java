@@ -54,7 +54,7 @@ public record GatewayThemeProfile(
                     0x3EA5D9,
                     "Astral",
                     "astral",
-                    List.of(ResourceLocation.withDefaultNamespace("glowing"), ResourceLocation.withDefaultNamespace("levitation"), ResourceLocation.withDefaultNamespace("regeneration")),
+                    List.of(ResourceLocation.withDefaultNamespace("glowing"), ResourceLocation.withDefaultNamespace("regeneration")),
                     List.of(
                             gateType("rift", "Rift", "rewards/types/arcane/rift"),
                             gateType("observatory", "Observatory", "rewards/types/arcane/observatory"),
@@ -91,6 +91,26 @@ public record GatewayThemeProfile(
                     ResourceLocation.fromNamespaceAndPath("gatesofavarice", "rewards/waves/raider"),
                     ResourceLocation.fromNamespaceAndPath("gatesofavarice", finalLootBase + "raider/" + tierSuffix),
                     ResourceLocation.fromNamespaceAndPath("gatesofavarice", finalLootBase + "raider/" + tierSuffix));
+            case WILD -> new GatewayThemeProfile(
+                    theme,
+                    0x6C4CD8,
+                    "Wild",
+                    "wild",
+                    List.of(
+                            ResourceLocation.withDefaultNamespace("strength"),
+                            ResourceLocation.withDefaultNamespace("speed"),
+                            ResourceLocation.withDefaultNamespace("fire_resistance"),
+                            ResourceLocation.withDefaultNamespace("glowing")
+                    ),
+                    List.of(
+                            gateType("pack", "Pack", "rewards/types/beast/pack"),
+                            gateType("rift", "Rift", "rewards/types/arcane/rift"),
+                            gateType("bastion", "Bastion", "rewards/types/nether/bastion"),
+                            gateType("outpost", "Outpost", "rewards/types/raider/outpost")
+                    ),
+                    ResourceLocation.fromNamespaceAndPath("gatesofavarice", "rewards/waves/beast"),
+                    ResourceLocation.fromNamespaceAndPath("gatesofavarice", finalLootBase + "beast/" + tierSuffix),
+                    ResourceLocation.fromNamespaceAndPath("gatesofavarice", finalLootBase + "beast/" + tierSuffix));
         };
     }
 

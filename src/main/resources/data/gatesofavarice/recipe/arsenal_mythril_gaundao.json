@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:mythril_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:iridium_gaundao"
+  },
+  "addition": {
+    "item": "gatesofavarice:mythril_ingot"
+  },
+  "result": {
+    "id": "arsenal:mythril_gaundao",
+    "count": 1
+  }
+}

@@ -160,6 +160,11 @@ public final class CrystalForgeData {
             }
             case BEAST -> {
             }
+            case WILD -> {
+                lines.add(themeStat("Unpredictable waves"));
+                lines.add(themeStat("Balanced archetypes"));
+                lines.add(themeStat("All enemy factions"));
+            }
         }
         return lines;
     }
@@ -175,6 +180,7 @@ public final class CrystalForgeData {
             case NETHER -> 0xD63B2A;
             case RAIDER -> 0x2A4FA8;
             case BEAST -> 0xFFFFFF;
+            case WILD -> 0x6C4CD8;
         };
     }
 
@@ -218,6 +224,15 @@ public final class CrystalForgeData {
 
     private static CrystalTheme randomThemeForLevel(int level, long seed) {
         RandomSource random = RandomSource.create(seed ^ ((long) level << 32) ^ 0x5F3759D5L);
+        if (level >= 50) {
+            return switch (random.nextInt(5)) {
+                case 0 -> CrystalTheme.UNDEAD;
+                case 1 -> CrystalTheme.RAIDER;
+                case 2 -> CrystalTheme.NETHER;
+                case 3 -> CrystalTheme.ARCANE;
+                default -> CrystalTheme.WILD;
+            };
+        }
         if (level >= 30) {
             return switch (random.nextInt(4)) {
                 case 0 -> CrystalTheme.UNDEAD;
@@ -233,7 +248,7 @@ public final class CrystalForgeData {
                 default -> CrystalTheme.NETHER;
             };
         }
-        if (level >= 15) {
+        if (level >= 20) {
             return random.nextBoolean() ? CrystalTheme.UNDEAD : CrystalTheme.RAIDER;
         }
         return CrystalTheme.UNDEAD;

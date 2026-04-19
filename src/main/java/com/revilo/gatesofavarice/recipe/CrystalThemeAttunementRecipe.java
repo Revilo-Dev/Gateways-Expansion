@@ -58,6 +58,11 @@ public final class CrystalThemeAttunementRecipe extends CustomRecipe {
         }
 
         CrystalTheme theme = null;
+        boolean sameTheme = true;
+        int wildRustyCoins = 0;
+        int wildSolarShards = 0;
+        int wildArcaneEssence = 0;
+        int wildHardenedFlesh = 0;
         for (int slot = 0; slot < input.size(); slot++) {
             if (slot == 4) {
                 continue;
@@ -66,6 +71,16 @@ public final class CrystalThemeAttunementRecipe extends CustomRecipe {
             if (stack.isEmpty()) {
                 return Match.EMPTY;
             }
+            Item item = stack.getItem();
+            if (item == ModItems.RUSTY_COIN.get()) {
+                wildRustyCoins++;
+            } else if (item == ModItems.SOLAR_SHARD.get()) {
+                wildSolarShards++;
+            } else if (item == ModItems.ARCANE_ESSENCE.get()) {
+                wildArcaneEssence++;
+            } else if (item == ModItems.HARDENED_FLESH.get()) {
+                wildHardenedFlesh++;
+            }
             CrystalTheme slotTheme = themeForItem(stack.getItem());
             if (slotTheme == null) {
                 return Match.EMPTY;
@@ -73,11 +88,15 @@ public final class CrystalThemeAttunementRecipe extends CustomRecipe {
             if (theme == null) {
                 theme = slotTheme;
             } else if (theme != slotTheme) {
-                return Match.EMPTY;
+                sameTheme = false;
             }
         }
 
-        if (theme == null) {
+        if (wildRustyCoins > 0 && wildSolarShards > 0 && wildArcaneEssence > 0 && wildHardenedFlesh > 0) {
+            return new Match(center, CrystalTheme.WILD);
+        }
+
+        if (theme == null || !sameTheme) {
             return Match.EMPTY;
         }
         return new Match(center, theme);

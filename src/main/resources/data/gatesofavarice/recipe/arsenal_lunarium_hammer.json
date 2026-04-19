@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:lunarium_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:astrite_hammer"
+  },
+  "addition": {
+    "item": "gatesofavarice:lunarium_ingot"
+  },
+  "result": {
+    "id": "arsenal:lunarium_hammer",
+    "count": 1
+  }
+}

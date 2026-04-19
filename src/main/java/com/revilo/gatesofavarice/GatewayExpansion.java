@@ -6,11 +6,13 @@ import com.revilo.gatesofavarice.config.GatewayExpansionConfig;
 import com.revilo.gatesofavarice.gateway.GatewayDisplayManager;
 import com.revilo.gatesofavarice.gateway.GatewayPartyScaling;
 import com.revilo.gatesofavarice.integration.GatewayFailureEvents;
+import com.revilo.gatesofavarice.integration.GatewayPearlTooltipHandler;
 import com.revilo.gatesofavarice.integration.GeneratedGatewayPearlTracker;
 import com.revilo.gatesofavarice.integration.GatewayDrownedHandler;
 import com.revilo.gatesofavarice.integration.StabilityPearlHandler;
 import com.revilo.gatesofavarice.integration.GatewayThornsHandler;
 import com.revilo.gatesofavarice.integration.CuriosCompat;
+import com.revilo.gatesofavarice.integration.ArsenalWeaponTraitHandler;
 import com.revilo.gatesofavarice.integration.LevelUpGatewayIntegration;
 import com.revilo.gatesofavarice.integration.LevelUpGatewayXpRewards;
 import com.revilo.gatesofavarice.integration.LevelUpHudGateStateManager;
@@ -60,6 +62,7 @@ public final class GatewayExpansion {
         }
         NeoForge.EVENT_BUS.register(CoinCommands.class);
         NeoForge.EVENT_BUS.register(GatewayFailureEvents.class);
+        NeoForge.EVENT_BUS.register(GatewayPearlTooltipHandler.class);
         NeoForge.EVENT_BUS.register(GatewayDrownedHandler.class);
         NeoForge.EVENT_BUS.register(GeneratedGatewayPearlTracker.class);
         NeoForge.EVENT_BUS.register(StabilityPearlHandler.class);
@@ -68,6 +71,7 @@ public final class GatewayExpansion {
         NeoForge.EVENT_BUS.register(LevelUpHudGateStateManager.class);
         NeoForge.EVENT_BUS.register(MagnetHandler.class);
         NeoForge.EVENT_BUS.register(GatewayThornsHandler.class);
+        NeoForge.EVENT_BUS.register(ArsenalWeaponTraitHandler.class);
         NeoForge.EVENT_BUS.register(GatewayDisplayManager.class);
         NeoForge.EVENT_BUS.register(GatewayPartyScaling.class);
         NeoForge.EVENT_BUS.register(ShopkeeperManager.class);

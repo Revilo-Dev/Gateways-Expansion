@@ -181,8 +181,6 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
         GatewayPreview previewData = this.menu.getPreviewData();
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("screen.gatesofavarice.gateway_workbench.preview_label").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
-        tooltip.add(Component.literal("  Augments: " + repeatSymbol("\u25cf", previewData.augmentCount(), "")).withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.literal("  Catalysts: " + repeatSymbol("\u25a0", previewData.catalystCount(), " ")).withStyle(ChatFormatting.DARK_PURPLE));
         tooltip.add(Component.literal("Difficulty:").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
         tooltip.add(Component.literal("  Rating: " + previewData.difficultyName()).withStyle(difficultyFormatting(previewData.difficultyName()), ChatFormatting.BOLD));
         if (Screen.hasControlDown()) {
@@ -227,15 +225,6 @@ public class GatewayWorkbenchScreen extends AbstractContainerScreen<GatewayWorkb
             text = text.substring(0, text.length() - 1);
         }
         return text;
-    }
-
-    private static String repeatSymbol(String symbol, int count, String separator) {
-        if (count <= 0) {
-            return "-";
-        }
-        return java.util.stream.IntStream.range(0, count)
-                .mapToObj(index -> symbol)
-                .collect(java.util.stream.Collectors.joining(separator));
     }
 
     private void renderLevelWarning(GuiGraphics guiGraphics) {

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:mythril_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:iridium_dagger"
+  },
+  "addition": {
+    "item": "gatesofavarice:mythril_ingot"
+  },
+  "result": {
+    "id": "arsenal:mythril_dagger",
+    "count": 1
+  }
+}

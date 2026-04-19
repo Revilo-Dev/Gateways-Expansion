@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:mana_steel_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:netherite_machete"
+  },
+  "addition": {
+    "item": "gatesofavarice:mana_steel_ingot"
+  },
+  "result": {
+    "id": "arsenal:mana_steel_machete",
+    "count": 1
+  }
+}

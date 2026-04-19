@@ -162,12 +162,17 @@ public final class AugmentDefinitionPool {
     }
 
     private static AugmentDefinition materialize(AugmentDefinition template, RandomSource random, int level) {
+        List<ForgeEffect> rolledModifiers = rollModifierEffects(template.modifierEffects(), template.difficultyTier(), random, level);
+        List<ForgeEffect> rolledRewards = rollRewardEffects(template.rewardEffects(), template.difficultyTier(), random, level);
+        if (template.difficultyTier() == AugmentDifficultyTier.EXTREME && level >= 50) {
+            rolledModifiers = applyExtremeLevel50Penalties(rolledModifiers);
+        }
         return new AugmentDefinition(
                 template.id(),
                 template.title(),
                 template.difficultyTier(),
-                rollModifierEffects(template.modifierEffects(), template.difficultyTier(), random, level),
-                rollRewardEffects(template.rewardEffects(), template.difficultyTier(), random, level),
+                rolledModifiers,
+                rolledRewards,
                 template.tags());
     }
 
@@ -225,14 +230,14 @@ public final class AugmentDefinitionPool {
     private static ForgeEffect rollReward(ForgeEffect reward, AugmentDifficultyTier tier, RandomSource random, int level) {
         double rewardScale = extremeRewardScale(tier, level);
         return switch (reward.type()) {
-            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "coin multiplier");
-            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "level gain");
-            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "experience");
+            case COIN_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, tier, level), rewardScale), "coin multiplier");
+            case LEVEL_XP_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, tier, level), rewardScale), "level gain");
+            case EXPERIENCE_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, tier, level), rewardScale), "experience");
             case REWARD_MULTIPLIER -> {
-                double lootMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), rewardScale);
+                double lootMultiplier = scaleMultiplier(rollRewardMultiplier(random, tier, level), rewardScale);
                 yield rangedReward(reward.type(), lootMultiplier - 1.0D, "loot", lootMultiplier);
             }
-            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, level), rewardScale), "rarity");
+            case RARITY_REWARD_MULTIPLIER -> rangedReward(reward.type(), scaleMultiplier(rollRewardMultiplier(random, tier, level), rewardScale), "rarity");
             case EXTRA_RARE_REWARD_ROLLS -> {
                 RareEpicRoll roll = rollRareEpicRewards(random, level);
                 yield ForgeEffect.dual(
@@ -278,19 +283,19 @@ public final class AugmentDefinitionPool {
 
         return switch (type) {
             case REWARD_MULTIPLIER -> {
-                double quantityMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
+                double quantityMultiplier = scaleMultiplier(rollRewardMultiplier(random, tier, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, quantityMultiplier - 1.0D, "item quantity", quantityMultiplier);
             }
             case RARITY_REWARD_MULTIPLIER -> {
-                double rarityMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
+                double rarityMultiplier = scaleMultiplier(rollRewardMultiplier(random, tier, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, rarityMultiplier, "item rarity");
             }
             case COIN_REWARD_MULTIPLIER -> {
-                double coinMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
+                double coinMultiplier = scaleMultiplier(rollRewardMultiplier(random, tier, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, coinMultiplier, "coin multiplier");
             }
             case EXPERIENCE_REWARD_MULTIPLIER -> {
-                double experienceMultiplier = scaleMultiplier(rollRewardMultiplier(random, level), secondaryRewardScale(tier, level));
+                double experienceMultiplier = scaleMultiplier(rollRewardMultiplier(random, tier, level), secondaryRewardScale(tier, level));
                 yield rangedReward(type, experienceMultiplier, "experience");
             }
             case EXTRA_FINAL_REWARD_ROLLS -> {
@@ -318,10 +323,10 @@ public final class AugmentDefinitionPool {
     private static Range modifierRange(ForgeEffectType type, AugmentDifficultyTier tier, int level) {
         if (tier == AugmentDifficultyTier.EXTREME && level >= 50) {
             return switch (type) {
-                case DAMAGE_MULTIPLIER -> new Range(0.60D, 0.90D);
-                case SPEED_MULTIPLIER -> new Range(0.08D, 0.14D);
-                case HEALTH_MULTIPLIER -> new Range(0.55D, 0.85D);
-                case KNOCKBACK_RESISTANCE -> new Range(0.50D, 0.75D);
+                case DAMAGE_MULTIPLIER -> new Range(2.00D, 5.00D);
+                case SPEED_MULTIPLIER -> new Range(1.00D, 2.00D);
+                case HEALTH_MULTIPLIER -> new Range(2.00D, 5.00D);
+                case KNOCKBACK_RESISTANCE -> new Range(0.75D, 1.00D);
                 default -> new Range(0.0D, 0.0D);
             };
         }
@@ -373,11 +378,11 @@ public final class AugmentDefinitionPool {
     }
 
     private static double extremeRewardScale(AugmentDifficultyTier tier, int level) {
-        return tier == AugmentDifficultyTier.EXTREME && level >= 50 ? 2.0D : 1.0D;
+        return 1.0D;
     }
 
     private static double secondaryRewardScale(AugmentDifficultyTier tier, int level) {
-        return tier == AugmentDifficultyTier.EXTREME && level >= 50 ? 1.5D : 1.0D;
+        return 1.0D;
     }
 
     private static double secondaryRewardChance(AugmentDifficultyTier tier, int level) {
@@ -462,7 +467,11 @@ public final class AugmentDefinitionPool {
         return ForgeEffect.of(type, storedValue, "x" + trim(displayedMultiplier) + " " + noun);
     }
 
-    private static double rollRewardMultiplier(RandomSource random, int level) {
+    private static double rollRewardMultiplier(RandomSource random, AugmentDifficultyTier tier, int level) {
+        if (tier == AugmentDifficultyTier.EXTREME && level >= 50) {
+            return Math.round((2.0D + random.nextDouble() * 4.0D) * 100.0D) / 100.0D;
+        }
+
         double min;
         double max;
         if (level >= 90) {
@@ -485,6 +494,19 @@ public final class AugmentDefinitionPool {
             max = 2.0D;
         }
         return Math.round((min + random.nextDouble() * (max - min)) * 100.0D) / 100.0D;
+    }
+
+    private static List<ForgeEffect> applyExtremeLevel50Penalties(List<ForgeEffect> rolledModifiers) {
+        List<ForgeEffect> penalties = new ArrayList<>(rolledModifiers.size() + 7);
+        penalties.addAll(rolledModifiers);
+        penalties.add(ForgeEffect.of(ForgeEffectType.TANK_PACKS, 3, "Negative: all mobs are buff tanks"));
+        penalties.add(ForgeEffect.of(ForgeEffectType.HEALTH_MULTIPLIER, 2.0D, "Negative: +200% mob health"));
+        penalties.add(ForgeEffect.of(ForgeEffectType.ARMOR_BONUS, 12.0D, "Negative: +12 mob armor"));
+        penalties.add(ForgeEffect.of(ForgeEffectType.KNOCKBACK_RESISTANCE, 1.0D, "Negative: max knockback resistance"));
+        penalties.add(ForgeEffect.ref(ForgeEffectType.MOB_EFFECT, ResourceLocation.withDefaultNamespace("levitation"), 0, 0.0D, "Negative: adds levitation"));
+        penalties.add(ForgeEffect.of(ForgeEffectType.SPEED_MULTIPLIER, 2.0D, "Negative: 2x mob speed"));
+        penalties.add(ForgeEffect.of(ForgeEffectType.DAMAGE_MULTIPLIER, 2.0D, "Negative: 2x mob damage"));
+        return List.copyOf(penalties);
     }
 
     private static double rollRange(RandomSource random, AugmentDifficultyTier tier, double easyMin, double easyMax, double mediumMin, double mediumMax, double hardMin, double hardMax, double extremeMin, double extremeMax) {

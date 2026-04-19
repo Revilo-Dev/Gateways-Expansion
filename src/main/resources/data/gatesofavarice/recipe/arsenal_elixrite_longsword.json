@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:elixrite_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:mana_steel_longsword"
+  },
+  "addition": {
+    "item": "gatesofavarice:elixrite_ingot"
+  },
+  "result": {
+    "id": "arsenal:elixrite_longsword",
+    "count": 1
+  }
+}

@@ -55,6 +55,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -413,6 +414,16 @@ public final class GatewayForgeService {
                 state.projectileDamage += 0.10D;
                 state.difficultyEstimate += 4;
             }
+            case WILD -> {
+                state.rewardMultiplier += 0.12D;
+                state.rarityRewardMultiplier *= 1.15D;
+                state.rangedPacks += 1;
+                state.tankPacks += 1;
+                state.hoardPacks += 1;
+                state.assassinPacks += 1;
+                state.mixedPackCount += 2;
+                state.difficultyEstimate += 18;
+            }
         }
     }
 
@@ -437,6 +448,12 @@ public final class GatewayForgeService {
                 case RAIDER -> random.nextBoolean()
                         ? ForgeEffect.of(ForgeEffectType.RANGED_PACKS, 1, "Final roll: coordinated volley")
                         : ForgeEffect.ref(ForgeEffectType.MOB_EFFECT, ResourceLocation.withDefaultNamespace("hero_of_the_village"), 0, 0.0D, "Final roll: raider momentum");
+                case WILD -> switch (random.nextInt(4)) {
+                    case 0 -> ForgeEffect.of(ForgeEffectType.ARCHER_PACKS, 1, "Final roll: wild archer surge");
+                    case 1 -> ForgeEffect.of(ForgeEffectType.HOARD_PACKS, 1, "Final roll: wild horde surge");
+                    case 2 -> ForgeEffect.of(ForgeEffectType.TANK_PACKS, 1, "Final roll: wild tank surge");
+                    default -> ForgeEffect.of(ForgeEffectType.ASSASSIN_PACKS, 1, "Final roll: wild assassin surge");
+                };
             };
             applyEffect(state, effect, false);
             state.finalRollSummary.add(effect.description());
@@ -1172,6 +1189,17 @@ public final class GatewayForgeService {
                 minCount = finalReward ? 8 : 2;
                 maxCount = finalReward ? 18 : 6;
             }
+            case WILD -> {
+                Item[] pool = {
+                        ModItems.RUSTY_COIN.get(),
+                        ModItems.SOLAR_SHARD.get(),
+                        ModItems.ARCANE_ESSENCE.get(),
+                        ModItems.HARDENED_FLESH.get()
+                };
+                item = pool[random.nextInt(pool.length)];
+                minCount = finalReward ? 8 : 3;
+                maxCount = finalReward ? 20 : 9;
+            }
             default -> {
                 return ItemStack.EMPTY;
             }
@@ -1324,10 +1352,26 @@ public final class GatewayForgeService {
     }
 
     private static WaveArchetype selectWaveArchetype(ForgeState state, RandomSource random, int waveIndex, int waveCount) {
-        float hoardBias = 0.20F + Math.min(0.28F, state.profile.level() / 180.0F) + waveIndex * 0.08F + (state.hoardPacks * 0.12F);
-        float tankBias = 0.34F - Math.min(0.18F, state.profile.level() / 220.0F) - waveIndex * 0.05F + (state.tankPacks * 0.12F);
-        float assassinBias = 0.24F + (state.assassinPacks * 0.12F);
-        float archerBias = 0.22F + Math.min(0.16F, state.rangedPacks * 0.06F) + (state.archerPacks * 0.12F);
+        float hoardBias;
+        float tankBias;
+        float assassinBias;
+        float archerBias;
+        if (state.profile.theme() == CrystalTheme.WILD) {
+            float chaos = 0.18F + Math.min(0.16F, state.profile.level() / 500.0F);
+            hoardBias = 0.25F + (state.hoardPacks * 0.10F) + ((random.nextFloat() - 0.5F) * chaos);
+            tankBias = 0.25F + (state.tankPacks * 0.10F) + ((random.nextFloat() - 0.5F) * chaos);
+            assassinBias = 0.25F + (state.assassinPacks * 0.10F) + ((random.nextFloat() - 0.5F) * chaos);
+            archerBias = 0.25F + (state.archerPacks * 0.10F) + ((random.nextFloat() - 0.5F) * chaos);
+            hoardBias = Math.max(0.10F, hoardBias);
+            tankBias = Math.max(0.10F, tankBias);
+            assassinBias = Math.max(0.10F, assassinBias);
+            archerBias = Math.max(0.10F, archerBias);
+        } else {
+            hoardBias = 0.20F + Math.min(0.28F, state.profile.level() / 180.0F) + waveIndex * 0.08F + (state.hoardPacks * 0.12F);
+            tankBias = 0.34F - Math.min(0.18F, state.profile.level() / 220.0F) - waveIndex * 0.05F + (state.tankPacks * 0.12F);
+            assassinBias = 0.24F + (state.assassinPacks * 0.12F);
+            archerBias = 0.22F + Math.min(0.16F, state.rangedPacks * 0.06F) + (state.archerPacks * 0.12F);
+        }
         if (waveIndex >= waveCount - 2) {
             hoardBias += 0.10F;
             tankBias -= 0.04F;
@@ -1529,7 +1573,9 @@ public final class GatewayForgeService {
         GatePearlItem.setGate(pearl, GatewayRegistry.INSTANCE.holder(result.gatewayId()));
         pearl.set(DataComponents.CUSTOM_NAME, Component.literal(result.name()).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(result.color()))));
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.literal("Theme: " + titleCase(result.theme().name())).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(result.color()))));
+        lore.add(Component.literal("Theme: " + titleCase(result.theme().name()))
+                .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(result.color())))
+                .append(Component.literal(" [alt]").withStyle(ChatFormatting.GRAY)));
         lore.add(Component.literal("Crystal Level: " + result.crystalLevel()).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(0x55FFFF))));
         lore.add(Component.literal("Difficulty: " + difficultyLabel(result.difficultyEstimate(), result.crystalLevel())).withStyle(Style.EMPTY.withColor(TextColor.fromRgb(difficultyColor(result.difficultyEstimate(), result.crystalLevel())))));
         for (String line : buildRewardSummary(result)) {
@@ -2177,9 +2223,9 @@ public final class GatewayForgeService {
         }
 
         private void finish() {
-            this.healthMultiplier = Mth.clamp(this.healthMultiplier, -0.20D, 3.75D);
-            this.damageMultiplier = Mth.clamp(this.damageMultiplier, -0.20D, 4.75D);
-            this.speedMultiplier = Mth.clamp(this.speedMultiplier, -0.10D, 0.40D);
+            this.healthMultiplier = Mth.clamp(this.healthMultiplier, -0.20D, 5.00D);
+            this.damageMultiplier = Mth.clamp(this.damageMultiplier, -0.20D, 5.00D);
+            this.speedMultiplier = Mth.clamp(this.speedMultiplier, -0.10D, 2.00D);
             this.mobSpawnMultiplier = Mth.clamp(this.mobSpawnMultiplier, 0.0D, 1.5D);
             this.eliteChance = Mth.clamp(this.eliteChance, 0.02F, 0.60F);
             this.rewardMultiplier = Math.max(0.40D, this.rewardMultiplier);

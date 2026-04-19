@@ -4,7 +4,7 @@
     "item": "gatesofavarice:mana_steel_upgrade_template"
   },
   "base": {
-    "item": "minecraft:netherite_sword"
+    "tag": "gatesofavarice:netherite_plus_upgrade_bases"
   },
   "addition": {
     "item": "gatesofavarice:mana_steel_ingot"

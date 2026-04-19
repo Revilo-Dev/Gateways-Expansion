@@ -7,6 +7,13 @@ import java.util.List;
 import net.minecraft.world.entity.EntityType;
 
 public final class EnemyPoolRegistry {
+    private static final List<CrystalTheme> WILD_THEME_BLEND = List.of(
+            CrystalTheme.UNDEAD,
+            CrystalTheme.RAIDER,
+            CrystalTheme.NETHER,
+            CrystalTheme.ARCANE,
+            CrystalTheme.BEAST
+    );
 
     private static final String[] BOSS_MOD_IDS = {"bosses_of_mass_destruction", "bossesrise", "bosses_rise"};
     private static final String[] ALEXS_MOBS_IDS = {"alexsmobs"};
@@ -69,6 +76,23 @@ public final class EnemyPoolRegistry {
 
     public static EnemyPoolSet create(CrystalTheme theme, int level) {
         EnemyPoolSet pools = new EnemyPoolSet();
+        if (theme == CrystalTheme.WILD) {
+            for (CrystalTheme mixedTheme : WILD_THEME_BLEND) {
+                addVanilla(mixedTheme, level, pools);
+                addBossCompat(mixedTheme, level, pools);
+                addAlexsMobsCompat(mixedTheme, level, pools);
+                addDeeperDarkerCompat(mixedTheme, level, pools);
+                addEndermanOverhaulCompat(mixedTheme, level, pools);
+                addFriendsAndFoesCompat(mixedTheme, level, pools);
+                addLuminousCompat(mixedTheme, level, pools);
+                addTakesAPillageCompat(mixedTheme, level, pools);
+                addVariantsCompat(mixedTheme, level, pools);
+                addVillagersCompat(mixedTheme, level, pools);
+            }
+            GatewayExpansion.LOGGER.debug("Enemy pools for {} -> melee={}, ranged={}, elite={}, boss={}", theme, pools.pool(EnemyPoolRole.MELEE).size(), pools.pool(EnemyPoolRole.RANGED).size(), pools.pool(EnemyPoolRole.ELITE).size(), pools.pool(EnemyPoolRole.BOSS).size());
+            return pools;
+        }
+
         addVanilla(theme, level, pools);
         addBossCompat(theme, level, pools);
         addAlexsMobsCompat(theme, level, pools);

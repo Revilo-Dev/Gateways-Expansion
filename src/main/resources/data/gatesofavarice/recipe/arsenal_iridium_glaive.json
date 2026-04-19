@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:iridium_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:ignite_glaive"
+  },
+  "addition": {
+    "item": "gatesofavarice:iridium_ingot"
+  },
+  "result": {
+    "id": "arsenal:iridium_glaive",
+    "count": 1
+  }
+}

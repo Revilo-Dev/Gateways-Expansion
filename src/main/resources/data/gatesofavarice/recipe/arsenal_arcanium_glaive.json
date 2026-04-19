@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:arcanium_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:mythril_glaive"
+  },
+  "addition": {
+    "item": "gatesofavarice:arcanium_ingot"
+  },
+  "result": {
+    "id": "arsenal:arcanium_glaive",
+    "count": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "gatesofavarice:astrite_upgrade_template"
+  },
+  "base": {
+    "item": "arsenal:elixrite_hammer"
+  },
+  "addition": {
+    "item": "gatesofavarice:astrite_ingot"
+  },
+  "result": {
+    "id": "arsenal:astrite_hammer",
+    "count": 1
+  }
+}
