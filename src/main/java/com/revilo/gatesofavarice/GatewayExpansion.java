@@ -3,6 +3,8 @@ package com.revilo.gatesofavarice;
 import com.revilo.gatesofavarice.command.CoinCommands;
 import com.revilo.gatesofavarice.client.GatewayExpansionClient;
 import com.revilo.gatesofavarice.config.GatewayExpansionConfig;
+import com.revilo.gatesofavarice.dungeon.DungeonInstanceManager;
+import com.revilo.gatesofavarice.dungeon.DungeonRunManager;
 import com.revilo.gatesofavarice.gateway.GatewayDisplayManager;
 import com.revilo.gatesofavarice.gateway.GatewayPartyScaling;
 import com.revilo.gatesofavarice.integration.GatewayFailureEvents;
@@ -75,5 +77,7 @@ public final class GatewayExpansion {
         NeoForge.EVENT_BUS.register(GatewayDisplayManager.class);
         NeoForge.EVENT_BUS.register(GatewayPartyScaling.class);
         NeoForge.EVENT_BUS.register(ShopkeeperManager.class);
+        NeoForge.EVENT_BUS.register(DungeonInstanceManager.class);
+        NeoForge.EVENT_BUS.register(DungeonRunManager.class);
     }
 }

@@ -1,6 +1,7 @@
 package com.revilo.gatesofavarice.registry;
 
 import com.revilo.gatesofavarice.GatewayExpansion;
+import com.revilo.gatesofavarice.menu.DungeonWaveMenu;
 import com.revilo.gatesofavarice.menu.GatewayWorkbenchMenu;
 import com.revilo.gatesofavarice.menu.ShopkeeperMenu;
 import net.minecraft.core.registries.Registries;
@@ -19,6 +20,8 @@ public final class ModMenus {
             MENUS.register("gateway_workbench", () -> new MenuType<>(GatewayWorkbenchMenu::new, FeatureFlags.DEFAULT_FLAGS));
     public static final DeferredHolder<MenuType<?>, MenuType<ShopkeeperMenu>> SHOPKEEPER =
             MENUS.register("shopkeeper", () -> IMenuTypeExtension.create(ShopkeeperMenu::new));
+    public static final DeferredHolder<MenuType<?>, MenuType<DungeonWaveMenu>> DUNGEON_WAVE =
+            MENUS.register("dungeon_wave", () -> IMenuTypeExtension.create(DungeonWaveMenu::new));
 
     private ModMenus() {
     }

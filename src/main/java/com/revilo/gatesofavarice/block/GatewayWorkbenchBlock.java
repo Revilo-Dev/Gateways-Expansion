@@ -28,7 +28,7 @@ public class GatewayWorkbenchBlock extends BaseEntityBlock implements EntityBloc
     }
 
     public GatewayWorkbenchBlock() {
-        this(BlockBehaviour.Properties.of().strength(2.5F).sound(SoundType.WOOD).noOcclusion());
+        this(BlockBehaviour.Properties.of().strength(2.5F).sound(SoundType.WOOD).requiresCorrectToolForDrops().noOcclusion());
     }
 
     @Override

@@ -1,0 +1,122 @@
+package com.revilo.gatesofavarice.entity;
+
+import com.revilo.gatesofavarice.dungeon.DungeonRunManager;
+import com.revilo.gatesofavarice.registry.ModEntities;
+import java.util.List;
+import java.util.UUID;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
+
+public class GatewayCrystalEntity extends Entity {
+
+    private static final int MAX_LIFETIME_TICKS = 20 * 90;
+    private static final String OWNER_KEY = "Owner";
+    private static final String LIFE_KEY = "Life";
+    private static final EntityDataAccessor<Integer> CRYSTAL_TIER = SynchedEntityData.defineId(GatewayCrystalEntity.class, EntityDataSerializers.INT);
+
+    private UUID ownerId;
+    private int lifeTicks;
+
+    public GatewayCrystalEntity(EntityType<? extends GatewayCrystalEntity> entityType, Level level) {
+        super(entityType, level);
+        this.noPhysics = true;
+    }
+
+    public GatewayCrystalEntity(Level level) {
+        this(ModEntities.GATEWAY_CRYSTAL.get(), level);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(CRYSTAL_TIER, 1);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        this.lifeTicks++;
+
+        if (!(this.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        if (this.lifeTicks >= MAX_LIFETIME_TICKS) {
+            this.discard();
+            return;
+        }
+
+        if ((this.tickCount & 3) != 0) {
+            return;
+        }
+
+        List<ServerPlayer> players = serverLevel.getEntitiesOfClass(ServerPlayer.class, this.getBoundingBox().inflate(0.2D),
+                player -> !player.isSpectator() && !player.isPassenger() && !player.isOnPortalCooldown());
+        for (ServerPlayer player : players) {
+            UUID runOwnerId = this.ownerId == null ? player.getUUID() : this.ownerId;
+            DungeonRunManager.enterFromGateway(player, runOwnerId);
+        }
+    }
+
+    @Override
+    protected void readAdditionalSaveData(CompoundTag tag) {
+        this.lifeTicks = tag.getInt(LIFE_KEY);
+        if (tag.hasUUID(OWNER_KEY)) {
+            this.ownerId = tag.getUUID(OWNER_KEY);
+        }
+        if (tag.contains("CrystalTier")) {
+            this.setCrystalTier(tag.getInt("CrystalTier"));
+        }
+    }
+
+    @Override
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        tag.putInt(LIFE_KEY, this.lifeTicks);
+        if (this.ownerId != null) {
+            tag.putUUID(OWNER_KEY, this.ownerId);
+        }
+        tag.putInt("CrystalTier", this.getCrystalTier());
+    }
+
+    @Override
+    public boolean isPickable() {
+        return false;
+    }
+
+    @Override
+    public boolean isAttackable() {
+        return false;
+    }
+
+    @Override
+    public boolean hurt(net.minecraft.world.damagesource.DamageSource source, float amount) {
+        return false;
+    }
+
+    @Override
+    public boolean canBeCollidedWith() {
+        return false;
+    }
+
+    public int getCrystalTier() {
+        return this.getEntityData().get(CRYSTAL_TIER);
+    }
+
+    public void setCrystalTier(int crystalTier) {
+        this.getEntityData().set(CRYSTAL_TIER, Math.max(1, crystalTier));
+    }
+
+    public UUID getOwnerId() {
+        return this.ownerId;
+    }
+
+    public void setOwnerId(UUID ownerId) {
+        this.ownerId = ownerId;
+    }
+}

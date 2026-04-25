@@ -1,6 +1,7 @@
 package com.revilo.gatesofavarice.menu;
 
 import com.revilo.gatesofavarice.currency.MythicCoinWallet;
+import com.revilo.gatesofavarice.dungeon.DungeonRunManager;
 import com.revilo.gatesofavarice.entity.GatekeeperEntity;
 import com.revilo.gatesofavarice.integration.LevelUpIntegration;
 import com.revilo.gatesofavarice.registry.ModMenus;
@@ -381,6 +382,9 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     @Override
     public void removed(Player player) {
         super.removed(player);
+        if (player instanceof ServerPlayer serverPlayer) {
+            DungeonRunManager.onShopClosedByOwner(serverPlayer, this.shopkeeperId);
+        }
         if (player.level().isClientSide) {
             return;
         }

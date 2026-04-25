@@ -1,6 +1,7 @@
 package com.revilo.gatesofavarice.network;
 
 import com.revilo.gatesofavarice.registry.ModAttachments;
+import com.revilo.gatesofavarice.dungeon.DungeonHudState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,5 +34,7 @@ public final class GatewayExpansionNetwork {
                             .withStyle(enabled ? ChatFormatting.GREEN : ChatFormatting.RED),
                     true);
         });
+        registrar.playToClient(DungeonWaveHudPayload.TYPE, DungeonWaveHudPayload.STREAM_CODEC, (payload, context) ->
+                context.enqueueWork(() -> DungeonHudState.apply(payload)));
     }
 }

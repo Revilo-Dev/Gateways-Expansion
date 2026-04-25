@@ -2,7 +2,9 @@ package com.revilo.gatesofavarice.client;
 
 import com.revilo.gatesofavarice.client.model.GatekeeperModel;
 import com.revilo.gatesofavarice.client.render.GatekeeperRenderer;
+import com.revilo.gatesofavarice.client.render.GatewayCrystalRenderer;
 import com.revilo.gatesofavarice.client.render.GatewayWorkbenchBlockEntityRenderer;
+import com.revilo.gatesofavarice.client.screen.DungeonWaveScreen;
 import com.revilo.gatesofavarice.client.screen.ShopkeeperScreen;
 import com.revilo.gatesofavarice.client.screen.GatewayWorkbenchScreen;
 import com.revilo.gatesofavarice.gateway.GatewayHudOverlay;
@@ -26,6 +28,7 @@ public final class GatewayExpansionClient {
             modEventBus.register(ClientEvents.class);
             modEventBus.addListener(MagnetKeybindHandler::registerKeyMappings);
             NeoForge.EVENT_BUS.register(GatewayHudOverlay.class);
+            NeoForge.EVENT_BUS.register(DungeonWaveHudOverlay.class);
             NeoForge.EVENT_BUS.register(InventoryWalletOverlay.class);
             NeoForge.EVENT_BUS.addListener(MagnetKeybindHandler::onClientTick);
         }
@@ -40,12 +43,14 @@ public final class GatewayExpansionClient {
         public static void registerScreens(RegisterMenuScreensEvent event) {
             event.register(ModMenus.GATEWAY_WORKBENCH.get(), GatewayWorkbenchScreen::new);
             event.register(ModMenus.SHOPKEEPER.get(), ShopkeeperScreen::new);
+            event.register(ModMenus.DUNGEON_WAVE.get(), DungeonWaveScreen::new);
         }
 
         @SubscribeEvent
         public static void registerBlockEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
             event.registerBlockEntityRenderer(ModBlockEntities.GATEWAY_WORKBENCH.get(), GatewayWorkbenchBlockEntityRenderer::new);
             event.registerEntityRenderer(ModEntities.GATEKEEPER.get(), GatekeeperRenderer::new);
+            event.registerEntityRenderer(ModEntities.GATEWAY_CRYSTAL.get(), GatewayCrystalRenderer::new);
         }
 
         @SubscribeEvent

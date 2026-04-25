@@ -37,6 +37,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SmithingTemplateItem;
@@ -208,6 +209,9 @@ public final class ShopkeeperManager {
 
     @SubscribeEvent
     public static void onInteract(PlayerInteractEvent.EntityInteract event) {
+        if (event.getHand() != InteractionHand.MAIN_HAND) {
+            return;
+        }
         Entity target = event.getTarget();
         if (!(target instanceof GatekeeperEntity trader) || !isShopkeeper(trader) || !(event.getEntity() instanceof ServerPlayer player)) {
             return;

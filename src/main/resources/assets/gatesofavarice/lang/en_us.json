@@ -344,5 +344,12 @@
   "upgrade.gatesofavarice.iridium": "Iridium Upgrade",
   "upgrade.gatesofavarice.mythril": "Mythril Upgrade",
   "upgrade.gatesofavarice.arcanium": "Arcanium Upgrade",
-  "upgrade.gatesofavarice.prismatic_steel": "Prismatic Steel Upgrade"
+  "upgrade.gatesofavarice.prismatic_steel": "Prismatic Steel Upgrade",
+  "screen.gatesofavarice.dungeon_wave.title": "Choose Wave %s",
+  "screen.gatesofavarice.dungeon_wave.select_prompt": "Select the next wave package.",
+  "screen.gatesofavarice.dungeon_wave.waiting_owner": "Waiting for gate creator to choose.",
+  "screen.gatesofavarice.dungeon_wave.bail": "Bail & Extract",
+  "message.gatesofavarice.dungeon.wait_for_owner": "Waiting for the gate creator to choose the next wave.",
+  "message.gatesofavarice.dungeon.bailed": "Run ended. External rewards extracted.",
+  "message.gatesofavarice.dungeon.failed": "Run failed. External rewards lost."
 }
