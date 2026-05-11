@@ -22,7 +22,7 @@ public final class ModEntities {
                     .build("gatekeeper"));
     public static final DeferredHolder<EntityType<?>, EntityType<GatewayCrystalEntity>> GATEWAY_CRYSTAL = ENTITY_TYPES.register("gateway_crystal",
             () -> EntityType.Builder.<GatewayCrystalEntity>of(GatewayCrystalEntity::new, MobCategory.MISC)
-                    .sized(8.0F, 8.0F)
+                    .sized(1.4F, 2.4F)
                     .clientTrackingRange(10)
                     .updateInterval(1)
                     .build("gateway_crystal"));

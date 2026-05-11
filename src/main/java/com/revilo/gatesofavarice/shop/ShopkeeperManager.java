@@ -111,8 +111,6 @@ public final class ShopkeeperManager {
         awardedCoins = Math.max(awardedCoins, minimumCompletionCoinReward(gate));
         spawnCoins(gate, awardedCoins);
         spawnGatewayLoot(gate, computeCompletionLootRolls(gate, serverLevel.random));
-        Player summoner = gate.summonerOrClosest();
-        spawnShopkeeper(serverLevel, gate.getX(), gate.getY() + 0.5D, gate.getZ(), summoner);
     }
 
     @SubscribeEvent
@@ -338,13 +336,18 @@ public final class ShopkeeperManager {
     }
 
     public static boolean rerollOffers(ServerPlayer player, GatekeeperEntity trader) {
+        return rerollOffersWithWallet(player, trader, false);
+    }
+
+    public static boolean rerollOffersWithWallet(ServerPlayer player, GatekeeperEntity trader, boolean useDungeonTokens) {
         int rerollCount = Math.max(0, trader.getPersistentData().getInt(REROLL_COUNT_KEY));
         if (rerollCount >= MAX_REROLLS) {
             return false;
         }
 
         int rerollCost = getRerollCost(trader);
-        if (!MythicCoinWallet.spend(player, rerollCost)) {
+        boolean paid = MythicCoinWallet.spend(player, rerollCost);
+        if (!paid) {
             return false;
         }
 

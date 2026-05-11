@@ -5,11 +5,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -21,6 +24,7 @@ public final class DungeonInstanceManager {
     private static final int PLATFORM_SIZE = 50;
     private static final int PLATFORM_HALF_SPAN = PLATFORM_SIZE / 2;
     private static final int PLATFORM_Y = 64;
+    private static final int INSTANCE_CLEANUP_RADIUS = 96;
     private static final long PLATFORM_LIFETIME_TICKS = 20L * 120L;
 
     private static final BlockState PLATFORM_BLOCK = Blocks.SMOOTH_STONE.defaultBlockState();
@@ -58,6 +62,25 @@ public final class DungeonInstanceManager {
         return instanceOrigin(instanceOwnerId);
     }
 
+    public static void keepInstanceAlive(UUID instanceOwnerId, ServerLevel dungeonLevel) {
+        if (dungeonLevel == null) {
+            return;
+        }
+        BlockPos origin = instanceOrigin(instanceOwnerId);
+        ACTIVE_PLATFORMS.put(origin.immutable(), dungeonLevel.getGameTime() + PLATFORM_LIFETIME_TICKS);
+    }
+
+    public static void cleanupInstance(UUID instanceOwnerId, ServerLevel dungeonLevel) {
+        if (dungeonLevel == null) {
+            return;
+        }
+
+        BlockPos origin = instanceOrigin(instanceOwnerId);
+        closeGatewaysInInstance(dungeonLevel, origin);
+        clearPlatform(dungeonLevel, origin);
+        ACTIVE_PLATFORMS.remove(origin);
+    }
+
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         ServerLevel dungeonLevel = event.getServer().getLevel(ModDimensions.DUNGEON_LEVEL);
@@ -68,7 +91,8 @@ public final class DungeonInstanceManager {
         long gameTime = dungeonLevel.getGameTime();
         ArrayList<BlockPos> expiredPlatforms = new ArrayList<>();
         for (Map.Entry<BlockPos, Long> entry : ACTIVE_PLATFORMS.entrySet()) {
-            if (gameTime >= entry.getValue()) {
+            if (gameTime >= entry.getValue() || !hasPlayersNearInstance(dungeonLevel, entry.getKey())) {
+                closeGatewaysInInstance(dungeonLevel, entry.getKey());
                 clearPlatform(dungeonLevel, entry.getKey());
                 expiredPlatforms.add(entry.getKey());
             }
@@ -123,6 +147,30 @@ public final class DungeonInstanceManager {
                     level.setBlock(clearPos, Blocks.AIR.defaultBlockState(), 3);
                 }
             }
+        }
+    }
+
+    private static boolean hasPlayersNearInstance(ServerLevel level, BlockPos origin) {
+        AABB bounds = new AABB(
+                origin.getX() - INSTANCE_CLEANUP_RADIUS,
+                origin.getY() - 16,
+                origin.getZ() - INSTANCE_CLEANUP_RADIUS,
+                origin.getX() + INSTANCE_CLEANUP_RADIUS,
+                origin.getY() + 64,
+                origin.getZ() + INSTANCE_CLEANUP_RADIUS);
+        return !level.getEntitiesOfClass(ServerPlayer.class, bounds).isEmpty();
+    }
+
+    private static void closeGatewaysInInstance(ServerLevel level, BlockPos origin) {
+        AABB bounds = new AABB(
+                origin.getX() - INSTANCE_CLEANUP_RADIUS,
+                origin.getY() - 32,
+                origin.getZ() - INSTANCE_CLEANUP_RADIUS,
+                origin.getX() + INSTANCE_CLEANUP_RADIUS,
+                origin.getY() + 96,
+                origin.getZ() + INSTANCE_CLEANUP_RADIUS);
+        for (Entity entity : level.getEntitiesOfClass(Entity.class, bounds, entity -> entity instanceof GatewayEntity)) {
+            entity.discard();
         }
     }
 }

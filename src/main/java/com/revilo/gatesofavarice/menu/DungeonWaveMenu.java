@@ -14,12 +14,17 @@ import net.minecraft.world.item.ItemStack;
 
 public class DungeonWaveMenu extends AbstractContainerMenu {
 
-    public static final int OPTION_COUNT = 3;
+    public static final int OPTION_COUNT = 4;
     public static final int BAIL_BUTTON_ID = 100;
+    public static final int REROLL_BUTTON_ID = 101;
+    public static final int SKIP_BUTTON_ID = 102;
 
     private final UUID ownerId;
     private final int waveNumber;
     private final boolean ownerCanSelect;
+    private final int stage;
+    private final int rerollsLeft;
+    private final int rerollCost;
     private final List<WaveOptionView> options;
 
     public DungeonWaveMenu(int containerId, Inventory inventory, FriendlyByteBuf data) {
@@ -29,15 +34,21 @@ public class DungeonWaveMenu extends AbstractContainerMenu {
                 data.readUUID(),
                 data.readInt(),
                 data.readBoolean(),
+                data.readInt(),
+                data.readInt(),
+                data.readInt(),
                 readOptions(data)
         );
     }
 
-    public DungeonWaveMenu(int containerId, Inventory inventory, UUID ownerId, int waveNumber, boolean ownerCanSelect, List<WaveOptionView> options) {
+    public DungeonWaveMenu(int containerId, Inventory inventory, UUID ownerId, int waveNumber, boolean ownerCanSelect, int stage, int rerollsLeft, int rerollCost, List<WaveOptionView> options) {
         super(ModMenus.DUNGEON_WAVE.get(), containerId);
         this.ownerId = ownerId;
         this.waveNumber = waveNumber;
         this.ownerCanSelect = ownerCanSelect;
+        this.stage = stage;
+        this.rerollsLeft = rerollsLeft;
+        this.rerollCost = rerollCost;
         this.options = List.copyOf(options);
     }
 
@@ -68,6 +79,18 @@ public class DungeonWaveMenu extends AbstractContainerMenu {
         return this.options;
     }
 
+    public int stage() {
+        return this.stage;
+    }
+
+    public int rerollsLeft() {
+        return this.rerollsLeft;
+    }
+
+    public int rerollCost() {
+        return this.rerollCost;
+    }
+
     private static List<WaveOptionView> readOptions(FriendlyByteBuf data) {
         int size = data.readInt();
         ArrayList<WaveOptionView> options = new ArrayList<>(size);
@@ -82,10 +105,13 @@ public class DungeonWaveMenu extends AbstractContainerMenu {
         return options;
     }
 
-    public static void writePayload(FriendlyByteBuf buffer, UUID ownerId, int waveNumber, boolean ownerCanSelect, List<WaveOptionView> options) {
+    public static void writePayload(FriendlyByteBuf buffer, UUID ownerId, int waveNumber, boolean ownerCanSelect, int stage, int rerollsLeft, int rerollCost, List<WaveOptionView> options) {
         buffer.writeUUID(ownerId);
         buffer.writeInt(waveNumber);
         buffer.writeBoolean(ownerCanSelect);
+        buffer.writeInt(stage);
+        buffer.writeInt(rerollsLeft);
+        buffer.writeInt(rerollCost);
         buffer.writeInt(options.size());
         for (WaveOptionView option : options) {
             buffer.writeUtf(option.title().getString());

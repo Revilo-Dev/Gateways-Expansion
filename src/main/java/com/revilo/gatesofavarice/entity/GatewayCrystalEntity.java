@@ -19,10 +19,12 @@ public class GatewayCrystalEntity extends Entity {
     private static final int MAX_LIFETIME_TICKS = 20 * 90;
     private static final String OWNER_KEY = "Owner";
     private static final String LIFE_KEY = "Life";
+    private static final String RETURN_PORTAL_KEY = "ReturnPortal";
     private static final EntityDataAccessor<Integer> CRYSTAL_TIER = SynchedEntityData.defineId(GatewayCrystalEntity.class, EntityDataSerializers.INT);
 
     private UUID ownerId;
     private int lifeTicks;
+    private boolean returnPortal;
 
     public GatewayCrystalEntity(EntityType<? extends GatewayCrystalEntity> entityType, Level level) {
         super(entityType, level);
@@ -60,7 +62,11 @@ public class GatewayCrystalEntity extends Entity {
                 player -> !player.isSpectator() && !player.isPassenger() && !player.isOnPortalCooldown());
         for (ServerPlayer player : players) {
             UUID runOwnerId = this.ownerId == null ? player.getUUID() : this.ownerId;
-            DungeonRunManager.enterFromGateway(player, runOwnerId);
+            if (this.returnPortal) {
+                DungeonRunManager.exitViaBailPortal(player, runOwnerId, this);
+            } else {
+                DungeonRunManager.enterFromGateway(player, runOwnerId);
+            }
         }
     }
 
@@ -70,6 +76,7 @@ public class GatewayCrystalEntity extends Entity {
         if (tag.hasUUID(OWNER_KEY)) {
             this.ownerId = tag.getUUID(OWNER_KEY);
         }
+        this.returnPortal = tag.getBoolean(RETURN_PORTAL_KEY);
         if (tag.contains("CrystalTier")) {
             this.setCrystalTier(tag.getInt("CrystalTier"));
         }
@@ -81,6 +88,7 @@ public class GatewayCrystalEntity extends Entity {
         if (this.ownerId != null) {
             tag.putUUID(OWNER_KEY, this.ownerId);
         }
+        tag.putBoolean(RETURN_PORTAL_KEY, this.returnPortal);
         tag.putInt("CrystalTier", this.getCrystalTier());
     }
 
@@ -118,5 +126,13 @@ public class GatewayCrystalEntity extends Entity {
 
     public void setOwnerId(UUID ownerId) {
         this.ownerId = ownerId;
+    }
+
+    public boolean isReturnPortal() {
+        return this.returnPortal;
+    }
+
+    public void setReturnPortal(boolean returnPortal) {
+        this.returnPortal = returnPortal;
     }
 }

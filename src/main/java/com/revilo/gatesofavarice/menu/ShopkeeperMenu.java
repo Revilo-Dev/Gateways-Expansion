@@ -1,6 +1,7 @@
 package com.revilo.gatesofavarice.menu;
 
 import com.revilo.gatesofavarice.currency.MythicCoinWallet;
+import com.revilo.gatesofavarice.dungeon.DungeonBoundItems;
 import com.revilo.gatesofavarice.dungeon.DungeonRunManager;
 import com.revilo.gatesofavarice.entity.GatekeeperEntity;
 import com.revilo.gatesofavarice.integration.LevelUpIntegration;
@@ -27,6 +28,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     public static final int GRID_SLOT_COUNT = 10;
     public static final int REROLL_BUTTON_ID = 100;
     public static final int SELL_BUTTON_ID = 101;
+    public static final int START_NEXT_WAVE_BUTTON_ID = 102;
     public static final int BUY_ALL_BUTTON_ID_OFFSET = 200;
     public static final int SELL_SLOT_COUNT = 18;
     private static final int TEMP_OFFER_COUNT = GRID_SLOT_COUNT;
@@ -35,7 +37,8 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     private static final int DATA_TEMP_START = 2;
     private static final int DATA_STOCK_START = DATA_TEMP_START + TEMP_OFFER_COUNT;
     private static final int DATA_PRICE_START = DATA_STOCK_START + GRID_SLOT_COUNT;
-    private static final int DATA_SIZE = DATA_PRICE_START + GRID_SLOT_COUNT;
+    private static final int DATA_DUNGEON_NEXT_WAVE_AVAILABLE = DATA_PRICE_START + GRID_SLOT_COUNT;
+    private static final int DATA_SIZE = DATA_DUNGEON_NEXT_WAVE_AVAILABLE + 1;
     private static final int SELL_GRID_X = 8;
     private static final int SELL_GRID_Y = 14;
     private static final int SELL_COLUMNS = 6;
@@ -106,7 +109,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         }
 
         if (id == REROLL_BUTTON_ID) {
-            boolean rerolled = ShopkeeperManager.rerollOffers(serverPlayer, trader);
+            boolean rerolled = ShopkeeperManager.rerollOffersWithWallet(serverPlayer, trader, false);
             if (rerolled) {
                 this.syncFromTrader();
                 this.broadcastChanges();
@@ -123,9 +126,12 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             for (int slotIndex = 0; slotIndex < SELL_SLOT_COUNT; slotIndex++) {
                 this.sellContainer.setItem(slotIndex, ItemStack.EMPTY);
             }
-            MythicCoinWallet.add(serverPlayer, total);
+            this.addCurrency(serverPlayer, total);
             this.broadcastChanges();
             return true;
+        }
+        if (id == START_NEXT_WAVE_BUTTON_ID) {
+            return DungeonRunManager.startNextWaveFromShop(serverPlayer, this.shopkeeperId);
         }
 
         if (id >= BUY_ALL_BUTTON_ID_OFFSET && id < BUY_ALL_BUTTON_ID_OFFSET + GRID_SLOT_COUNT) {
@@ -146,12 +152,15 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             return false;
         }
         int price = this.getOfferPrice(id);
-        if (price <= 0 || !MythicCoinWallet.spend(serverPlayer, price)) {
+        if (price <= 0 || !this.spendCurrency(serverPlayer, price)) {
             ShopkeeperManager.restoreStock(trader, id);
             return false;
         }
 
         ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
+        if (DungeonRunManager.isPlayerInActiveRun(serverPlayer)) {
+            DungeonBoundItems.markIfDungeonBound(reward);
+        }
         if (!serverPlayer.getInventory().add(reward)) {
             serverPlayer.drop(reward, false);
         }
@@ -179,12 +188,15 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             if (!ShopkeeperManager.consumeStock(trader, slotIndex)) {
                 break;
             }
-            if (!MythicCoinWallet.spend(serverPlayer, price)) {
+            if (!this.spendCurrency(serverPlayer, price)) {
                 ShopkeeperManager.restoreStock(trader, slotIndex);
                 break;
             }
 
             ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
+            if (DungeonRunManager.isPlayerInActiveRun(serverPlayer)) {
+                DungeonBoundItems.markIfDungeonBound(reward);
+            }
             if (!serverPlayer.getInventory().add(reward)) {
                 serverPlayer.drop(reward, false);
             }
@@ -293,6 +305,14 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         return this.hasRerollsRemaining() && this.getWalletBalance() >= this.getRerollCost();
     }
 
+    public boolean canStartNextWave() {
+        return this.syncedData.get(DATA_DUNGEON_NEXT_WAVE_AVAILABLE) == 1;
+    }
+
+    public boolean usesDungeonTokens() {
+        return this.useDungeonTokens();
+    }
+
     public int getSellValue() {
         int total = 0;
         for (int slotIndex = 0; slotIndex < SELL_SLOT_COUNT; slotIndex++) {
@@ -350,6 +370,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         for (int index = 0; index < GRID_SLOT_COUNT; index++) {
             this.syncedData.set(DATA_PRICE_START + index, 0);
         }
+        this.syncedData.set(DATA_DUNGEON_NEXT_WAVE_AVAILABLE, 0);
         this.refreshOffersFromData();
     }
 
@@ -376,15 +397,15 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             int value = index < prices.length ? prices[index] : 0;
             this.syncedData.set(DATA_PRICE_START + index, value);
         }
+        int canStartNextWave = this.player instanceof ServerPlayer serverPlayer
+                && DungeonRunManager.canOwnerStartNextWaveFromShop(serverPlayer, this.shopkeeperId) ? 1 : 0;
+        this.syncedData.set(DATA_DUNGEON_NEXT_WAVE_AVAILABLE, canStartNextWave);
         this.refreshOffersFromData();
     }
 
     @Override
     public void removed(Player player) {
         super.removed(player);
-        if (player instanceof ServerPlayer serverPlayer) {
-            DungeonRunManager.onShopClosedByOwner(serverPlayer, this.shopkeeperId);
-        }
         if (player.level().isClientSide) {
             return;
         }
@@ -428,5 +449,17 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             }
         }
         this.cachedOffers = List.copyOf(offers);
+    }
+
+    private boolean useDungeonTokens() {
+        return false;
+    }
+
+    private boolean spendCurrency(ServerPlayer player, int amount) {
+        return MythicCoinWallet.spend(player, amount);
+    }
+
+    private void addCurrency(ServerPlayer player, int amount) {
+        MythicCoinWallet.add(player, amount);
     }
 }

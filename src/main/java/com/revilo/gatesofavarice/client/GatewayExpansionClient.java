@@ -5,6 +5,7 @@ import com.revilo.gatesofavarice.client.render.GatekeeperRenderer;
 import com.revilo.gatesofavarice.client.render.GatewayCrystalRenderer;
 import com.revilo.gatesofavarice.client.render.GatewayWorkbenchBlockEntityRenderer;
 import com.revilo.gatesofavarice.client.screen.DungeonWaveScreen;
+import com.revilo.gatesofavarice.client.screen.DungeonLoadoutScreen;
 import com.revilo.gatesofavarice.client.screen.ShopkeeperScreen;
 import com.revilo.gatesofavarice.client.screen.GatewayWorkbenchScreen;
 import com.revilo.gatesofavarice.gateway.GatewayHudOverlay;
@@ -44,6 +45,7 @@ public final class GatewayExpansionClient {
             event.register(ModMenus.GATEWAY_WORKBENCH.get(), GatewayWorkbenchScreen::new);
             event.register(ModMenus.SHOPKEEPER.get(), ShopkeeperScreen::new);
             event.register(ModMenus.DUNGEON_WAVE.get(), DungeonWaveScreen::new);
+            event.register(ModMenus.DUNGEON_LOADOUT.get(), DungeonLoadoutScreen::new);
         }
 
         @SubscribeEvent

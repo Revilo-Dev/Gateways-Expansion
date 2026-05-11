@@ -69,6 +69,10 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     private static final int SELL_TOTAL_X = 133;
     private static final int SELL_TOTAL_Y = 44;
     private static final int SELL_PRICE_ICON_SHIFT_X = -10;
+    private static final int NEXT_WAVE_BUTTON_X = 117;
+    private static final int NEXT_WAVE_BUTTON_Y = 69;
+    private static final int NEXT_WAVE_BUTTON_WIDTH = 54;
+    private static final int NEXT_WAVE_BUTTON_HEIGHT = 16;
     private static final float SELL_HOLD_TICKS = 20.0F;
     private static final int SELL_COIN_PARTICLE_LIMIT = 24;
     private static final int COIN_TRAIL_SEGMENTS = 4;
@@ -79,6 +83,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
 
     private final List<CoinFlight> coinFlights = new ArrayList<>();
     private Button buyButton;
+    private Button nextWaveButton;
     private Page activePage = Page.BUY;
     private int selectedSlot = 0;
     private int lastWalletBalance;
@@ -106,8 +111,13 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
                 .pos(this.leftPos + BUY_BUTTON_X, this.topPos + BUY_BUTTON_Y)
                 .size(BUY_BUTTON_WIDTH, BUY_BUTTON_HEIGHT)
                 .build());
+        this.nextWaveButton = this.addRenderableWidget(Button.builder(Component.literal("Next Wave"), button -> this.startNextWave())
+                .pos(this.leftPos + NEXT_WAVE_BUTTON_X, this.topPos + NEXT_WAVE_BUTTON_Y)
+                .size(NEXT_WAVE_BUTTON_WIDTH, NEXT_WAVE_BUTTON_HEIGHT)
+                .build());
         this.applyPageLayout();
         this.updateBuyButton();
+        this.updateNextWaveButton();
     }
 
     @Override
@@ -148,6 +158,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
 
         this.tickCoinFlights();
         this.updateBuyButton();
+        this.updateNextWaveButton();
     }
 
     @Override
@@ -446,7 +457,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         guiGraphics.renderTooltip(
                 this.font,
                 List.of(
-                        Component.literal("Mythic Coins"),
+                        Component.literal(this.menu.usesDungeonTokens() ? "Dungeon Tokens" : "Mythic Coins"),
                         Component.literal(Integer.toString(this.menu.getWalletBalance())).withStyle(ChatFormatting.LIGHT_PURPLE)
                 ),
                 coinStack.getTooltipImage(),
@@ -507,6 +518,22 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         this.createBuyCoinFlights(slotPrice, purchases);
         int buttonId = hasShiftDown() ? ShopkeeperMenu.BUY_ALL_BUTTON_ID_OFFSET + this.selectedSlot : this.selectedSlot;
         this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, buttonId);
+    }
+
+    private void updateNextWaveButton() {
+        if (this.nextWaveButton == null) {
+            return;
+        }
+        boolean show = this.activePage == Page.BUY && this.menu.canStartNextWave();
+        this.nextWaveButton.visible = show;
+        this.nextWaveButton.active = show;
+    }
+
+    private void startNextWave() {
+        if (this.minecraft == null || this.minecraft.gameMode == null || !this.menu.canStartNextWave()) {
+            return;
+        }
+        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, ShopkeeperMenu.START_NEXT_WAVE_BUTTON_ID);
     }
 
     private void sellStagedItems() {
@@ -726,6 +753,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
         this.coinFlights.clear();
         this.applyPageLayout();
         this.updateBuyButton();
+        this.updateNextWaveButton();
     }
 
     private void applyPageLayout() {

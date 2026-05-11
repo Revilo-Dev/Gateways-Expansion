@@ -14,11 +14,13 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
 
     private final List<Button> optionButtons = new ArrayList<>();
     private Button bailButton;
+    private Button rerollButton;
+    private Button skipButton;
 
     public DungeonWaveScreen(DungeonWaveMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         this.imageWidth = 248;
-        this.imageHeight = 166;
+        this.imageHeight = 188;
         this.inventoryLabelY = 10000;
         this.titleLabelY = 10000;
     }
@@ -49,10 +51,26 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
         this.bailButton = this.addRenderableWidget(Button.builder(
                         Component.translatable("screen.gatesofavarice.dungeon_wave.bail").withStyle(ChatFormatting.RED),
                         click -> this.selectBail())
-                .pos(this.leftPos + 74, this.topPos + 124)
-                .size(100, 20)
+                .pos(this.leftPos + 12, this.topPos + 140)
+                .size(224, 20)
                 .build());
-        this.bailButton.active = this.menu.ownerCanSelect();
+        this.bailButton.active = this.menu.ownerCanSelect() && this.menu.stage() == 0;
+
+        this.rerollButton = this.addRenderableWidget(Button.builder(
+                        Component.literal("Reroll (" + this.menu.rerollsLeft() + ") - " + this.menu.rerollCost() + " Mythic Coins").withStyle(ChatFormatting.GOLD),
+                        click -> this.selectReroll())
+                .pos(this.leftPos + 12, this.topPos + 140)
+                .size(224, 20)
+                .build());
+        this.rerollButton.active = this.menu.ownerCanSelect() && this.menu.stage() == 1 && this.menu.rerollsLeft() > 0;
+
+        this.skipButton = this.addRenderableWidget(Button.builder(
+                        Component.literal("Skip").withStyle(ChatFormatting.GRAY),
+                        click -> this.selectSkip())
+                .pos(this.leftPos + 12, this.topPos + 162)
+                .size(224, 20)
+                .build());
+        this.skipButton.active = this.menu.ownerCanSelect() && this.menu.stage() == 1;
     }
 
     @Override
@@ -70,7 +88,8 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        guiGraphics.drawString(this.font, Component.translatable("screen.gatesofavarice.dungeon_wave.title", this.menu.waveNumber()), 12, 10, 0xF4E9FF, false);
+        String stageTitle = this.menu.stage() == 0 ? "Tarot Selection" : "Loot Selection";
+        guiGraphics.drawString(this.font, Component.literal("Wave " + this.menu.waveNumber() + " - " + stageTitle), 12, 10, 0xF4E9FF, false);
         if (this.menu.ownerCanSelect()) {
             guiGraphics.drawString(this.font, Component.translatable("screen.gatesofavarice.dungeon_wave.select_prompt"), 12, 22, 0xBFBFBF, false);
         }
@@ -81,16 +100,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
         for (int index = 0; index < this.menu.options().size(); index++) {
             DungeonWaveMenu.WaveOptionView option = this.menu.options().get(index);
             int y = 42 + (index * 26);
-            guiGraphics.drawString(
-                    this.font,
-                    option.details().copy()
-                            .append(Component.literal("  [In: " + option.inDungeonRewardPercent() + "%]").withStyle(ChatFormatting.AQUA))
-                            .append(Component.literal(" [Out: " + option.externalRewardPercent() + "%]").withStyle(ChatFormatting.GREEN)),
-                    16,
-                    y + 13,
-                    0xBFBFBF,
-                    false
-            );
+            guiGraphics.drawString(this.font, option.details(), 16, y + 13, 0xBFBFBF, false);
         }
     }
 
@@ -106,5 +116,19 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
             return;
         }
         this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, DungeonWaveMenu.BAIL_BUTTON_ID);
+    }
+
+    private void selectReroll() {
+        if (this.minecraft == null || this.minecraft.gameMode == null) {
+            return;
+        }
+        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, DungeonWaveMenu.REROLL_BUTTON_ID);
+    }
+
+    private void selectSkip() {
+        if (this.minecraft == null || this.minecraft.gameMode == null) {
+            return;
+        }
+        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, DungeonWaveMenu.SKIP_BUTTON_ID);
     }
 }

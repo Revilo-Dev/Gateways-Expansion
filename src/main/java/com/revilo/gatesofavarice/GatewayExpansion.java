@@ -1,6 +1,7 @@
 package com.revilo.gatesofavarice;
 
 import com.revilo.gatesofavarice.command.CoinCommands;
+import com.revilo.gatesofavarice.command.DungeonCommands;
 import com.revilo.gatesofavarice.client.GatewayExpansionClient;
 import com.revilo.gatesofavarice.config.GatewayExpansionConfig;
 import com.revilo.gatesofavarice.dungeon.DungeonInstanceManager;
@@ -14,6 +15,7 @@ import com.revilo.gatesofavarice.integration.GatewayDrownedHandler;
 import com.revilo.gatesofavarice.integration.StabilityPearlHandler;
 import com.revilo.gatesofavarice.integration.GatewayThornsHandler;
 import com.revilo.gatesofavarice.integration.CuriosCompat;
+import com.revilo.gatesofavarice.integration.DungeonBoundTooltipHandler;
 import com.revilo.gatesofavarice.integration.ArsenalWeaponTraitHandler;
 import com.revilo.gatesofavarice.integration.LevelUpGatewayIntegration;
 import com.revilo.gatesofavarice.integration.LevelUpGatewayXpRewards;
@@ -63,8 +65,10 @@ public final class GatewayExpansion {
             CuriosCompat.register(modEventBus);
         }
         NeoForge.EVENT_BUS.register(CoinCommands.class);
+        NeoForge.EVENT_BUS.register(DungeonCommands.class);
         NeoForge.EVENT_BUS.register(GatewayFailureEvents.class);
         NeoForge.EVENT_BUS.register(GatewayPearlTooltipHandler.class);
+        NeoForge.EVENT_BUS.register(DungeonBoundTooltipHandler.class);
         NeoForge.EVENT_BUS.register(GatewayDrownedHandler.class);
         NeoForge.EVENT_BUS.register(GeneratedGatewayPearlTracker.class);
         NeoForge.EVENT_BUS.register(StabilityPearlHandler.class);
