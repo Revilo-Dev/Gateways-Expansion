@@ -19,6 +19,7 @@ public final class ModCreativeTabs {
                     .icon(() -> new ItemStack(ModItems.GATEWAY_WORKBENCH.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.GATEWAY_WORKBENCH.get());
+                        output.accept(ModItems.LOOTBOX.get());
                         output.accept(ModItems.TIER_1_CRYSTAL.get());
                         output.accept(ModItems.TIER_2_CRYSTAL.get());
                         output.accept(ModItems.TIER_3_CRYSTAL.get());

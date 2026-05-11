@@ -236,6 +236,8 @@ public final class ModItems {
 
     public static final DeferredHolder<Item, BlockItem> GATEWAY_WORKBENCH = ITEMS.register("gateway_workbench",
             () -> new BlockItem(ModBlocks.GATEWAY_WORKBENCH.get(), new Item.Properties()));
+    public static final DeferredHolder<Item, BlockItem> LOOTBOX = ITEMS.register("lootbox",
+            () -> new BlockItem(ModBlocks.LOOTBOX.get(), new Item.Properties()));
 
     private ModItems() {
     }

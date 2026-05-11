@@ -1,6 +1,7 @@
 {
   "itemGroup.gatesofavarice.main": "gatesofavarice",
   "block.gatesofavarice.gateway_workbench": "Gateway Workbench",
+  "block.gatesofavarice.lootbox": "Lootbox",
   "item.gatesofavarice.tier_1_crystal": "Gateway Crystal",
   "item.gatesofavarice.tier_2_crystal": "Gateway Crystal",
   "item.gatesofavarice.tier_3_crystal": "Gateway Crystal",
@@ -89,6 +90,7 @@
   "item.gatesofavarice.prismatic_steel_sword": "Prismatic Steel Sword",
   "item.gatesofavarice.prismatic_steel_paxel": "Prismatic Steel Paxel",
   "item.gatesofavarice.shop_gateway": "Shop Crystal",
+  "item.gatesofavarice.lootbox": "Lootbox",
   "entity.gatesofavarice.shopkeeper": "Gatekeeper",
   "gatesofavarice.shopkeeper_bazaar": "Gatekeeper",
   "tooltip.gatesofavarice.crystal.description": "Used in a gateway workbench",

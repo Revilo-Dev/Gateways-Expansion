@@ -10,6 +10,7 @@ import com.revilo.gatesofavarice.menu.DungeonWaveMenu;
 import com.revilo.gatesofavarice.network.DungeonWaveHudPayload;
 import com.revilo.gatesofavarice.registry.ModEntities;
 import com.revilo.gatesofavarice.registry.ModItems;
+import com.revilo.gatesofavarice.shop.ShopkeeperManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +45,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -68,6 +71,15 @@ public final class DungeonRunManager {
             ModItems.ELIXRITE_SCRAP.get(), ModItems.ASTRITE_SCRAP.get(), ModItems.SOLAR_SHARD.get(), ModItems.DARK_ESSENCE.get(),
             ModItems.RUSTY_COIN.get(), ModItems.HARDENED_FLESH.get()
     );
+    private static final List<Component> TAROT_ENEMY_LINES = List.of(
+            Component.literal("+2 Hoard Mobs"), Component.literal("+3 Hoard Mobs"), Component.literal("+4 Hoard Mobs"),
+            Component.literal("+2 Assassin Mobs"), Component.literal("+3 Archer Mobs"), Component.literal("+2 Tank Mobs"));
+    private static final List<Component> TAROT_EFFECT_LINES = List.of(
+            Component.literal("+8% Mob Damage"), Component.literal("+10% Mob Health"), Component.literal("+12% Mob Speed"),
+            Component.literal("+15% Mob Resistance"), Component.literal("+8% Elite Chance"), Component.literal("+6% Spawn Rate"));
+    private static final List<Component> TAROT_REWARD_LINES = List.of(
+            Component.literal("+1 Reward Roll"), Component.literal("+2 Reward Rolls"), Component.literal("+20 Mythic Coins"),
+            Component.literal("+1 Unlock Archetype"), Component.literal("+1 Dungeon Loot Burst"));
 
     private DungeonRunManager() {}
 
@@ -77,6 +89,7 @@ public final class DungeonRunManager {
         run.participants.add(player.getUUID());
         PLAYER_TO_OWNER.put(player.getUUID(), ownerId);
         run.snapshots.putIfAbsent(player.getUUID(), PlayerSnapshot.capture(player));
+        clearForDungeon(player);
         DungeonInstanceManager.teleportToDungeonInstance(player, ownerId);
         if (player.getUUID().equals(ownerId) && run.phase == RunPhase.SELECTING_TAROT) {
             rollTarotOptions(run, player.serverLevel().random);
@@ -89,7 +102,9 @@ public final class DungeonRunManager {
         if (run == null || run.exitPortalId != portal.getId()) return;
         PlayerSnapshot snapshot = run.snapshots.get(player.getUUID());
         if (snapshot == null) return;
-        DungeonBoundItems.removeBoundItems(player);
+        ItemStack lootbox = createLootboxFromDungeonInventory(player);
+        restoreSnapshot(player, snapshot);
+        if (!lootbox.isEmpty() && !player.getInventory().add(lootbox)) player.drop(lootbox, false);
         DungeonInstanceManager.teleportToSavedLocation(player, snapshot.dimension, snapshot.returnPos, snapshot.yaw, snapshot.pitch);
         PLAYER_TO_OWNER.remove(player.getUUID());
         run.participants.remove(player.getUUID());
@@ -150,8 +165,27 @@ public final class DungeonRunManager {
     }
 
     public static int recoverStalledShops(MinecraftServer server) { return 0; }
-    public static boolean canOwnerStartNextWaveFromShop(ServerPlayer player, int shopkeeperEntityId) { return false; }
-    public static boolean startNextWaveFromShop(ServerPlayer player, int shopkeeperEntityId) { return false; }
+    public static boolean canOwnerStartNextWaveFromShop(ServerPlayer player, int shopkeeperEntityId) {
+        UUID ownerId = PLAYER_TO_OWNER.get(player.getUUID());
+        if (ownerId == null) return false;
+        RunState run = RUNS_BY_OWNER.get(ownerId);
+        return run != null && run.phase == RunPhase.SHOP && player.getUUID().equals(run.ownerId) && run.shopkeeperId == shopkeeperEntityId;
+    }
+    public static boolean startNextWaveFromShop(ServerPlayer player, int shopkeeperEntityId) {
+        if (!canOwnerStartNextWaveFromShop(player, shopkeeperEntityId)) return false;
+        UUID ownerId = PLAYER_TO_OWNER.get(player.getUUID());
+        if (ownerId == null) return false;
+        RunState run = RUNS_BY_OWNER.get(ownerId);
+        if (run == null) return false;
+        Entity shop = player.serverLevel().getEntity(shopkeeperEntityId);
+        if (shop != null) shop.discard();
+        run.shopkeeperId = -1;
+        run.phase = RunPhase.SELECTING_TAROT;
+        run.rerollsUsed = 0;
+        rollTarotOptions(run, player.serverLevel().random);
+        openWaveMenu(player, run);
+        return true;
+    }
     public static boolean handleLoadoutMenuClick(Player player, UUID ownerId, int buttonId) { return false; }
     public static boolean isLoadoutMenuValid(Player player, UUID ownerId) { return false; }
 
@@ -250,11 +284,16 @@ public final class DungeonRunManager {
     private static void completeWave(RunState run, ServerLevel level) {
         for (ServerPlayer player : run.liveParticipants()) MythicCoinWallet.addRaw(player, 1);
         spawnWaveLootBurst(run, level, 3 + level.random.nextInt(3));
-        run.phase = RunPhase.SELECTING_TAROT;
-        run.rerollsUsed = 0;
-        rollTarotOptions(run, level.random);
+        for (ServerPlayer player : run.liveParticipants()) {
+            player.setHealth(player.getMaxHealth());
+        }
+        BlockPos center = DungeonInstanceManager.instanceCenter(run.ownerId);
         ServerPlayer owner = run.online(run.ownerId);
-        if (owner != null) openWaveMenu(owner, run);
+        Player summoner = owner;
+        var shop = ShopkeeperManager.spawnShopkeeper(level, center.getX() + 0.5D, center.getY() + 1.0D, center.getZ() + 0.5D, summoner);
+        if (shop != null) shop.setInvulnerable(true);
+        run.shopkeeperId = shop == null ? -1 : shop.getId();
+        run.phase = RunPhase.SHOP;
         syncHud(run, false);
     }
 
@@ -324,7 +363,7 @@ public final class DungeonRunManager {
     private static void grantLoot(ServerPlayer player, LootOption option, RandomSource random) {
         ItemStack stack = option.create(random);
         if (stack.isEmpty()) return;
-        DungeonBoundItems.markIfDungeonBound(stack);
+        DungeonGearRoller.rollAndBind(stack, random);
         if (stack.getItem() == Items.IRON_HELMET || stack.getItem() == Items.CHAINMAIL_HELMET || stack.getItem() == Items.GOLDEN_HELMET || stack.getItem() == Items.DIAMOND_HELMET) {
             player.setItemSlot(EquipmentSlot.HEAD, stack);
         } else if (stack.getItem() == Items.IRON_CHESTPLATE || stack.getItem() == Items.CHAINMAIL_CHESTPLATE || stack.getItem() == Items.GOLDEN_CHESTPLATE || stack.getItem() == Items.DIAMOND_CHESTPLATE) {
@@ -404,15 +443,33 @@ public final class DungeonRunManager {
         int rerollsLeft = Math.max(0, MAX_REROLLS - run.rerollsUsed);
         int rerollCost = rerollsLeft <= 0 ? 0 : BASE_REROLL_COST << run.rerollsUsed;
         int stage = run.phase == RunPhase.SELECTING_TAROT ? 0 : 1;
+        List<Component> changes = runChangeSummary(run);
         MenuProvider provider = new SimpleMenuProvider(
-                (containerId, inventory, ignored) -> new DungeonWaveMenu(containerId, inventory, run.ownerId, run.waveNumber + 1, true, stage, rerollsLeft, rerollCost, views),
+                (containerId, inventory, ignored) -> new DungeonWaveMenu(containerId, inventory, run.ownerId, run.waveNumber + 1, true, stage, rerollsLeft, rerollCost, views, changes),
                 Component.translatable("screen.gatesofavarice.dungeon_wave.title", run.waveNumber + 1)
         );
-        owner.openMenu(provider, buffer -> DungeonWaveMenu.writePayload(buffer, run.ownerId, run.waveNumber + 1, true, stage, rerollsLeft, rerollCost, views));
+        owner.openMenu(provider, buffer -> DungeonWaveMenu.writePayload(buffer, run.ownerId, run.waveNumber + 1, true, stage, rerollsLeft, rerollCost, views, changes));
+    }
+
+    private static List<Component> runChangeSummary(RunState run) {
+        return List.of(
+                Component.literal(String.format(java.util.Locale.ROOT, "Enemy Count x%.2f", run.enemyCountMultiplier)),
+                Component.literal(String.format(java.util.Locale.ROOT, "Enemy Damage x%.2f", run.damageMultiplier)),
+                Component.literal(String.format(java.util.Locale.ROOT, "Enemy Speed x%.2f", run.speedMultiplier)),
+                Component.literal("Extra Rewards +" + run.extraRewardRolls),
+                Component.literal("Unlocked Archetypes: " + run.unlockedArchetypes.size())
+        );
     }
 
     private static void finishAndCleanup(RunState run) {
         syncHud(run, false);
+        if (run.shopkeeperId >= 0) {
+            ServerLevel dungeon = run.server == null ? null : run.server.getLevel(ModDimensions.DUNGEON_LEVEL);
+            if (dungeon != null) {
+                Entity shop = dungeon.getEntity(run.shopkeeperId);
+                if (shop != null) shop.discard();
+            }
+        }
         if (run.exitPortalId >= 0) {
             ServerLevel dungeon = run.server == null ? null : run.server.getLevel(ModDimensions.DUNGEON_LEVEL);
             if (dungeon != null) {
@@ -425,6 +482,42 @@ public final class DungeonRunManager {
         RUNS_BY_OWNER.remove(run.ownerId);
     }
 
+    private static void clearForDungeon(ServerPlayer player) {
+        player.getInventory().clearContent();
+        player.inventoryMenu.broadcastChanges();
+        player.containerMenu.broadcastChanges();
+    }
+
+    private static ItemStack createLootboxFromDungeonInventory(ServerPlayer player) {
+        ItemStack lootbox = new ItemStack(ModItems.LOOTBOX.get());
+        net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+        for (ItemStack stack : player.getInventory().items) {
+            if (!stack.isEmpty()) list.add(stack.saveOptional(player.registryAccess()));
+        }
+        for (ItemStack stack : player.getInventory().armor) {
+            if (!stack.isEmpty()) list.add(stack.saveOptional(player.registryAccess()));
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
+            if (!stack.isEmpty()) list.add(stack.saveOptional(player.registryAccess()));
+        }
+        if (list.isEmpty()) return ItemStack.EMPTY;
+        net.minecraft.nbt.CompoundTag all = lootbox.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        net.minecraft.nbt.CompoundTag root = all.getCompound("gatesofavarice");
+        root.put("lootbox_loot", list);
+        all.put("gatesofavarice", root);
+        lootbox.set(DataComponents.CUSTOM_DATA, CustomData.of(all));
+        return lootbox;
+    }
+
+    private static void restoreSnapshot(ServerPlayer player, PlayerSnapshot snapshot) {
+        for (int i = 0; i < player.getInventory().items.size(); i++) player.getInventory().items.set(i, snapshot.items.get(i).copy());
+        for (int i = 0; i < player.getInventory().armor.size(); i++) player.getInventory().armor.set(i, snapshot.armor.get(i).copy());
+        for (int i = 0; i < player.getInventory().offhand.size(); i++) player.getInventory().offhand.set(i, snapshot.offhand.get(i).copy());
+        player.getInventory().selected = snapshot.selectedSlot;
+        player.inventoryMenu.broadcastChanges();
+        player.containerMenu.broadcastChanges();
+    }
+
     private static void syncHud(RunState run, boolean active) {
         int remaining = Math.max(0, run.toSpawn + run.aliveMobs.size());
         int total = Math.max(1, run.waveTotalMobs);
@@ -432,7 +525,7 @@ public final class DungeonRunManager {
         for (ServerPlayer participant : run.liveParticipants()) PacketDistributor.sendToPlayer(participant, payload);
     }
 
-    private enum RunPhase { SELECTING_TAROT, SELECTING_LOOT, IN_WAVE, WAITING_EXIT }
+    private enum RunPhase { SELECTING_TAROT, SELECTING_LOOT, IN_WAVE, SHOP, WAITING_EXIT }
 
     private enum WaveArchetype { UNDEAD, HORDE, ASSASSIN, ARCHER, TANK }
 
@@ -448,6 +541,7 @@ public final class DungeonRunManager {
         private int waveTotalMobs = 0;
         private int spawnCooldown = 0;
         private int exitPortalId = -1;
+        private int shopkeeperId = -1;
         private List<WaveArchetype> unlockedArchetypes = new ArrayList<>(List.of(WaveArchetype.UNDEAD));
         private Map<WaveArchetype, EnemyPoolSet> currentWavePools = new HashMap<>();
         private List<TarotOption> tarotOptions = List.of();
@@ -482,16 +576,39 @@ public final class DungeonRunManager {
         private final BlockPos returnPos;
         private final float yaw;
         private final float pitch;
+        private final List<ItemStack> items;
+        private final List<ItemStack> armor;
+        private final List<ItemStack> offhand;
+        private final int selectedSlot;
 
-        private PlayerSnapshot(ResourceKey<Level> dimension, BlockPos returnPos, float yaw, float pitch) {
+        private PlayerSnapshot(ResourceKey<Level> dimension, BlockPos returnPos, float yaw, float pitch, List<ItemStack> items, List<ItemStack> armor, List<ItemStack> offhand, int selectedSlot) {
             this.dimension = dimension;
             this.returnPos = returnPos;
             this.yaw = yaw;
             this.pitch = pitch;
+            this.items = items;
+            this.armor = armor;
+            this.offhand = offhand;
+            this.selectedSlot = selectedSlot;
         }
 
         private static PlayerSnapshot capture(ServerPlayer player) {
-            return new PlayerSnapshot(player.level().dimension(), player.blockPosition(), player.getYRot(), player.getXRot());
+            return new PlayerSnapshot(
+                    player.level().dimension(),
+                    player.blockPosition(),
+                    player.getYRot(),
+                    player.getXRot(),
+                    copyStacks(player.getInventory().items),
+                    copyStacks(player.getInventory().armor),
+                    copyStacks(player.getInventory().offhand),
+                    player.getInventory().selected
+            );
+        }
+
+        private static List<ItemStack> copyStacks(List<ItemStack> source) {
+            ArrayList<ItemStack> copied = new ArrayList<>(source.size());
+            for (ItemStack stack : source) copied.add(stack.copy());
+            return copied;
         }
     }
 
@@ -515,14 +632,16 @@ public final class DungeonRunManager {
         }
 
         private static TarotOption random(RandomSource random) {
-            int enemies = 2 + random.nextInt(5);
-            int dmg = 5 + random.nextInt(16);
-            int spd = 5 + random.nextInt(16);
-            int rewards = 1 + random.nextInt(2);
+            int enemies = 2 + random.nextInt(8);
+            int dmg = 6 + random.nextInt(20);
+            int spd = 5 + random.nextInt(18);
+            int rewards = 1 + random.nextInt(3);
             WaveArchetype[] values = WaveArchetype.values();
             WaveArchetype archetype = values[random.nextInt(values.length)];
-            Component title = Component.literal("+").append(Integer.toString(enemies)).append(" ").append(archetype.name()).append(" Enemies");
-            Component details = Component.literal("+" + dmg + "% dmg, +" + spd + "% speed, +" + rewards + " rewards");
+            Component title = TAROT_ENEMY_LINES.get(random.nextInt(TAROT_ENEMY_LINES.size()));
+            Component details = Component.literal(TAROT_EFFECT_LINES.get(random.nextInt(TAROT_EFFECT_LINES.size())).getString()
+                    + ", " + TAROT_REWARD_LINES.get(random.nextInt(TAROT_REWARD_LINES.size())).getString()
+                    + ", +" + dmg + "% dmg, +" + spd + "% speed");
             return new TarotOption(title, details, enemies * 0.03D, dmg / 100.0D, spd / 100.0D, rewards, archetype);
         }
     }
@@ -542,15 +661,15 @@ public final class DungeonRunManager {
 
         private static LootOption weapon(RandomSource random) {
             return new LootOption(Component.literal("Weapon Upgrade"), Component.literal("Random weapon"), r -> switch (r.nextInt(4)) {
-                case 0 -> new ItemStack(Items.IRON_SWORD);
-                case 1 -> new ItemStack(Items.GOLDEN_SWORD);
-                case 2 -> new ItemStack(Items.BOW);
-                default -> new ItemStack(Items.IRON_AXE);
+                case 0 -> new ItemStack(ModItems.MANA_STEEL_SWORD.get());
+                case 1 -> new ItemStack(ModItems.ELIXRITE_SWORD.get());
+                case 2 -> new ItemStack(Items.IRON_SWORD);
+                default -> new ItemStack(Items.BOW);
             });
         }
 
         private static LootOption armor(RandomSource random) {
-            return new LootOption(Component.literal("Armor Upgrade"), Component.literal("Random armor piece"), r -> switch (r.nextInt(4)) {
+            return new LootOption(Component.literal("Dungeon Armor"), Component.literal("Random iron armor piece"), r -> switch (r.nextInt(4)) {
                 case 0 -> new ItemStack(Items.IRON_HELMET);
                 case 1 -> new ItemStack(Items.IRON_CHESTPLATE);
                 case 2 -> new ItemStack(Items.IRON_LEGGINGS);

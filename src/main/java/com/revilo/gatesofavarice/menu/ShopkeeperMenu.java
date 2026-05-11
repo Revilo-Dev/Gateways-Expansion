@@ -2,6 +2,7 @@ package com.revilo.gatesofavarice.menu;
 
 import com.revilo.gatesofavarice.currency.MythicCoinWallet;
 import com.revilo.gatesofavarice.dungeon.DungeonBoundItems;
+import com.revilo.gatesofavarice.dungeon.DungeonGearRoller;
 import com.revilo.gatesofavarice.dungeon.DungeonRunManager;
 import com.revilo.gatesofavarice.entity.GatekeeperEntity;
 import com.revilo.gatesofavarice.integration.LevelUpIntegration;
@@ -159,6 +160,8 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
 
         ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
         if (DungeonRunManager.isPlayerInActiveRun(serverPlayer)) {
+            DungeonGearRoller.rollAndBind(reward, serverPlayer.getRandom());
+        } else {
             DungeonBoundItems.markIfDungeonBound(reward);
         }
         if (!serverPlayer.getInventory().add(reward)) {
@@ -195,6 +198,8 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
 
             ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
             if (DungeonRunManager.isPlayerInActiveRun(serverPlayer)) {
+                DungeonGearRoller.rollAndBind(reward, serverPlayer.getRandom());
+            } else {
                 DungeonBoundItems.markIfDungeonBound(reward);
             }
             if (!serverPlayer.getInventory().add(reward)) {

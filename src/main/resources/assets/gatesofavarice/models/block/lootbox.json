@@ -1,0 +1,11 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "gatesofavarice:block/lootbox/lootbox-bottom",
+    "up": "gatesofavarice:block/lootbox/lootbox-top",
+    "north": "gatesofavarice:block/lootbox/lootbox-side",
+    "south": "gatesofavarice:block/lootbox/lootbox-side",
+    "west": "gatesofavarice:block/lootbox/lootbox-side",
+    "east": "gatesofavarice:block/lootbox/lootbox-side"
+  }
+}

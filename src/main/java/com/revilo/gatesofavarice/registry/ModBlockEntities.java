@@ -2,6 +2,7 @@ package com.revilo.gatesofavarice.registry;
 
 import com.revilo.gatesofavarice.GatewayExpansion;
 import com.revilo.gatesofavarice.block.entity.GatewayWorkbenchBlockEntity;
+import com.revilo.gatesofavarice.block.entity.LootboxBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -15,6 +16,9 @@ public final class ModBlockEntities {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<GatewayWorkbenchBlockEntity>> GATEWAY_WORKBENCH =
             BLOCK_ENTITY_TYPES.register("gateway_workbench",
                     () -> BlockEntityType.Builder.of(GatewayWorkbenchBlockEntity::new, ModBlocks.GATEWAY_WORKBENCH.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LootboxBlockEntity>> LOOTBOX =
+            BLOCK_ENTITY_TYPES.register("lootbox",
+                    () -> BlockEntityType.Builder.of(LootboxBlockEntity::new, ModBlocks.LOOTBOX.get()).build(null));
 
     private ModBlockEntities() {
     }

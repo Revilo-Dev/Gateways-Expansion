@@ -134,13 +134,13 @@ public final class EnemyPoolRegistry {
                 }
             }
             case BEAST -> {
-                pools.pool(EnemyPoolRole.MELEE).add(EntityType.SPIDER, 7, "vanilla").add(EntityType.WOLF, 5, "vanilla").add(EntityType.POLAR_BEAR, 3, "vanilla");
+                pools.pool(EnemyPoolRole.MELEE).add(EntityType.SPIDER, 8, "vanilla").add(EntityType.SLIME, 4, "vanilla");
                 pools.pool(EnemyPoolRole.RANGED).add(EntityType.BEE, 6, "vanilla");
-                pools.pool(EnemyPoolRole.TANK).add(EntityType.POLAR_BEAR, 6, "vanilla").add(EntityType.RAVAGER, 3, "vanilla").add(EntityType.SLIME, 3, "vanilla");
-                pools.pool(EnemyPoolRole.FAST).add(EntityType.CAVE_SPIDER, 7, "vanilla").add(EntityType.WOLF, 6, "vanilla").add(EntityType.SILVERFISH, 3, "vanilla").add(EntityType.ENDERMITE, 2, "vanilla");
-                pools.pool(EnemyPoolRole.ELITE).add(EntityType.RAVAGER, 6, "vanilla").add(EntityType.POLAR_BEAR, 4, "vanilla");
+                pools.pool(EnemyPoolRole.TANK).add(EntityType.RAVAGER, 5, "vanilla").add(EntityType.SLIME, 4, "vanilla").add(EntityType.HOGLIN, 2, "vanilla");
+                pools.pool(EnemyPoolRole.FAST).add(EntityType.CAVE_SPIDER, 8, "vanilla").add(EntityType.SILVERFISH, 4, "vanilla").add(EntityType.ENDERMITE, 3, "vanilla");
+                pools.pool(EnemyPoolRole.ELITE).add(EntityType.RAVAGER, 7, "vanilla").add(EntityType.HOGLIN, 2, "vanilla");
                 pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.BEE, 6, "vanilla").add(EntityType.CAVE_SPIDER, 4, "vanilla").add(EntityType.SLIME, 2, "vanilla");
-                pools.pool(EnemyPoolRole.THEME).add(EntityType.SPIDER, 7, "vanilla").add(EntityType.WOLF, 4, "vanilla").add(EntityType.CAVE_SPIDER, 4, "vanilla");
+                pools.pool(EnemyPoolRole.THEME).add(EntityType.SPIDER, 8, "vanilla").add(EntityType.CAVE_SPIDER, 5, "vanilla").add(EntityType.SLIME, 3, "vanilla");
                 if (level >= 20) {
                     pools.pool(EnemyPoolRole.MELEE).add(EntityType.SLIME, 4, "vanilla");
                     pools.pool(EnemyPoolRole.SUPPORT).add(EntityType.SLIME, 3, "vanilla");

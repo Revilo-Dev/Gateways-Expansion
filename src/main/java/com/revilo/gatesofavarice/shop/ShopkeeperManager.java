@@ -40,6 +40,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.SmithingTemplateItem;
 import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.level.Level;
@@ -544,6 +545,7 @@ public final class ShopkeeperManager {
                 .filter(offer -> offer.minLevel() <= playerLevel && playerLevel <= offer.maxLevel())
                 .filter(offer -> !isSuppressedMidgameMaterialOffer(offer, playerLevel))
                 .filter(offer -> !isRetiredPaxelOffer(offer, activePaxelOfferIds))
+                .filter(ShopkeeperManager::isDungeonAidOffer)
                 .map(allOffers::indexOf)
                 .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
         if (eligible.isEmpty()) {
@@ -580,6 +582,35 @@ public final class ShopkeeperManager {
         return offer.id().equals("iron_ingot")
                 || offer.id().equals("gold_ingot")
                 || offer.id().equals("diamond");
+    }
+
+    private static boolean isDungeonAidOffer(ShopOfferDefinition offer) {
+        ItemStack preview = offer.previewStack();
+        if (preview.isEmpty()) {
+            return false;
+        }
+        if (preview.getItem() instanceof ArmorItem || preview.getItem() instanceof SwordItem || preview.getItem() instanceof PaxelItem) {
+            return true;
+        }
+        if (preview.getItem() instanceof SmithingTemplateItem) {
+            return true;
+        }
+        if (preview.is(Items.GOLDEN_APPLE) || preview.is(Items.ENCHANTED_GOLDEN_APPLE)) {
+            return true;
+        }
+        return preview.is(ModItems.ARCANE_APPLE.get())
+                || preview.is(ModItems.ENCHANTED_ARCANE_APPLE.get())
+                || preview.is(ModItems.STABILITY_PEARL.get())
+                || preview.is(ModItems.SHOP_GATEWAY.get())
+                || preview.is(ModItems.MANA_STEEL_SWORD.get())
+                || preview.is(ModItems.ELIXRITE_SWORD.get())
+                || preview.is(ModItems.ASTRITE_SWORD.get())
+                || preview.is(ModItems.LUNARIUM_SWORD.get())
+                || preview.is(ModItems.IGNITE_SWORD.get())
+                || preview.is(ModItems.IRIDIUM_SWORD.get())
+                || preview.is(ModItems.MYTHRIL_SWORD.get())
+                || preview.is(ModItems.ARCANIUM_SWORD.get())
+                || preview.is(ModItems.PRISMATIC_STEEL_SWORD.get());
     }
 
     private static Set<String> activePaxelOfferIds(List<ShopOfferDefinition> allOffers, int playerLevel) {

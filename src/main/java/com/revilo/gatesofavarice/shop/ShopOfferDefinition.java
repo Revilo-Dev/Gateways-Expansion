@@ -105,12 +105,10 @@ public record ShopOfferDefinition(
         addMaterialOffer(offers, "prismatic_core", "prismatic_core", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.PRISMATIC_CORE.get())), 60, MAX_PLAYER_LEVEL, 3, 5, -5, 5, ModItems.PRISMATIC_CORE.get());
 
         addShopOnlyOffer(offers, "iron_ingot", 90, 0, MAX_PLAYER_LEVEL, 6, 12, 0, 0, Items.IRON_INGOT, "");
-        addShopOnlyOffer(offers, "gold_ingot", 120, 0, MAX_PLAYER_LEVEL, 6, 12, 0, 0, Items.GOLD_INGOT, "");
-        addShopOnlyOffer(offers, "diamond", 420, 10, MAX_PLAYER_LEVEL, 2, 5, 0, 0, Items.DIAMOND, "");
         addShopOnlyOffer(offers, "golden_apple", 850, 0, MAX_PLAYER_LEVEL, 1, 3, 0, 0, Items.GOLDEN_APPLE, "");
-        addShopOnlyOffer(offers, "netherite_scrap", 1500, 35, MAX_PLAYER_LEVEL, 1, 2, 0, 0, Items.NETHERITE_SCRAP, "");
         addShopOnlyOffer(offers, "enchanted_golden_apple", 15000, 40, MAX_PLAYER_LEVEL, 1, 1, 0, 0, Items.ENCHANTED_GOLDEN_APPLE, "");
-        addShopOnlyOffer(offers, "shop_gateway", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SHOP_GATEWAY.get())), 28, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.SHOP_GATEWAY.get(), "Summons a traveling mythic merchant.");
+        addShopOnlyOffer(offers, "shop_gateway", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SHOP_GATEWAY.get())), 28, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.SHOP_GATEWAY.get(), "Summons a dungeon shopkeeper.");
+        addDungeonRunGearOffers(offers);
 
         appendOptionalRunicOffers(offers);
         appendOptionalModdedOffers(offers);
@@ -196,10 +194,23 @@ public record ShopOfferDefinition(
     }
 
     private static void appendOptionalModdedOffers(List<ShopOfferDefinition> offers) {
-        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_illusion", 12000, 40, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A rare charm that distorts enemy perception.");
-        addOptionalRegistryOffer(offers, "friendsandfoes:totem_of_freezing", 14000, 40, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A rare freezing charm that uses illager magic.");
         addOptionalRegistryOffer(offers, "minecraft:totem_of_undying", 10000, 30, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A totem that prevents death once.");
-        addOptionalRegistryOffer(offers, "endermanoverhaul:enderman_tooth", 35, 0, MAX_PLAYER_LEVEL, 1, 1, -5, 5, "A rare trophy pulled from a warped end stalker.");
+    }
+
+    private static void addDungeonRunGearOffers(List<ShopOfferDefinition> offers) {
+        addShopOnlyOffer(offers, "dungeon_iron_helmet", 180, 0, MAX_PLAYER_LEVEL, 1, 2, 0, 0, Items.IRON_HELMET, "Dungeon armor with random stats.");
+        addShopOnlyOffer(offers, "dungeon_iron_chestplate", 260, 0, MAX_PLAYER_LEVEL, 1, 2, 0, 0, Items.IRON_CHESTPLATE, "Dungeon armor with random stats.");
+        addShopOnlyOffer(offers, "dungeon_iron_leggings", 240, 0, MAX_PLAYER_LEVEL, 1, 2, 0, 0, Items.IRON_LEGGINGS, "Dungeon armor with random stats.");
+        addShopOnlyOffer(offers, "dungeon_iron_boots", 160, 0, MAX_PLAYER_LEVEL, 1, 2, 0, 0, Items.IRON_BOOTS, "Dungeon armor with random stats.");
+        addShopOnlyOffer(offers, "dungeon_mana_steel_sword", 230, 0, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.MANA_STEEL_SWORD.get(), "Dungeon weapon with random stats.");
+        addShopOnlyOffer(offers, "dungeon_elixrite_sword", 290, 10, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.ELIXRITE_SWORD.get(), "Dungeon weapon with random stats.");
+        addShopOnlyOffer(offers, "dungeon_astrite_sword", 360, 20, MAX_PLAYER_LEVEL, 1, 2, 0, 0, ModItems.ASTRITE_SWORD.get(), "Dungeon weapon with random stats.");
+        addOptionalRegistryOffer(offers, "arsenal:mana_steel_broadsword", 320, 15, MAX_PLAYER_LEVEL, 1, 2, 0, 0, "Dungeon weapon with random stats.");
+        addOptionalRegistryOffer(offers, "arsenal:mana_steel_dagger", 280, 15, MAX_PLAYER_LEVEL, 1, 2, 0, 0, "Dungeon weapon with random stats.");
+        addOptionalRegistryOffer(offers, "arsenal:mana_steel_machete", 310, 15, MAX_PLAYER_LEVEL, 1, 2, 0, 0, "Dungeon weapon with random stats.");
+        addOptionalRegistryOffer(offers, "arsenal:mana_steel_longsword", 360, 20, MAX_PLAYER_LEVEL, 1, 2, 0, 0, "Dungeon weapon with random stats.");
+        addOptionalRegistryOffer(offers, "arsenal:mana_steel_hammer", 420, 20, MAX_PLAYER_LEVEL, 1, 2, 0, 0, "Dungeon weapon with random stats.");
+        addOptionalRegistryOffer(offers, "arsenal:mana_steel_glaive", 400, 20, MAX_PLAYER_LEVEL, 1, 2, 0, 0, "Dungeon weapon with random stats.");
     }
 
     private static void addOptionalRegistryOffer(List<ShopOfferDefinition> offers, String itemId, int fixedPrice, int minLevel, int maxLevel, int minStock, int maxStock, int minFluctuation, int maxFluctuation, String description) {

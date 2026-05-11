@@ -39,7 +39,7 @@ side="BOTH"
 
 [[dependencies.${mod_id}]]
 modId="gateways"
-mandatory=true
+mandatory=false
 versionRange="[${gateways_version},)"
 ordering="AFTER"
 side="BOTH"
