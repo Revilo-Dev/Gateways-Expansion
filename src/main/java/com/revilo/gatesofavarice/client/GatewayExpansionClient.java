@@ -9,6 +9,7 @@ import com.revilo.gatesofavarice.client.screen.DungeonLoadoutScreen;
 import com.revilo.gatesofavarice.client.screen.ShopkeeperScreen;
 import com.revilo.gatesofavarice.client.screen.GatewayWorkbenchScreen;
 import com.revilo.gatesofavarice.gateway.GatewayHudOverlay;
+import com.revilo.gatesofavarice.integration.ModCompat;
 import com.revilo.gatesofavarice.registry.ModBlockEntities;
 import com.revilo.gatesofavarice.registry.ModEntities;
 import com.revilo.gatesofavarice.registry.ModMenus;
@@ -28,7 +29,9 @@ public final class GatewayExpansionClient {
         if (FMLEnvironment.dist.isClient()) {
             modEventBus.register(ClientEvents.class);
             modEventBus.addListener(MagnetKeybindHandler::registerKeyMappings);
-            NeoForge.EVENT_BUS.register(GatewayHudOverlay.class);
+            if (ModCompat.isAnyLoaded("gateways")) {
+                NeoForge.EVENT_BUS.register(GatewayHudOverlay.class);
+            }
             NeoForge.EVENT_BUS.register(DungeonWaveHudOverlay.class);
             NeoForge.EVENT_BUS.register(InventoryWalletOverlay.class);
             NeoForge.EVENT_BUS.addListener(MagnetKeybindHandler::onClientTick);

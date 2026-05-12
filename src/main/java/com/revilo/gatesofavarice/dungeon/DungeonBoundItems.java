@@ -18,6 +18,9 @@ import net.minecraft.world.item.component.CustomData;
 public final class DungeonBoundItems {
 
     public static final String DUNGEON_BOUND_KEY = "dungeon_bound";
+    public static final String WEAPON_ROLE_KEY = "dungeon_weapon_role";
+    public static final String PRIMARY_WEAPON_ROLE = "primary";
+    public static final String SECONDARY_WEAPON_ROLE = "secondary";
 
     private DungeonBoundItems() {
     }
@@ -37,6 +40,45 @@ public final class DungeonBoundItems {
         tag.put(GatewayExpansion.MOD_ID, root);
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         applyArmorBindingCurse(stack);
+    }
+
+    public static void markPrimaryWeapon(ItemStack stack) {
+        markWeaponRole(stack, PRIMARY_WEAPON_ROLE);
+    }
+
+    public static void markSecondaryWeapon(ItemStack stack) {
+        markWeaponRole(stack, SECONDARY_WEAPON_ROLE);
+    }
+
+    public static String getWeaponRole(ItemStack stack) {
+        CompoundTag root = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getCompound(GatewayExpansion.MOD_ID);
+        return root.getString(WEAPON_ROLE_KEY);
+    }
+
+    public static boolean isWeapon(ItemStack stack) {
+        return stack.getItem() instanceof SwordItem
+                || stack.getItem() instanceof DiggerItem
+                || stack.getItem() instanceof BowItem
+                || stack.getItem() instanceof CrossbowItem
+                || stack.getItem() instanceof TridentItem;
+    }
+
+    public static boolean replaceRoleWeapon(Player player, ItemStack stack) {
+        String role = getWeaponRole(stack);
+        if (role.isBlank()) {
+            return false;
+        }
+        Inventory inv = player.getInventory();
+        for (int i = 0; i < inv.items.size(); i++) {
+            ItemStack existing = inv.items.get(i);
+            if (role.equals(getWeaponRole(existing))) {
+                inv.items.set(i, stack);
+                player.inventoryMenu.broadcastChanges();
+                player.containerMenu.broadcastChanges();
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void removeBoundItems(Player player) {
@@ -68,6 +110,18 @@ public final class DungeonBoundItems {
                 || stack.getItem() instanceof CrossbowItem
                 || stack.getItem() instanceof TridentItem
                 || stack.getItem() instanceof ShieldItem;
+    }
+
+    private static void markWeaponRole(ItemStack stack, String role) {
+        if (!isWeapon(stack)) {
+            return;
+        }
+        markIfDungeonBound(stack);
+        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        CompoundTag root = tag.getCompound(GatewayExpansion.MOD_ID);
+        root.putString(WEAPON_ROLE_KEY, role);
+        tag.put(GatewayExpansion.MOD_ID, root);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
 
     public static void applyArmorBindingCurse(ItemStack stack) {

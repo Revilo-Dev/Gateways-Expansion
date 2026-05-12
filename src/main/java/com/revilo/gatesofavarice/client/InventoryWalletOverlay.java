@@ -1,6 +1,7 @@
 package com.revilo.gatesofavarice.client;
 
 import com.revilo.gatesofavarice.currency.MythicCoinWallet;
+import com.revilo.gatesofavarice.dungeon.ModDimensions;
 import com.revilo.gatesofavarice.registry.ModItems;
 import java.text.DecimalFormat;
 import java.util.List;
@@ -35,7 +36,7 @@ public final class InventoryWalletOverlay {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null) {
+        if (minecraft.player == null || minecraft.player.level().dimension() != ModDimensions.DUNGEON_LEVEL) {
             return;
         }
 

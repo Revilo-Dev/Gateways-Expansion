@@ -203,7 +203,7 @@ public class GatewayWorkbenchMenu extends AbstractContainerMenu {
     }
 
     public int getPlayerLevel() {
-        return LevelUpIntegration.getPlayerLevel(this.player);
+        return LevelUpIntegration.getEffectiveLevel(this.player);
     }
 
     public boolean isSlotLocked(int slotIndex) {

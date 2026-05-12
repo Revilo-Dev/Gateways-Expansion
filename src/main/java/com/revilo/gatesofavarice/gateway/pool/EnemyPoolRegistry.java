@@ -2,8 +2,10 @@ package com.revilo.gatesofavarice.gateway.pool;
 
 import com.revilo.gatesofavarice.GatewayExpansion;
 import com.revilo.gatesofavarice.integration.ModCompat;
+import java.util.HashSet;
 import com.revilo.gatesofavarice.item.data.CrystalTheme;
 import java.util.List;
+import java.util.Set;
 import net.minecraft.world.entity.EntityType;
 
 public final class EnemyPoolRegistry {
@@ -89,7 +91,10 @@ public final class EnemyPoolRegistry {
                 addVariantsCompat(mixedTheme, level, pools);
                 addVillagersCompat(mixedTheme, level, pools);
             }
-            GatewayExpansion.LOGGER.debug("Enemy pools for {} -> melee={}, ranged={}, elite={}, boss={}", theme, pools.pool(EnemyPoolRole.MELEE).size(), pools.pool(EnemyPoolRole.RANGED).size(), pools.pool(EnemyPoolRole.ELITE).size(), pools.pool(EnemyPoolRole.BOSS).size());
+            normalizePools(pools);
+            GatewayExpansion.LOGGER.debug("Enemy pools for {} -> hoard={}, archer={}, assassin={}, tank={}",
+                    theme, pools.pool(EnemyPoolRole.HOARD).size(), pools.pool(EnemyPoolRole.ARCHER).size(), pools.pool(EnemyPoolRole.ASSASSIN).size(),
+                    pools.pool(EnemyPoolRole.TANK).size());
             return pools;
         }
 
@@ -103,8 +108,38 @@ public final class EnemyPoolRegistry {
         addTakesAPillageCompat(theme, level, pools);
         addVariantsCompat(theme, level, pools);
         addVillagersCompat(theme, level, pools);
-        GatewayExpansion.LOGGER.debug("Enemy pools for {} -> melee={}, ranged={}, elite={}, boss={}", theme, pools.pool(EnemyPoolRole.MELEE).size(), pools.pool(EnemyPoolRole.RANGED).size(), pools.pool(EnemyPoolRole.ELITE).size(), pools.pool(EnemyPoolRole.BOSS).size());
+        normalizePools(pools);
+        GatewayExpansion.LOGGER.debug("Enemy pools for {} -> hoard={}, archer={}, assassin={}, tank={}",
+                theme, pools.pool(EnemyPoolRole.HOARD).size(), pools.pool(EnemyPoolRole.ARCHER).size(), pools.pool(EnemyPoolRole.ASSASSIN).size(),
+                pools.pool(EnemyPoolRole.TANK).size());
         return pools;
+    }
+
+    private static void normalizePools(EnemyPoolSet pools) {
+        Set<EntityType<?>> banned = Set.of(
+                EntityType.ENDERMITE,
+                EntityType.HOGLIN,
+                EntityType.PHANTOM,
+                EntityType.BEE,
+                EntityType.BREEZE,
+                EntityType.ZOGLIN
+        );
+
+        for (EnemyPoolRole role : List.of(EnemyPoolRole.ASSASSIN, EnemyPoolRole.HOARD, EnemyPoolRole.ARCHER, EnemyPoolRole.TANK)) {
+            pools.pool(role).removeIf(entry -> banned.contains(entry.type()));
+        }
+
+        // One category per mob: priority = tank, archer, assassin, hoard.
+        Set<EntityType<?>> claimed = new HashSet<>();
+        for (EnemyPoolRole role : List.of(EnemyPoolRole.TANK, EnemyPoolRole.ARCHER, EnemyPoolRole.ASSASSIN, EnemyPoolRole.HOARD)) {
+            pools.pool(role).removeIf(entry -> {
+                if (claimed.contains(entry.type())) {
+                    return true;
+                }
+                claimed.add(entry.type());
+                return false;
+            });
+        }
     }
 
     private static void addVanilla(CrystalTheme theme, int level, EnemyPoolSet pools) {

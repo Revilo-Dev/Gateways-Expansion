@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -169,8 +168,16 @@ public final class DungeonInstanceManager {
                 origin.getX() + INSTANCE_CLEANUP_RADIUS,
                 origin.getY() + 96,
                 origin.getZ() + INSTANCE_CLEANUP_RADIUS);
-        for (Entity entity : level.getEntitiesOfClass(Entity.class, bounds, entity -> entity instanceof GatewayEntity)) {
+        for (Entity entity : level.getEntitiesOfClass(Entity.class, bounds, DungeonInstanceManager::isGatewayEntity)) {
             entity.discard();
         }
+    }
+
+    private static boolean isGatewayEntity(Entity entity) {
+        net.minecraft.resources.ResourceLocation typeId = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        if (typeId == null) {
+            return false;
+        }
+        return "gateways".equals(typeId.getNamespace()) && typeId.getPath().contains("gateway");
     }
 }

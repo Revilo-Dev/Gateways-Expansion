@@ -1,12 +1,13 @@
 package com.revilo.gatesofavarice.workbench;
 
+import com.revilo.gatesofavarice.progression.ProgressionSystem;
 import java.util.ArrayList;
 import java.util.List;
 
 public final class GatewayWorkbenchProgression {
 
-    public static final int BASE_UNLOCKED_SLOTS = 4;
-    public static final int LEVELS_PER_UNLOCK = 5;
+    public static final int BASE_UNLOCKED_SLOTS = ProgressionSystem.BASE_WORKBENCH_UNLOCKED_SLOTS;
+    public static final int LEVELS_PER_UNLOCK = ProgressionSystem.LEVELS_PER_WORKBENCH_UNLOCK;
     private static final List<SlotUnlock> UNLOCK_ORDER = buildUnlockOrder();
 
     private GatewayWorkbenchProgression() {
@@ -52,7 +53,7 @@ public final class GatewayWorkbenchProgression {
     }
 
     private static SlotUnlock unlock(int slotIndex, SlotType slotType, int sequence) {
-        int requiredLevel = sequence < BASE_UNLOCKED_SLOTS ? 0 : (sequence - BASE_UNLOCKED_SLOTS + 1) * LEVELS_PER_UNLOCK;
+        int requiredLevel = ProgressionSystem.workbenchRequiredLevelForSequence(sequence);
         return new SlotUnlock(slotIndex, slotType, requiredLevel);
     }
 

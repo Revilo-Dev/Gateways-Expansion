@@ -1,7 +1,12 @@
 package com.revilo.gatesofavarice.entity;
 
+import com.revilo.gatesofavarice.menu.ShopkeeperMenu;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.MenuProvider;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
@@ -10,6 +15,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.level.Level;
 
 public class GatekeeperEntity extends PathfinderMob {
@@ -50,7 +56,27 @@ public class GatekeeperEntity extends PathfinderMob {
     }
 
     @Override
+    public boolean hurt(DamageSource source, float amount) {
+        return false;
+    }
+
+    @Override
+    public boolean isInvulnerableTo(DamageSource source) {
+        return true;
+    }
+
+    @Override
     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
-        return InteractionResult.PASS;
+        if (hand != InteractionHand.MAIN_HAND) {
+            return InteractionResult.PASS;
+        }
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return InteractionResult.sidedSuccess(this.level().isClientSide);
+        }
+        MenuProvider provider = new SimpleMenuProvider(
+                (containerId, inventory, ignored) -> new ShopkeeperMenu(containerId, inventory, this.getId()),
+                Component.translatable("entity.gatesofavarice.shopkeeper"));
+        serverPlayer.openMenu(provider, buffer -> buffer.writeInt(this.getId()));
+        return InteractionResult.CONSUME;
     }
 }

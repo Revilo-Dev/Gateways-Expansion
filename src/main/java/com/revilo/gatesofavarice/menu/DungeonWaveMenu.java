@@ -5,12 +5,16 @@ import com.revilo.gatesofavarice.registry.ModMenus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class DungeonWaveMenu extends AbstractContainerMenu {
 
@@ -106,7 +110,9 @@ public class DungeonWaveMenu extends AbstractContainerMenu {
                     Component.literal(data.readUtf()),
                     Component.literal(data.readUtf()),
                     data.readInt(),
-                    data.readInt()
+                    data.readInt(),
+                    readStack(data),
+                    readStack(data)
             ));
         }
         return options;
@@ -125,6 +131,8 @@ public class DungeonWaveMenu extends AbstractContainerMenu {
             buffer.writeUtf(option.details().getString());
             buffer.writeInt(option.inDungeonRewardPercent());
             buffer.writeInt(option.externalRewardPercent());
+            writeStack(buffer, option.displayStack());
+            writeStack(buffer, option.secondaryDisplayStack());
         }
         buffer.writeInt(runChanges.size());
         for (Component change : runChanges) {
@@ -141,11 +149,36 @@ public class DungeonWaveMenu extends AbstractContainerMenu {
         return changes;
     }
 
+    private static ItemStack readStack(FriendlyByteBuf data) {
+        ResourceLocation id = ResourceLocation.tryParse(data.readUtf());
+        int count = data.readInt();
+        if (id == null) {
+            return ItemStack.EMPTY;
+        }
+        Item item = BuiltInRegistries.ITEM.get(id);
+        if (item == Items.AIR || count <= 0) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(item, count);
+    }
+
+    private static void writeStack(FriendlyByteBuf buffer, ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            buffer.writeUtf("minecraft:air");
+            buffer.writeInt(0);
+            return;
+        }
+        buffer.writeUtf(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+        buffer.writeInt(stack.getCount());
+    }
+
     public record WaveOptionView(
             Component title,
             Component details,
             int inDungeonRewardPercent,
-            int externalRewardPercent
+            int externalRewardPercent,
+            ItemStack displayStack,
+            ItemStack secondaryDisplayStack
     ) {
     }
 }

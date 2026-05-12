@@ -41,4 +41,18 @@ public class MythicCoinItem extends Item {
         stack.shrink(stack.getCount());
         return InteractionResultHolder.sidedSuccess(stack, false);
     }
+
+    @Override
+    public void inventoryTick(ItemStack stack, Level level, net.minecraft.world.entity.Entity entity, int slotId, boolean isSelected) {
+        super.inventoryTick(stack, level, entity, slotId, isSelected);
+        if (level.isClientSide || !(entity instanceof ServerPlayer player) || stack.isEmpty()) {
+            return;
+        }
+        int valuePerItem = MythicCoinStackData.getValue(stack);
+        if (valuePerItem <= 0) {
+            return;
+        }
+        MythicCoinWallet.add(player, valuePerItem * stack.getCount());
+        stack.setCount(0);
+    }
 }

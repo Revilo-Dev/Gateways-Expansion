@@ -6,6 +6,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
@@ -36,5 +37,16 @@ public final class GatewayExpansionNetwork {
         });
         registrar.playToClient(DungeonWaveHudPayload.TYPE, DungeonWaveHudPayload.STREAM_CODEC, (payload, context) ->
                 context.enqueueWork(() -> DungeonHudState.apply(payload)));
+        registrar.playToClient(DungeonCompletePayload.TYPE, DungeonCompletePayload.STREAM_CODEC, (payload, context) ->
+                context.enqueueWork(() -> {
+                    if (!FMLEnvironment.dist.isClient()) {
+                        return;
+                    }
+                    try {
+                        Class<?> handler = Class.forName("com.revilo.gatesofavarice.client.DungeonCompleteClientHandler");
+                        handler.getMethod("open", DungeonCompletePayload.class).invoke(null, payload);
+                    } catch (ReflectiveOperationException ignored) {
+                    }
+                }));
     }
 }

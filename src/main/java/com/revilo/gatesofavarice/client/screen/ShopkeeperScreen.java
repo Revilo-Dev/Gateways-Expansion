@@ -69,10 +69,8 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
     private static final int SELL_TOTAL_X = 133;
     private static final int SELL_TOTAL_Y = 44;
     private static final int SELL_PRICE_ICON_SHIFT_X = -10;
-    private static final int NEXT_WAVE_BUTTON_X = 117;
-    private static final int NEXT_WAVE_BUTTON_Y = 69;
-    private static final int NEXT_WAVE_BUTTON_WIDTH = 54;
-    private static final int NEXT_WAVE_BUTTON_HEIGHT = 16;
+    private static final int NEXT_WAVE_BUTTON_WIDTH = 200;
+    private static final int NEXT_WAVE_BUTTON_HEIGHT = 20;
     private static final float SELL_HOLD_TICKS = 20.0F;
     private static final int SELL_COIN_PARTICLE_LIMIT = 24;
     private static final int COIN_TRAIL_SEGMENTS = 4;
@@ -112,7 +110,7 @@ public class ShopkeeperScreen extends AbstractContainerScreen<ShopkeeperMenu> {
                 .size(BUY_BUTTON_WIDTH, BUY_BUTTON_HEIGHT)
                 .build());
         this.nextWaveButton = this.addRenderableWidget(Button.builder(Component.literal("Next Wave"), button -> this.startNextWave())
-                .pos(this.leftPos + NEXT_WAVE_BUTTON_X, this.topPos + NEXT_WAVE_BUTTON_Y)
+                .pos(this.leftPos + (this.imageWidth - NEXT_WAVE_BUTTON_WIDTH) / 2, this.topPos + this.imageHeight + 4)
                 .size(NEXT_WAVE_BUTTON_WIDTH, NEXT_WAVE_BUTTON_HEIGHT)
                 .build());
         this.applyPageLayout();

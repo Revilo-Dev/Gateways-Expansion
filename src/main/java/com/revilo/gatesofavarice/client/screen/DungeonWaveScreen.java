@@ -3,13 +3,14 @@ package com.revilo.gatesofavarice.client.screen;
 import com.revilo.gatesofavarice.menu.DungeonWaveMenu;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Inventory;
 import org.lwjgl.glfw.GLFW;
 
@@ -103,11 +104,11 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
             int x = this.leftPos + this.imageWidth - boxW - 8;
             int y = this.topPos + (this.imageHeight - boxH) / 2;
             guiGraphics.fill(x, y, x + boxW, y + boxH, 0xD0101010);
-            guiGraphics.drawString(this.font, Component.literal("Run Changes"), x + 8, y + 8, 0xFFFFFF, false);
-            int lineY = y + 24;
+            guiGraphics.drawCenteredString(this.font, Component.literal("Run Changes"), x + boxW / 2, y + 8, 0xFFFFFF);
+            int lineY = y + 22;
             for (Component line : this.menu.runChanges()) {
-                guiGraphics.drawString(this.font, line, x + 8, lineY, 0xCFCFCF, false);
-                lineY += 11;
+                drawScaledCentered(guiGraphics, line.getString(), x + boxW / 2 - this.leftPos, lineY - this.topPos, 0.70F, runChangeColor(line.getString()));
+                lineY += 9;
                 if (lineY > y + boxH - 10) break;
             }
         }
@@ -115,34 +116,83 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        String stageTitle = this.menu.stage() == 0 ? "Tarot Selection" : "Loot Selection";
-        guiGraphics.drawString(this.font, Component.literal("Wave " + this.menu.waveNumber() + " - " + stageTitle), 12, 12, 0xF4E9FF, false);
+        String stageTitle = this.menu.stage() == 0 ? "Tarot Selection" : (this.menu.stage() == 2 ? "Loadout Selection" : "Upgrade Selection");
+        guiGraphics.drawString(this.font, Component.literal("Wave " + this.menu.waveNumber() + " - " + stageTitle), 12, 2, 0x7C5A14, false);
         if (this.menu.ownerCanSelect()) {
-            guiGraphics.drawString(this.font, Component.translatable("screen.gatesofavarice.dungeon_wave.select_prompt"), 12, 22, 0xBFBFBF, false);
-        }
-        else {
-            guiGraphics.drawString(this.font, Component.translatable("screen.gatesofavarice.dungeon_wave.waiting_owner"), 12, 22, 0xBFBFBF, false);
+            guiGraphics.drawCenteredString(this.font, Component.translatable("screen.gatesofavarice.dungeon_wave.select_prompt"), this.imageWidth / 2, 218, 0x6C6C6C);
+        } else {
+            guiGraphics.drawCenteredString(this.font, Component.translatable("screen.gatesofavarice.dungeon_wave.waiting_owner"), this.imageWidth / 2, 218, 0x6C6C6C);
         }
 
         for (int index = 0; index < this.menu.options().size() && index < this.optionButtons.size(); index++) {
             DungeonWaveMenu.WaveOptionView option = this.menu.options().get(index);
             Button button = this.optionButtons.get(index);
-            int centerX = button.getX() + CARD_W / 2;
-            int textX = button.getX() + 6;
-            int textMaxChars = 12;
-            int rowY = button.getY() + 8;
-            for (String line : wrap(option.title().getString(), textMaxChars)) {
-                drawCentered(guiGraphics, line, centerX, rowY, 0xF2E5C4);
-                rowY += 10;
-                if (rowY > button.getY() + 28) break;
+            int centerX = button.getX() + CARD_W / 2 - this.leftPos;
+            int textMaxChars = 13;
+            if (this.menu.stage() == 0) {
+                int rowY = button.getY() + 9 - this.topPos;
+                for (String line : option.details().getString().split("\\n")) {
+                    if (line.startsWith("---")) {
+                        drawScaledCentered(guiGraphics, "----------", centerX, rowY, 0.58F, 0x7A6A52);
+                        rowY += 7;
+                        continue;
+                    }
+                    for (String wrapped : wrap(line, 15)) {
+                        drawScaledCentered(guiGraphics, wrapped, centerX, rowY, 0.62F, tarotLineColor(line));
+                        rowY += 7;
+                    }
+                    if (rowY > button.getY() + CARD_H - 7 - this.topPos) break;
+                }
+                continue;
             }
-            guiGraphics.drawString(this.font, "◈", centerX - 3, button.getY() + 34, 0xEAD29E, false);
+            int rowY = button.getY() + 8 - this.topPos;
+            for (String line : wrap(option.title().getString(), textMaxChars)) {
+                drawScaledCentered(guiGraphics, line, centerX, rowY, 0.75F, 0x7C5A14);
+                rowY += 8;
+                if (rowY > button.getY() + 28 - this.topPos) break;
+            }
+            if (!option.displayStack().isEmpty()) {
+                int iconY = button.getY() + 29 - this.topPos;
+                int iconX = option.secondaryDisplayStack().isEmpty() ? centerX - 8 : centerX - 18;
+                guiGraphics.renderItem(option.displayStack(), iconX, iconY);
+                if (!option.secondaryDisplayStack().isEmpty()) {
+                    guiGraphics.renderItem(option.secondaryDisplayStack(), centerX + 2, iconY);
+                }
+            } else if (this.menu.stage() != 2) {
+                drawScaledCentered(guiGraphics, "*", centerX, button.getY() + 35 - this.topPos, 0.75F, 0x6E6E6E);
+            }
             String details = option.details().getString();
-            rowY = button.getY() + 50;
-            for (String line : wrap(details, textMaxChars)) {
-                guiGraphics.drawString(this.font, line, textX, rowY, 0xDADADA, false);
-                rowY += 10;
-                if (rowY > button.getY() + CARD_H - 10) break;
+            rowY = button.getY() + (this.menu.stage() == 2 ? 49 : 50) - this.topPos;
+            for (String raw : details.split("\\n")) {
+                for (String line : wrap(raw, this.menu.stage() == 2 ? 16 : textMaxChars)) {
+                    drawScaledCentered(guiGraphics, line, centerX, rowY, this.menu.stage() == 2 ? 0.56F : 0.75F, detailColor(line));
+                    rowY += this.menu.stage() == 2 ? 7 : 8;
+                }
+                if (rowY > button.getY() + CARD_H - 10 - this.topPos) break;
+            }
+        }
+    }
+
+    @Override
+    protected void renderTooltip(GuiGraphics guiGraphics, int x, int y) {
+        super.renderTooltip(guiGraphics, x, y);
+        for (int i = 0; i < this.optionButtons.size() && i < this.menu.options().size(); i++) {
+            DungeonWaveMenu.WaveOptionView option = this.menu.options().get(i);
+            if (option.displayStack().isEmpty()) continue;
+            Button button = this.optionButtons.get(i);
+            int centerX = button.getX() + CARD_W / 2;
+            int itemX = option.secondaryDisplayStack().isEmpty() ? centerX - 8 : centerX - 18;
+            int itemY = button.getY() + 29;
+            if (x >= itemX && x < itemX + 16 && y >= itemY && y < itemY + 16) {
+                guiGraphics.renderTooltip(this.font, option.displayStack(), x, y);
+                return;
+            }
+            if (!option.secondaryDisplayStack().isEmpty()) {
+                int secondaryX = centerX + 2;
+                if (x >= secondaryX && x < secondaryX + 16 && y >= itemY && y < itemY + 16) {
+                    guiGraphics.renderTooltip(this.font, option.secondaryDisplayStack(), x, y);
+                    return;
+                }
             }
         }
     }
@@ -151,6 +201,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
         if (this.minecraft == null || this.minecraft.gameMode == null) {
             return;
         }
+        this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
         this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, optionIndex);
     }
 
@@ -184,9 +235,79 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    private void drawCentered(GuiGraphics gg, String text, int x, int y, int color) {
+    private void drawScaledCentered(GuiGraphics gg, String text, int x, int y, float scale, int color) {
         int w = this.font.width(text);
-        gg.drawString(this.font, text, x - w / 2, y, color, false);
+        gg.pose().pushPose();
+        gg.pose().translate(x - (w * scale) / 2.0F, y, 0.0F);
+        gg.pose().scale(scale, scale, 1.0F);
+        gg.drawString(this.font, text, 0, 0, color, false);
+        gg.pose().popPose();
+    }
+
+    private void drawScaled(GuiGraphics gg, String text, int x, int y, float scale, int color) {
+        gg.pose().pushPose();
+        gg.pose().translate(x, y, 0.0F);
+        gg.pose().scale(scale, scale, 1.0F);
+        gg.drawString(this.font, text, 0, 0, color, false);
+        gg.pose().popPose();
+    }
+
+    private int detailColor(String line) {
+        if (isNegativeModifier(line)) return 0xAF3E3E;
+        if (isPositiveModifier(line)) return 0x2F8E42;
+        return 0x5A5A5A;
+    }
+
+    private int tarotLineColor(String line) {
+        if (isNegativeModifier(line) || line.toLowerCase(java.util.Locale.ROOT).contains("hoard")
+                || line.toLowerCase(java.util.Locale.ROOT).contains("tank")
+                || line.toLowerCase(java.util.Locale.ROOT).contains("archer")
+                || line.toLowerCase(java.util.Locale.ROOT).contains("assassin")) {
+            return 0xAF3E3E;
+        }
+        if (isPositiveModifier(line)) return 0x2F8E42;
+        return 0x5A5A5A;
+    }
+
+    private boolean isNegativeModifier(String line) {
+        String normalized = line.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("elite")
+                || normalized.contains("mob speed")
+                || normalized.contains("mob health")
+                || normalized.contains("mob damage")
+                || normalized.contains("mob resistance")
+                || normalized.contains("mob regen")
+                || normalized.contains("spawn chance");
+    }
+
+    private boolean isPositiveModifier(String line) {
+        String normalized = line.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("quantity")
+                || normalized.contains("rarity")
+                || normalized.contains("coins")
+                || normalized.contains("xp")
+                || normalized.contains("levels");
+    }
+
+    private int runChangeColor(String line) {
+        String normalized = line.toLowerCase(java.util.Locale.ROOT);
+        if (normalized.contains("+elite spawns")
+                || normalized.contains("+mob speed")
+                || normalized.contains("+mob health")
+                || normalized.contains("+mob damage")
+                || normalized.contains("+mob resistance")
+                || normalized.contains("+mob regen")
+                || normalized.contains("+spawn chance")) {
+            return 0xB13A3A;
+        }
+        if (normalized.contains("+quantity")
+                || normalized.contains("+rarity")
+                || normalized.contains("+coins")
+                || normalized.contains("+xp")
+                || normalized.contains("+levels")) {
+            return 0x2F8E42;
+        }
+        return 0xCFCFCF;
     }
 
     private List<String> wrap(String input, int max) {

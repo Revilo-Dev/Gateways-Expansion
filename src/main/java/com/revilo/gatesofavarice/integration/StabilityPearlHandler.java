@@ -2,7 +2,6 @@ package com.revilo.gatesofavarice.integration;
 
 import com.revilo.gatesofavarice.registry.ModMobEffects;
 import com.revilo.gatesofavarice.shop.ShopkeeperManager;
-import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -18,11 +17,12 @@ public final class StabilityPearlHandler {
 
     private static final String GATEWAY_ID_KEY = "gatesofavarice.stability_gateway_id";
     private static final String GATEWAY_LEVEL_KEY = "gatesofavarice.stability_gateway_level";
+    private static final String GATEWAY_ENTITY_CLASS = "dev.shadowsoffire.gateways.entity.GatewayEntity";
 
     private StabilityPearlHandler() {
     }
 
-    public static void linkToGateway(ServerPlayer player, GatewayEntity gateway) {
+    public static void linkToGateway(ServerPlayer player, Entity gateway) {
         player.getPersistentData().putUUID(GATEWAY_ID_KEY, gateway.getUUID());
         player.getPersistentData().putString(GATEWAY_LEVEL_KEY, gateway.level().dimension().location().toString());
     }
@@ -43,7 +43,7 @@ public final class StabilityPearlHandler {
         ServerLevel gatewayLevel = resolveGatewayLevel(player);
         UUID gatewayId = player.getPersistentData().getUUID(GATEWAY_ID_KEY);
         Entity entity = gatewayLevel == null ? null : gatewayLevel.getEntity(gatewayId);
-        if (entity instanceof GatewayEntity gateway && gateway.isValid() && !gateway.isRemoved() && !ShopkeeperManager.isGatewayAnimation(gateway)) {
+        if (isActiveGateway(entity)) {
             return;
         }
 
@@ -59,5 +59,21 @@ public final class StabilityPearlHandler {
             return null;
         }
         return player.getServer().getLevel(ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, location));
+    }
+
+    private static boolean isActiveGateway(Entity entity) {
+        if (entity == null || entity.isRemoved() || ShopkeeperManager.isGatewayAnimation(entity)) {
+            return false;
+        }
+        try {
+            Class<?> gatewayClass = Class.forName(GATEWAY_ENTITY_CLASS);
+            if (!gatewayClass.isInstance(entity)) {
+                return false;
+            }
+            Object valid = gatewayClass.getMethod("isValid").invoke(entity);
+            return valid instanceof Boolean b && b;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
     }
 }

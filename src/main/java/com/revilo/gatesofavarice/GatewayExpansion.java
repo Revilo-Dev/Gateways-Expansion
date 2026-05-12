@@ -21,6 +21,7 @@ import com.revilo.gatesofavarice.integration.LevelUpGatewayIntegration;
 import com.revilo.gatesofavarice.integration.LevelUpGatewayXpRewards;
 import com.revilo.gatesofavarice.integration.LevelUpHudGateStateManager;
 import com.revilo.gatesofavarice.integration.MagnetHandler;
+import com.revilo.gatesofavarice.integration.ModCompat;
 import com.revilo.gatesofavarice.network.GatewayExpansionNetwork;
 import com.revilo.gatesofavarice.registry.ModAttachments;
 import com.revilo.gatesofavarice.registry.ModAttributes;
@@ -61,27 +62,30 @@ public final class GatewayExpansion {
         ModCreativeTabs.register(modEventBus);
         GatewayExpansionNetwork.register(modEventBus);
         GatewayExpansionClient.register(modEventBus);
-        if (com.revilo.gatesofavarice.integration.ModCompat.isAnyLoaded("curios")) {
+        if (ModCompat.isAnyLoaded("curios")) {
             CuriosCompat.register(modEventBus);
         }
+        boolean gatewaysLoaded = ModCompat.isAnyLoaded("gateways", "gateways_to_eternity");
         NeoForge.EVENT_BUS.register(CoinCommands.class);
         NeoForge.EVENT_BUS.register(DungeonCommands.class);
-        NeoForge.EVENT_BUS.register(GatewayFailureEvents.class);
-        NeoForge.EVENT_BUS.register(GatewayPearlTooltipHandler.class);
         NeoForge.EVENT_BUS.register(DungeonBoundTooltipHandler.class);
-        NeoForge.EVENT_BUS.register(GatewayDrownedHandler.class);
-        NeoForge.EVENT_BUS.register(GeneratedGatewayPearlTracker.class);
-        NeoForge.EVENT_BUS.register(StabilityPearlHandler.class);
-        NeoForge.EVENT_BUS.register(LevelUpGatewayIntegration.class);
-        NeoForge.EVENT_BUS.register(LevelUpGatewayXpRewards.class);
-        NeoForge.EVENT_BUS.register(LevelUpHudGateStateManager.class);
         NeoForge.EVENT_BUS.register(MagnetHandler.class);
-        NeoForge.EVENT_BUS.register(GatewayThornsHandler.class);
         NeoForge.EVENT_BUS.register(ArsenalWeaponTraitHandler.class);
-        NeoForge.EVENT_BUS.register(GatewayDisplayManager.class);
-        NeoForge.EVENT_BUS.register(GatewayPartyScaling.class);
-        NeoForge.EVENT_BUS.register(ShopkeeperManager.class);
         NeoForge.EVENT_BUS.register(DungeonInstanceManager.class);
         NeoForge.EVENT_BUS.register(DungeonRunManager.class);
+        if (gatewaysLoaded) {
+            NeoForge.EVENT_BUS.register(ShopkeeperManager.class);
+            NeoForge.EVENT_BUS.register(GatewayFailureEvents.class);
+            NeoForge.EVENT_BUS.register(GatewayPearlTooltipHandler.class);
+            NeoForge.EVENT_BUS.register(GatewayDrownedHandler.class);
+            NeoForge.EVENT_BUS.register(GeneratedGatewayPearlTracker.class);
+            NeoForge.EVENT_BUS.register(StabilityPearlHandler.class);
+            NeoForge.EVENT_BUS.register(LevelUpGatewayIntegration.class);
+            NeoForge.EVENT_BUS.register(LevelUpGatewayXpRewards.class);
+            NeoForge.EVENT_BUS.register(LevelUpHudGateStateManager.class);
+            NeoForge.EVENT_BUS.register(GatewayThornsHandler.class);
+            NeoForge.EVENT_BUS.register(GatewayDisplayManager.class);
+            NeoForge.EVENT_BUS.register(GatewayPartyScaling.class);
+        }
     }
 }

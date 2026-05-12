@@ -2,22 +2,20 @@ package com.revilo.gatesofavarice.shop;
 
 import com.revilo.gatesofavarice.currency.MythicCoinWallet;
 import com.revilo.gatesofavarice.entity.GatekeeperEntity;
+import com.revilo.gatesofavarice.dungeon.ModDimensions;
 import com.revilo.gatesofavarice.gateway.GatewayPartyScaling;
 import com.revilo.gatesofavarice.gateway.builder.GatewayForgeService;
 import com.revilo.gatesofavarice.integration.LevelUpIntegration;
 import com.revilo.gatesofavarice.integration.LevelUpGatewayXpRewards;
 import com.revilo.gatesofavarice.integration.ModCompat;
 import com.revilo.gatesofavarice.item.LootMaterialItem;
-import com.revilo.gatesofavarice.item.MagnetItem;
 import com.revilo.gatesofavarice.item.MythicCoinStackData;
-import com.revilo.gatesofavarice.item.PaxelItem;
 import com.revilo.gatesofavarice.item.data.LootRarity;
 import com.revilo.gatesofavarice.menu.ShopkeeperMenu;
 import com.revilo.gatesofavarice.registry.ModEntities;
 import com.revilo.gatesofavarice.registry.ModItems;
 import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import dev.shadowsoffire.gateways.event.GateEvent;
-import dev.shadowsoffire.gateways.GatewayObjects;
 import dev.shadowsoffire.gateways.gate.normal.NormalGateway;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.ChatFormatting;
@@ -40,9 +38,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.SmithingTemplateItem;
-import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.PotionItem;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -107,10 +104,12 @@ public final class ShopkeeperManager {
             return;
         }
 
-        int completionBurst = computeCompletionCoinBurst(gate, serverLevel.random);
-        int awardedCoins = applyGatewayCoinAdjustments(gate, completionBurst);
-        awardedCoins = Math.max(awardedCoins, minimumCompletionCoinReward(gate));
-        spawnCoins(gate, awardedCoins);
+        if (serverLevel.dimension() == ModDimensions.DUNGEON_LEVEL) {
+            int completionBurst = computeCompletionCoinBurst(gate, serverLevel.random);
+            int awardedCoins = applyGatewayCoinAdjustments(gate, completionBurst);
+            awardedCoins = Math.max(awardedCoins, minimumCompletionCoinReward(gate));
+            spawnCoins(gate, awardedCoins);
+        }
         spawnGatewayLoot(gate, computeCompletionLootRolls(gate, serverLevel.random));
     }
 
@@ -118,10 +117,13 @@ public final class ShopkeeperManager {
     public static void onWaveCompleted(GateEvent.WaveEnd event) {
         GatewayEntity gate = event.getEntity();
         if (gate.level() instanceof ServerLevel serverLevel) {
-            int waveBurst = computeWaveCoinBurst(gate, serverLevel.random);
-            int awardedCoins = applyGatewayCoinAdjustments(gate, waveBurst);
-            awardedCoins = Math.max(awardedCoins, minimumWaveCoinReward(gate));
-            spawnCoins(gate, awardedCoins);
+            int awardedCoins = 0;
+            if (serverLevel.dimension() == ModDimensions.DUNGEON_LEVEL) {
+                int waveBurst = computeWaveCoinBurst(gate, serverLevel.random);
+                awardedCoins = applyGatewayCoinAdjustments(gate, waveBurst);
+                awardedCoins = Math.max(awardedCoins, minimumWaveCoinReward(gate));
+                spawnCoins(gate, awardedCoins);
+            }
             spawnGatewayLoot(gate, computeWaveLootRolls(gate, serverLevel.random));
             sendWaveSummary(gate, awardedCoins);
         }
@@ -285,7 +287,15 @@ public final class ShopkeeperManager {
         entity.getPersistentData().putBoolean(SHOP_GATEWAY_ANIMATION_KEY, true);
     }
 
+    public static void markGatewayAnimation(Entity entity) {
+        entity.getPersistentData().putBoolean(SHOP_GATEWAY_ANIMATION_KEY, true);
+    }
+
     public static boolean isGatewayAnimation(GatewayEntity entity) {
+        return entity.getPersistentData().getBoolean(SHOP_GATEWAY_ANIMATION_KEY);
+    }
+
+    public static boolean isGatewayAnimation(Entity entity) {
         return entity.getPersistentData().getBoolean(SHOP_GATEWAY_ANIMATION_KEY);
     }
 
@@ -589,28 +599,50 @@ public final class ShopkeeperManager {
         if (preview.isEmpty()) {
             return false;
         }
-        if (preview.getItem() instanceof ArmorItem || preview.getItem() instanceof SwordItem || preview.getItem() instanceof PaxelItem) {
+        if (preview.is(Items.GOLDEN_APPLE) || preview.is(Items.ENCHANTED_GOLDEN_APPLE)
+                || preview.is(ModItems.ARCANE_APPLE.get()) || preview.is(ModItems.ENCHANTED_ARCANE_APPLE.get())) {
             return true;
         }
-        if (preview.getItem() instanceof SmithingTemplateItem) {
+        if (isHealingPotion(preview)) {
             return true;
         }
-        if (preview.is(Items.GOLDEN_APPLE) || preview.is(Items.ENCHANTED_GOLDEN_APPLE)) {
+        return isSupplyOffer(preview);
+    }
+
+    private static boolean isHealingPotion(ItemStack stack) {
+        if (!(stack.getItem() instanceof PotionItem)) {
+            return false;
+        }
+        var contents = stack.get(net.minecraft.core.component.DataComponents.POTION_CONTENTS);
+        if (contents == null) {
+            return false;
+        }
+        var potion = contents.potion().orElse(null);
+        return potion != null && (potion.is(Potions.HEALING)
+                || potion.is(Potions.STRONG_HEALING)
+                || potion.is(Potions.REGENERATION)
+                || potion.is(Potions.STRONG_REGENERATION));
+    }
+
+    private static boolean isSupplyOffer(ItemStack preview) {
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(preview.getItem());
+        if (itemId != null && "gatewayexpansion".equals(itemId.getNamespace()) && itemId.getPath().endsWith("_magnet")) {
             return true;
         }
-        return preview.is(ModItems.ARCANE_APPLE.get())
-                || preview.is(ModItems.ENCHANTED_ARCANE_APPLE.get())
-                || preview.is(ModItems.STABILITY_PEARL.get())
-                || preview.is(ModItems.SHOP_GATEWAY.get())
-                || preview.is(ModItems.MANA_STEEL_SWORD.get())
-                || preview.is(ModItems.ELIXRITE_SWORD.get())
-                || preview.is(ModItems.ASTRITE_SWORD.get())
-                || preview.is(ModItems.LUNARIUM_SWORD.get())
-                || preview.is(ModItems.IGNITE_SWORD.get())
-                || preview.is(ModItems.IRIDIUM_SWORD.get())
-                || preview.is(ModItems.MYTHRIL_SWORD.get())
-                || preview.is(ModItems.ARCANIUM_SWORD.get())
-                || preview.is(ModItems.PRISMATIC_STEEL_SWORD.get());
+        return preview.is(ModItems.GRIMSTONE.get())
+                || preview.is(ModItems.MYSTIC_ESSENCE.get())
+                || preview.is(ModItems.SCRAP_METAL.get())
+                || preview.is(ModItems.MANA_GEMS.get())
+                || preview.is(ModItems.MANA_STEEL_SCRAP.get())
+                || preview.is(ModItems.MAGNETITE_SCRAP.get())
+                || preview.is(ModItems.ARCANE_ESSENCE.get())
+                || preview.is(ModItems.MANASTONES.get())
+                || preview.is(ModItems.ELIXRITE_SCRAP.get())
+                || preview.is(ModItems.ASTRITE_SCRAP.get())
+                || preview.is(ModItems.SOLAR_SHARD.get())
+                || preview.is(ModItems.DARK_ESSENCE.get())
+                || preview.is(ModItems.RUSTY_COIN.get())
+                || preview.is(ModItems.HARDENED_FLESH.get());
     }
 
     private static Set<String> activePaxelOfferIds(List<ShopOfferDefinition> allOffers, int playerLevel) {
@@ -639,40 +671,17 @@ public final class ShopkeeperManager {
     private static int getOfferWeight(int offerIndex) {
         ShopOfferDefinition offer = ShopOfferDefinition.allOffers().get(offerIndex);
         ItemStack preview = offer.previewStack();
-        if (isRareOptionalModOffer(preview)) {
+        if (isHealingPotion(preview)) {
+            return 4;
+        }
+        if (preview.is(Items.ENCHANTED_GOLDEN_APPLE) || preview.is(ModItems.ENCHANTED_ARCANE_APPLE.get())) {
             return 1;
         }
-        if (preview.is(ModItems.STABILITY_PEARL.get())) {
-            return 1;
-        }
-        if (preview.is(ModItems.PRISMATIC_DIAMOND.get())) {
-            return 1;
-        }
-        if (preview.is(ModItems.PRISMATIC_CORE.get()) || preview.is(ModItems.PRISMATIC_SHARD.get())) {
-            return 2;
-        }
-        if (preview.is(ModItems.UPGRADE_BASE.get()) || preview.getItem() instanceof SmithingTemplateItem) {
-            return 2;
-        }
-        if (preview.getItem() instanceof MagnetItem) {
-            return 1;
-        }
-        if (preview.is(ModItems.LUNARIUM_SCRAP.get()) || preview.is(ModItems.LUNARIUM_INGOT.get()) || preview.is(ModItems.LUNARIUM_PAXEL.get())) {
-            return 1;
-        }
-        if (preview.is(ModItems.SOLAR_SHARD.get()) || preview.is(ModItems.DARK_ESSENCE.get())) {
+        if (preview.is(Items.GOLDEN_APPLE) || preview.is(ModItems.ARCANE_APPLE.get())) {
             return 3;
         }
-        if (preview.is(ModItems.ASTRITE_SCRAP.get()) || preview.is(ModItems.ASTRITE_INGOT.get()) || preview.is(ModItems.ASTRITE_PAXEL.get())) {
+        if (preview.is(ModItems.SOLAR_SHARD.get()) || preview.is(ModItems.DARK_ESSENCE.get()) || preview.is(ModItems.ASTRITE_SCRAP.get())) {
             return 2;
-        }
-        if (preview.getItem() instanceof com.revilo.gatesofavarice.item.CrystalItem
-                || preview.getItem() instanceof com.revilo.gatesofavarice.item.AugmentItem
-                || preview.getItem() instanceof com.revilo.gatesofavarice.item.CatalystItem) {
-            if (preview.getItem() instanceof com.revilo.gatesofavarice.item.CatalystItem) {
-                return 10;
-            }
-            return 5;
         }
         return 9;
     }
@@ -840,7 +849,6 @@ public final class ShopkeeperManager {
         if (player == null) {
             return 0;
         }
-        int integratedLevel = LevelUpIntegration.getPlayerLevel(player);
-        return integratedLevel >= 0 ? integratedLevel : player.experienceLevel;
+        return LevelUpIntegration.getEffectiveLevel(player);
     }
 }

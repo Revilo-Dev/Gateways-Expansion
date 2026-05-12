@@ -10,9 +10,27 @@ public final class EnemyPoolSet {
     private final Map<EnemyPoolRole, WeightedEntityPool> pools = new EnumMap<>(EnemyPoolRole.class);
 
     public EnemyPoolSet() {
-        for (EnemyPoolRole role : EnemyPoolRole.values()) {
-            this.pools.put(role, new WeightedEntityPool(role.name().toLowerCase()));
-        }
+        WeightedEntityPool assassin = new WeightedEntityPool("assassin");
+        WeightedEntityPool hoard = new WeightedEntityPool("hoard");
+        WeightedEntityPool archer = new WeightedEntityPool("archer");
+        WeightedEntityPool tank = new WeightedEntityPool("tank");
+
+        this.pools.put(EnemyPoolRole.ASSASSIN, assassin);
+        this.pools.put(EnemyPoolRole.HOARD, hoard);
+        this.pools.put(EnemyPoolRole.ARCHER, archer);
+        this.pools.put(EnemyPoolRole.TANK, tank);
+
+        // Legacy role aliases mapped into canonical 4-category pools.
+        this.pools.put(EnemyPoolRole.MELEE, hoard);
+        this.pools.put(EnemyPoolRole.THEME, hoard);
+        this.pools.put(EnemyPoolRole.SUPPORT, hoard);
+
+        this.pools.put(EnemyPoolRole.RANGED, archer);
+
+        this.pools.put(EnemyPoolRole.FAST, assassin);
+        this.pools.put(EnemyPoolRole.ELITE, assassin);
+
+        this.pools.put(EnemyPoolRole.BOSS, tank);
     }
 
     public WeightedEntityPool pool(EnemyPoolRole role) {
@@ -24,10 +42,10 @@ public final class EnemyPoolSet {
     }
 
     public EntityType<?> pickBoss(RandomSource random) {
-        return this.pool(EnemyPoolRole.BOSS).pick(random, this.pool(EnemyPoolRole.ELITE));
+        return this.pool(EnemyPoolRole.TANK).pick(random, this.pool(EnemyPoolRole.ASSASSIN));
     }
 
     public boolean hasBosses() {
-        return !this.pool(EnemyPoolRole.BOSS).isEmpty();
+        return !this.pool(EnemyPoolRole.TANK).isEmpty();
     }
 }

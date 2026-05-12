@@ -17,6 +17,8 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.ItemLike;
 
 public record ShopOfferDefinition(
@@ -107,7 +109,19 @@ public record ShopOfferDefinition(
         addShopOnlyOffer(offers, "iron_ingot", 90, 0, MAX_PLAYER_LEVEL, 6, 12, 0, 0, Items.IRON_INGOT, "");
         addShopOnlyOffer(offers, "golden_apple", 850, 0, MAX_PLAYER_LEVEL, 1, 3, 0, 0, Items.GOLDEN_APPLE, "");
         addShopOnlyOffer(offers, "enchanted_golden_apple", 15000, 40, MAX_PLAYER_LEVEL, 1, 1, 0, 0, Items.ENCHANTED_GOLDEN_APPLE, "");
+        addPotionOffer(offers, "healing_potion", 620, 0, MAX_PLAYER_LEVEL, 1, 3, 0, 0, Potions.HEALING, "Healing potion.");
+        addPotionOffer(offers, "strong_healing_potion", 1300, 20, MAX_PLAYER_LEVEL, 1, 2, 0, 0, Potions.STRONG_HEALING, "Stronger instant healing.");
+        addPotionOffer(offers, "regen_potion", 980, 10, MAX_PLAYER_LEVEL, 1, 3, 0, 0, Potions.REGENERATION, "Regeneration over time.");
         addShopOnlyOffer(offers, "shop_gateway", GatewaySellValues.getSuggestedBuyPrice(new ItemStack(ModItems.SHOP_GATEWAY.get())), 28, MAX_PLAYER_LEVEL, 8, 14, 0, 0, ModItems.SHOP_GATEWAY.get(), "Summons a dungeon shopkeeper.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:mana_steel_magnet", 250, 0, 24, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:elixrite_magnet", 420, 20, 44, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:astrite_magnet", 680, 35, 59, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:lunarium_magnet", 950, 50, 69, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:ignite_magnet", 1300, 60, 79, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:iridium_magnet", 1650, 65, 84, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:mythril_magnet", 2100, 75, 94, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:arcanium_magnet", 2600, 85, MAX_PLAYER_LEVEL, 1, 2, 0, 0, "Dungeon utility magnet.");
+        addOptionalRegistryOffer(offers, "gatewayexpansion:prismatic_steel_magnet", 3200, 95, MAX_PLAYER_LEVEL, 1, 1, 0, 0, "Dungeon utility magnet.");
         addDungeonRunGearOffers(offers);
 
         appendOptionalRunicOffers(offers);
@@ -153,6 +167,26 @@ public record ShopOfferDefinition(
                 previewStack.getHoverName(),
                 Component.literal(description),
                 (random, playerLevel) -> new ItemStack(item)
+        ));
+    }
+
+    private static void addPotionOffer(List<ShopOfferDefinition> offers, String id, int price, int minLevel, int maxLevel, int minStock, int maxStock, int minFluctuation,
+            int maxFluctuation, Holder<net.minecraft.world.item.alchemy.Potion> potion, String description) {
+        ItemStack previewStack = PotionContents.createItemStack(Items.POTION, potion);
+        offers.add(new ShopOfferDefinition(
+                id,
+                price,
+                minLevel,
+                maxLevel,
+                minStock,
+                maxStock,
+                minFluctuation,
+                maxFluctuation,
+                true,
+                previewStack,
+                previewStack.getHoverName(),
+                Component.literal(description),
+                (random, playerLevel) -> PotionContents.createItemStack(Items.POTION, potion)
         ));
     }
 

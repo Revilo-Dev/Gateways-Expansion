@@ -2,10 +2,10 @@ package com.revilo.gatesofavarice.menu;
 
 import com.revilo.gatesofavarice.currency.MythicCoinWallet;
 import com.revilo.gatesofavarice.dungeon.DungeonBoundItems;
-import com.revilo.gatesofavarice.dungeon.DungeonGearRoller;
 import com.revilo.gatesofavarice.dungeon.DungeonRunManager;
 import com.revilo.gatesofavarice.entity.GatekeeperEntity;
 import com.revilo.gatesofavarice.integration.LevelUpIntegration;
+import com.revilo.gatesofavarice.progression.ProgressionSystem;
 import com.revilo.gatesofavarice.registry.ModMenus;
 import com.revilo.gatesofavarice.shop.GatewaySellValues;
 import com.revilo.gatesofavarice.shop.ShopOfferDefinition;
@@ -158,15 +158,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
             return false;
         }
 
-        ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
-        if (DungeonRunManager.isPlayerInActiveRun(serverPlayer)) {
-            DungeonGearRoller.rollAndBind(reward, serverPlayer.getRandom());
-        } else {
-            DungeonBoundItems.markIfDungeonBound(reward);
-        }
-        if (!serverPlayer.getInventory().add(reward)) {
-            serverPlayer.drop(reward, false);
-        }
+        this.grantPurchasedReward(serverPlayer, offer);
         this.syncFromTrader();
         this.broadcastChanges();
         return true;
@@ -196,15 +188,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
                 break;
             }
 
-            ItemStack reward = offer.createStack(serverPlayer.getRandom(), this.getPlayerLevel());
-            if (DungeonRunManager.isPlayerInActiveRun(serverPlayer)) {
-                DungeonGearRoller.rollAndBind(reward, serverPlayer.getRandom());
-            } else {
-                DungeonBoundItems.markIfDungeonBound(reward);
-            }
-            if (!serverPlayer.getInventory().add(reward)) {
-                serverPlayer.drop(reward, false);
-            }
+            this.grantPurchasedReward(serverPlayer, offer);
             boughtAny = true;
         }
 
@@ -234,8 +218,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     }
 
     public int getPlayerLevel() {
-        int integratedLevel = LevelUpIntegration.getPlayerLevel(this.player);
-        return integratedLevel >= 0 ? integratedLevel : this.player.experienceLevel;
+        return LevelUpIntegration.getEffectiveLevel(this.player);
     }
 
     public boolean isOfferSlotUnlocked(int slotIndex) {
@@ -245,9 +228,8 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     public int getRequiredLevelForSlot(int slotIndex) {
         this.refreshOffersFromData();
         ShopOfferDefinition offer = this.getOfferDefinition(slotIndex);
-        int slotRequirement = slotIndex <= 1 ? 0 : (slotIndex - 1) * 10;
         int itemRequirement = offer == null ? 0 : offer.minLevel();
-        return Math.max(slotRequirement, itemRequirement);
+        return ProgressionSystem.shopRequiredLevel(slotIndex, itemRequirement);
     }
 
     public ShopOfferDefinition getOfferForSlot(int slotIndex) {
@@ -315,7 +297,7 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
     }
 
     public boolean usesDungeonTokens() {
-        return this.useDungeonTokens();
+        return false;
     }
 
     public int getSellValue() {
@@ -456,12 +438,24 @@ public class ShopkeeperMenu extends AbstractContainerMenu {
         this.cachedOffers = List.copyOf(offers);
     }
 
-    private boolean useDungeonTokens() {
-        return false;
-    }
-
     private boolean spendCurrency(ServerPlayer player, int amount) {
         return MythicCoinWallet.spend(player, amount);
+    }
+
+    private void grantPurchasedReward(ServerPlayer player, ShopOfferDefinition offer) {
+        ItemStack reward = offer.createStack(player.getRandom(), this.getPlayerLevel());
+        if (DungeonRunManager.isPlayerInActiveRun(player)) {
+            DungeonRunManager.rollAndBindForActiveRun(player, reward, player.getRandom());
+            if (DungeonBoundItems.isWeapon(reward)) {
+                DungeonRunManager.grantPrimaryWeapon(player, reward);
+                return;
+            }
+        } else {
+            DungeonBoundItems.markIfDungeonBound(reward);
+        }
+        if (!player.getInventory().add(reward)) {
+            player.drop(reward, false);
+        }
     }
 
     private void addCurrency(ServerPlayer player, int amount) {

@@ -4,7 +4,6 @@ import com.revilo.gatesofavarice.registry.ModMobEffects;
 import com.revilo.gatesofavarice.integration.StabilityPearlHandler;
 import com.revilo.gatesofavarice.shop.GatewaySellValues;
 import com.revilo.gatesofavarice.shop.ShopkeeperManager;
-import dev.shadowsoffire.gateways.entity.GatewayEntity;
 import java.util.Comparator;
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -17,7 +16,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -30,6 +29,8 @@ public class StabilityPearlItem extends Item {
     private static final int RANGE = 96;
     private static final int TIME_EXTENSION_TICKS = 300;
     private static final int HEALTH_PENALTY_TICKS = Integer.MAX_VALUE;
+    private static final String GATEWAY_ENTITY_CLASS = "dev.shadowsoffire.gateways.entity.GatewayEntity";
+
     public StabilityPearlItem(Properties properties) {
         super(properties);
     }
@@ -37,7 +38,7 @@ public class StabilityPearlItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand usedHand) {
         ItemStack stack = player.getItemInHand(usedHand);
-        GatewayEntity gateway = findGateway(player);
+        Entity gateway = findGateway(player);
         if (gateway == null) {
             if (!level.isClientSide) {
                 player.sendSystemMessage(Component.translatable("message.gatesofavarice.no_active_gateway"));
@@ -62,17 +63,18 @@ public class StabilityPearlItem extends Item {
         GatewaySellValues.appendSellValueTooltip(stack, tooltipComponents);
     }
 
-    private static GatewayEntity findGateway(Player player) {
-        return player.level().getEntitiesOfClass(GatewayEntity.class, player.getBoundingBox().inflate(RANGE)).stream()
-                .filter(GatewayEntity::isValid)
+    private static Entity findGateway(Player player) {
+        return player.level().getEntitiesOfClass(Entity.class, player.getBoundingBox().inflate(RANGE)).stream()
+                .filter(StabilityPearlItem::isGatewayEntity)
+                .filter(StabilityPearlItem::isGatewayValid)
                 .filter(gateway -> !gateway.isRemoved())
                 .filter(gateway -> !ShopkeeperManager.isGatewayAnimation(gateway))
                 .min(Comparator.comparingDouble(player::distanceToSqr))
                 .orElse(null);
     }
 
-    private static void applyStabilityPearl(ServerLevel level, Player player, ItemStack stack, GatewayEntity gateway) {
-        gateway.getEntityData().set(GatewayEntity.TICKS_ACTIVE, Math.max(0, gateway.getTicksActive() - TIME_EXTENSION_TICKS));
+    private static void applyStabilityPearl(ServerLevel level, Player player, ItemStack stack, Entity gateway) {
+        reduceGatewayActiveTicks(gateway);
         player.addEffect(new MobEffectInstance(ModMobEffects.STABILITY_DRAIN, HEALTH_PENALTY_TICKS, 0, false, true, true));
         if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
             StabilityPearlHandler.linkToGateway(serverPlayer, gateway);
@@ -94,5 +96,41 @@ public class StabilityPearlItem extends Item {
                 0.25D, 0.2D, 0.25D,
                 0.08D);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.7F, 1.15F);
+    }
+
+    private static boolean isGatewayEntity(Entity entity) {
+        net.minecraft.resources.ResourceLocation typeId = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        return typeId != null && "gateways".equals(typeId.getNamespace()) && typeId.getPath().contains("gateway");
+    }
+
+    private static boolean isGatewayValid(Entity entity) {
+        try {
+            Class<?> gatewayClass = Class.forName(GATEWAY_ENTITY_CLASS);
+            if (!gatewayClass.isInstance(entity)) {
+                return false;
+            }
+            Object valid = gatewayClass.getMethod("isValid").invoke(entity);
+            return valid instanceof Boolean b && b;
+        } catch (ReflectiveOperationException ignored) {
+            return false;
+        }
+    }
+
+    private static void reduceGatewayActiveTicks(Entity gateway) {
+        try {
+            Class<?> gatewayClass = Class.forName(GATEWAY_ENTITY_CLASS);
+            if (!gatewayClass.isInstance(gateway)) {
+                return;
+            }
+            int currentTicks = (int) gatewayClass.getMethod("getTicksActive").invoke(gateway);
+            Object ticksAccessor = gatewayClass.getField("TICKS_ACTIVE").get(null);
+            net.minecraft.network.syncher.SynchedEntityData data = gateway.getEntityData();
+            @SuppressWarnings("unchecked")
+            net.minecraft.network.syncher.EntityDataAccessor<Integer> accessor =
+                    (net.minecraft.network.syncher.EntityDataAccessor<Integer>) ticksAccessor;
+            data.set(accessor, Math.max(0, currentTicks - TIME_EXTENSION_TICKS));
+        } catch (ReflectiveOperationException ignored) {
+            // If gateways internals are unavailable, keep pearl side-effects but skip timer mutation.
+        }
     }
 }

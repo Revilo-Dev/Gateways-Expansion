@@ -3,6 +3,7 @@ package com.revilo.gatesofavarice.gateway.pool;
 import com.revilo.gatesofavarice.GatewayExpansion;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
 
@@ -55,6 +56,18 @@ public final class WeightedEntityPool {
 
     public int size() {
         return this.entries.size();
+    }
+
+    public List<Entry> entries() {
+        return List.copyOf(this.entries);
+    }
+
+    public void clear() {
+        this.entries.clear();
+    }
+
+    public void removeIf(Predicate<Entry> predicate) {
+        this.entries.removeIf(predicate);
     }
 
     public record Entry(EntityType<?> type, int weight, String source) {

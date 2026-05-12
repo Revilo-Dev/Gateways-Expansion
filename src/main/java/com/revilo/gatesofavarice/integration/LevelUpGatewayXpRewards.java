@@ -27,15 +27,7 @@ public final class LevelUpGatewayXpRewards {
 
     @SubscribeEvent
     public static void onWaveCompleted(GateEvent.WaveEnd event) {
-        ServerPlayer player = findRewardPlayer(event.getEntity());
-        if (player == null || !LevelUpIntegration.isLoaded()) {
-            return;
-        }
-
-        int xp = computeWaveXp(event.getEntity());
-        if (xp > 0) {
-            awardXp(player, xp, objectiveCompleteSource);
-        }
+        // Wave-by-wave level rewards are disabled to keep progression payout centralized.
     }
 
     @SubscribeEvent
