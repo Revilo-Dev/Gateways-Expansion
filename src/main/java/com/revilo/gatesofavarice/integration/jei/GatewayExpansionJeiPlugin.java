@@ -7,6 +7,7 @@ import com.revilo.gatesofavarice.augment.AugmentStackData;
 import com.revilo.gatesofavarice.catalyst.CatalystDefinition;
 import com.revilo.gatesofavarice.catalyst.CatalystDefinitionPool;
 import com.revilo.gatesofavarice.catalyst.CatalystStackData;
+import com.revilo.gatesofavarice.client.screen.DungeonWaveScreen;
 import com.revilo.gatesofavarice.item.data.AugmentDifficultyTier;
 import com.revilo.gatesofavarice.registry.ModItems;
 import dev.shadowsoffire.gateways.GatewayObjects;
@@ -14,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.gui.handlers.IGuiContainerHandler;
+import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -21,6 +24,7 @@ import mezz.jei.api.runtime.IJeiRuntime;
 import mezz.jei.api.IModPlugin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -56,6 +60,16 @@ public final class GatewayExpansionJeiPlugin implements IModPlugin {
         registration.addIngredientInfo(catalystBaseStacks(), VanillaTypes.ITEM_STACK,
                 Component.translatable("jei.gatesofavarice.info.catalysts.0"),
                 Component.translatable("jei.gatesofavarice.info.catalysts.1"));
+    }
+
+    @Override
+    public void registerGuiHandlers(IGuiHandlerRegistration registration) {
+        registration.addGuiContainerHandler(DungeonWaveScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(DungeonWaveScreen containerScreen) {
+                return List.of(new Rect2i(-10000, -10000, 20000, 20000));
+            }
+        });
     }
 
     @Override

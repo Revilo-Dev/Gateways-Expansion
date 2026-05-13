@@ -1,0 +1,68 @@
+package com.revilo.gatesofavarice.network;
+
+import com.revilo.gatesofavarice.GatewayExpansion;
+import com.revilo.gatesofavarice.dungeon.loadout.LoadoutModels.UpgradeCard;
+import com.revilo.gatesofavarice.dungeon.loadout.LoadoutModels.UpgradeCardType;
+import com.revilo.gatesofavarice.dungeon.loadout.LoadoutModels.UpgradeCategory;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+
+public record SyncUpgradeCardsPayload(String sessionId, String categoryName, ItemStack previewStack, List<UpgradeCard> cards) implements CustomPacketPayload {
+    public static final Type<SyncUpgradeCardsPayload> TYPE =
+            new Type<>(ResourceLocation.fromNamespaceAndPath(GatewayExpansion.MOD_ID, "sync_upgrade_cards"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncUpgradeCardsPayload> STREAM_CODEC =
+            StreamCodec.of(SyncUpgradeCardsPayload::write, SyncUpgradeCardsPayload::read);
+
+    private static void write(RegistryFriendlyByteBuf buffer, SyncUpgradeCardsPayload payload) {
+        buffer.writeUtf(payload.sessionId);
+        buffer.writeUtf(payload.categoryName);
+        buffer.writeNbt(payload.previewStack.saveOptional(buffer.registryAccess()));
+        buffer.writeVarInt(payload.cards.size());
+        for (UpgradeCard card : payload.cards) {
+            buffer.writeUtf(card.id());
+            buffer.writeUtf(card.type().name());
+            buffer.writeUtf(card.category().name());
+            buffer.writeUtf(card.title());
+            buffer.writeUtf(card.targetLabel());
+            buffer.writeUtf(card.changeLabel());
+            buffer.writeUtf(card.currentValue());
+            buffer.writeUtf(card.newValue());
+            buffer.writeVarInt(card.tier());
+            buffer.writeVarInt(card.cost());
+        }
+    }
+
+    private static SyncUpgradeCardsPayload read(RegistryFriendlyByteBuf buffer) {
+        String sessionId = buffer.readUtf();
+        String category = buffer.readUtf();
+        ItemStack stack = ItemStack.parseOptional(buffer.registryAccess(), buffer.readNbt());
+        int size = buffer.readVarInt();
+        ArrayList<UpgradeCard> cards = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            cards.add(new UpgradeCard(
+                    buffer.readUtf(),
+                    UpgradeCardType.valueOf(buffer.readUtf()),
+                    UpgradeCategory.valueOf(buffer.readUtf()),
+                    buffer.readUtf(),
+                    buffer.readUtf(),
+                    buffer.readUtf(),
+                    buffer.readUtf(),
+                    buffer.readUtf(),
+                    buffer.readVarInt(),
+                    buffer.readVarInt()
+            ));
+        }
+        return new SyncUpgradeCardsPayload(sessionId, category, stack, List.copyOf(cards));
+    }
+
+    @Override
+    public Type<SyncUpgradeCardsPayload> type() {
+        return TYPE;
+    }
+}
+

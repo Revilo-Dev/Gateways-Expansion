@@ -6,6 +6,7 @@ import com.revilo.gatesofavarice.client.GatewayExpansionClient;
 import com.revilo.gatesofavarice.config.GatewayExpansionConfig;
 import com.revilo.gatesofavarice.dungeon.DungeonInstanceManager;
 import com.revilo.gatesofavarice.dungeon.DungeonRunManager;
+import com.revilo.gatesofavarice.dungeon.DungeonUpgradeManager;
 import com.revilo.gatesofavarice.gateway.GatewayDisplayManager;
 import com.revilo.gatesofavarice.gateway.GatewayPartyScaling;
 import com.revilo.gatesofavarice.integration.GatewayFailureEvents;
@@ -29,6 +30,7 @@ import com.revilo.gatesofavarice.registry.ModBlockEntities;
 import com.revilo.gatesofavarice.registry.ModBlocks;
 import com.revilo.gatesofavarice.registry.ModCreativeTabs;
 import com.revilo.gatesofavarice.registry.ModEntities;
+import com.revilo.gatesofavarice.registry.LoadoutArmorRegistry;
 import com.revilo.gatesofavarice.registry.ModItems;
 import com.revilo.gatesofavarice.registry.ModMenus;
 import com.revilo.gatesofavarice.registry.ModMobEffects;
@@ -51,6 +53,7 @@ public final class GatewayExpansion {
     public GatewayExpansion(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.SERVER, GatewayExpansionConfig.SPEC);
         ModItems.register(modEventBus);
+        LoadoutArmorRegistry.register(modEventBus);
         ModEntities.register(modEventBus);
         ModBlocks.register(modEventBus);
         ModBlockEntities.register(modEventBus);
@@ -73,6 +76,7 @@ public final class GatewayExpansion {
         NeoForge.EVENT_BUS.register(ArsenalWeaponTraitHandler.class);
         NeoForge.EVENT_BUS.register(DungeonInstanceManager.class);
         NeoForge.EVENT_BUS.register(DungeonRunManager.class);
+        NeoForge.EVENT_BUS.register(DungeonUpgradeManager.class);
         if (gatewaysLoaded) {
             NeoForge.EVENT_BUS.register(ShopkeeperManager.class);
             NeoForge.EVENT_BUS.register(GatewayFailureEvents.class);

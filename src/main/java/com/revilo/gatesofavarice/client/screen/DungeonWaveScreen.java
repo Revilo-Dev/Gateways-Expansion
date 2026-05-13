@@ -3,6 +3,7 @@ package com.revilo.gatesofavarice.client.screen;
 import com.revilo.gatesofavarice.menu.DungeonWaveMenu;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -11,6 +12,7 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import org.lwjgl.glfw.GLFW;
 
@@ -27,6 +29,15 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     private Button rerollButton;
     private Button skipButton;
     private boolean showRunChanges = false;
+    private final List<Integer> baseCardX = new ArrayList<>();
+    private final List<Integer> baseCardY = new ArrayList<>();
+    private final List<Integer> animatedCardX = new ArrayList<>();
+    private final List<Integer> animatedCardY = new ArrayList<>();
+    private AnimationState animationState = AnimationState.APPEARING;
+    private int animationTick = 0;
+    private int settleHoldTicks = 0;
+    private int selectedCard = -1;
+    private int pendingClickButtonId = Integer.MIN_VALUE;
 
     public DungeonWaveScreen(DungeonWaveMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -40,6 +51,15 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     protected void init() {
         super.init();
         this.optionButtons.clear();
+        this.baseCardX.clear();
+        this.baseCardY.clear();
+        this.animatedCardX.clear();
+        this.animatedCardY.clear();
+        this.animationState = AnimationState.APPEARING;
+        this.animationTick = 0;
+        this.selectedCard = -1;
+        this.pendingClickButtonId = Integer.MIN_VALUE;
+        this.settleHoldTicks = 0;
 
         int totalWidth = DungeonWaveMenu.OPTION_COUNT * CARD_W + (DungeonWaveMenu.OPTION_COUNT - 1) * CARD_GAP;
         int x = this.leftPos + (this.imageWidth - totalWidth) / 2;
@@ -53,7 +73,11 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
                     CARD_W,
                     CARD_H,
                     click -> this.selectOption(optionIndex)));
-            button.active = this.menu.ownerCanSelect();
+            this.baseCardX.add(x + index * (CARD_W + CARD_GAP));
+            this.baseCardY.add(startY);
+            this.animatedCardX.add(this.baseCardX.get(index));
+            this.animatedCardY.add(this.baseCardY.get(index));
+            button.active = false;
             this.optionButtons.add(button);
         }
 
@@ -63,6 +87,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
                 .pos(this.leftPos + 58, this.topPos + 150)
                 .size(224, 20)
                 .build());
+        this.bailButton.visible = this.menu.stage() == 0;
         this.bailButton.active = this.menu.ownerCanSelect() && this.menu.stage() == 0;
 
         this.rerollButton = this.addRenderableWidget(Button.builder(
@@ -71,6 +96,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
                 .pos(this.leftPos + 58, this.topPos + 175)
                 .size(224, 20)
                 .build());
+        this.rerollButton.visible = this.menu.stage() == 1;
         this.rerollButton.active = this.menu.ownerCanSelect() && this.menu.stage() == 1 && this.menu.rerollsLeft() > 0;
 
         this.skipButton = this.addRenderableWidget(Button.builder(
@@ -79,24 +105,24 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
                 .pos(this.leftPos + 58, this.topPos + 199)
                 .size(224, 20)
                 .build());
+        this.skipButton.visible = this.menu.stage() == 1;
         this.skipButton.active = this.menu.ownerCanSelect() && this.menu.stage() == 1;
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
     }
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
-        guiGraphics.fillGradient(this.leftPos, this.topPos, this.leftPos + this.imageWidth, this.topPos + this.imageHeight, 0xE01A1A1A, 0xE0050505);
-        guiGraphics.fill(this.leftPos + 4, this.topPos + 4, this.leftPos + this.imageWidth - 4, this.topPos + this.imageHeight - 4, 0xA0121212);
         for (int i = 0; i < this.optionButtons.size(); i++) {
             Button button = this.optionButtons.get(i);
-            ResourceLocation tex = button.isHoveredOrFocused() ? CARD_HOVERED : CARD;
-            guiGraphics.blit(tex, button.getX(), button.getY(), 0, 0, CARD_W, CARD_H, CARD_W, CARD_H);
+            boolean hovered = button.isHoveredOrFocused() && this.animationState == AnimationState.IDLE;
+            ResourceLocation tex = hovered ? CARD_HOVERED : CARD;
+            float scale = hovered ? 1.05F : 1.0F;
+            drawCard(guiGraphics, tex, button.getX(), button.getY(), scale);
         }
         if (this.showRunChanges) {
             int boxW = 130;
@@ -117,7 +143,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         String stageTitle = this.menu.stage() == 0 ? "Tarot Selection" : (this.menu.stage() == 2 ? "Loadout Selection" : "Upgrade Selection");
-        guiGraphics.drawString(this.font, Component.literal("Wave " + this.menu.waveNumber() + " - " + stageTitle), 12, 2, 0x7C5A14, false);
+        guiGraphics.drawCenteredString(this.font, Component.literal("Wave " + this.menu.waveNumber() + " - " + stageTitle).withStyle(ChatFormatting.BOLD), this.imageWidth / 2, 2, 0xFFE36B);
         if (this.menu.ownerCanSelect()) {
             guiGraphics.drawCenteredString(this.font, Component.translatable("screen.gatesofavarice.dungeon_wave.select_prompt"), this.imageWidth / 2, 218, 0x6C6C6C);
         } else {
@@ -198,32 +224,48 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     }
 
     private void selectOption(int optionIndex) {
+        if (this.animationState != AnimationState.IDLE) {
+            return;
+        }
+        this.selectedCard = optionIndex;
+        this.pendingClickButtonId = optionIndex;
+        this.animationState = AnimationState.DISCARDING_SELECT;
+        this.animationTick = 0;
+        this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+    }
+
+    private void triggerDiscardAndSend(int buttonId) {
+        if (this.animationState != AnimationState.IDLE) {
+            return;
+        }
+        this.selectedCard = -1;
+        this.pendingClickButtonId = buttonId;
+        this.animationState = AnimationState.DISCARDING_ALL;
+        this.animationTick = 0;
+        this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+    }
+
+    private void sendPendingClick() {
         if (this.minecraft == null || this.minecraft.gameMode == null) {
             return;
         }
-        this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, optionIndex);
+        if (this.pendingClickButtonId == Integer.MIN_VALUE) {
+            return;
+        }
+        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, this.pendingClickButtonId);
+        this.pendingClickButtonId = Integer.MIN_VALUE;
     }
 
     private void selectBail() {
-        if (this.minecraft == null || this.minecraft.gameMode == null) {
-            return;
-        }
-        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, DungeonWaveMenu.BAIL_BUTTON_ID);
+        triggerDiscardAndSend(DungeonWaveMenu.BAIL_BUTTON_ID);
     }
 
     private void selectReroll() {
-        if (this.minecraft == null || this.minecraft.gameMode == null) {
-            return;
-        }
-        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, DungeonWaveMenu.REROLL_BUTTON_ID);
+        triggerDiscardAndSend(DungeonWaveMenu.REROLL_BUTTON_ID);
     }
 
     private void selectSkip() {
-        if (this.minecraft == null || this.minecraft.gameMode == null) {
-            return;
-        }
-        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, DungeonWaveMenu.SKIP_BUTTON_ID);
+        triggerDiscardAndSend(DungeonWaveMenu.SKIP_BUTTON_ID);
     }
 
     @Override
@@ -259,10 +301,10 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     }
 
     private int tarotLineColor(String line) {
-        if (isNegativeModifier(line) || line.toLowerCase(java.util.Locale.ROOT).contains("hoard")
-                || line.toLowerCase(java.util.Locale.ROOT).contains("tank")
-                || line.toLowerCase(java.util.Locale.ROOT).contains("archer")
-                || line.toLowerCase(java.util.Locale.ROOT).contains("assassin")) {
+        if (isNegativeModifier(line) || line.toLowerCase(Locale.ROOT).contains("hoard")
+                || line.toLowerCase(Locale.ROOT).contains("tank")
+                || line.toLowerCase(Locale.ROOT).contains("archer")
+                || line.toLowerCase(Locale.ROOT).contains("assassin")) {
             return 0xAF3E3E;
         }
         if (isPositiveModifier(line)) return 0x2F8E42;
@@ -270,7 +312,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     }
 
     private boolean isNegativeModifier(String line) {
-        String normalized = line.toLowerCase(java.util.Locale.ROOT);
+        String normalized = line.toLowerCase(Locale.ROOT);
         return normalized.contains("elite")
                 || normalized.contains("mob speed")
                 || normalized.contains("mob health")
@@ -281,7 +323,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     }
 
     private boolean isPositiveModifier(String line) {
-        String normalized = line.toLowerCase(java.util.Locale.ROOT);
+        String normalized = line.toLowerCase(Locale.ROOT);
         return normalized.contains("quantity")
                 || normalized.contains("rarity")
                 || normalized.contains("coins")
@@ -290,7 +332,7 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
     }
 
     private int runChangeColor(String line) {
-        String normalized = line.toLowerCase(java.util.Locale.ROOT);
+        String normalized = line.toLowerCase(Locale.ROOT);
         if (normalized.contains("+elite spawns")
                 || normalized.contains("+mob speed")
                 || normalized.contains("+mob health")
@@ -335,5 +377,95 @@ public class DungeonWaveScreen extends AbstractContainerScreen<DungeonWaveMenu> 
         protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
             // Intentionally blank: card art is rendered in screen background.
         }
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        tickAnimations();
+    }
+
+    private void tickAnimations() {
+        this.animationTick++;
+        float appearDelayTicks = 3.3F;
+        float appearDurationTicks = 6.6F;
+        float discardDurationTicks = 8.8F;
+
+        for (int i = 0; i < this.optionButtons.size(); i++) {
+            int baseX = this.baseCardX.get(i);
+            int baseY = this.baseCardY.get(i);
+            int targetX = baseX;
+            int targetY = baseY;
+
+            if (this.animationState == AnimationState.APPEARING) {
+                float p = Mth.clamp((this.animationTick - i * appearDelayTicks) / (float) appearDurationTicks, 0.0F, 1.0F);
+                p = p * p * (3.0F - 2.0F * p);
+                targetY = Mth.floor(Mth.lerp(p, -CARD_H - 20, baseY));
+            } else if (this.animationState == AnimationState.DISCARDING_SELECT) {
+                float p = Mth.clamp(this.animationTick / (float) discardDurationTicks, 0.0F, 1.0F);
+                p = p * p * (3.0F - 2.0F * p);
+                if (i == this.selectedCard) {
+                    int centerX = this.leftPos + (this.imageWidth - CARD_W) / 2;
+                    targetX = Mth.floor(Mth.lerp(p, baseX, centerX));
+                    targetY = baseY;
+                } else {
+                    targetY = Mth.floor(Mth.lerp(p, baseY, this.height + CARD_H + 20));
+                }
+            } else if (this.animationState == AnimationState.DISCARDING_ALL) {
+                float p = Mth.clamp(this.animationTick / (float) discardDurationTicks, 0.0F, 1.0F);
+                p = p * p * (3.0F - 2.0F * p);
+                targetY = Mth.floor(Mth.lerp(p, baseY, this.height + CARD_H + 20));
+            }
+
+            this.animatedCardX.set(i, targetX);
+            this.animatedCardY.set(i, targetY);
+            this.optionButtons.get(i).setX(targetX);
+            this.optionButtons.get(i).setY(targetY);
+        }
+
+        boolean idle = this.animationState == AnimationState.IDLE;
+        for (Button optionButton : this.optionButtons) {
+            optionButton.active = idle && this.menu.ownerCanSelect();
+        }
+        this.bailButton.active = idle && this.menu.ownerCanSelect() && this.menu.stage() == 0;
+        this.rerollButton.active = idle && this.menu.ownerCanSelect() && this.menu.stage() == 1 && this.menu.rerollsLeft() > 0;
+        this.skipButton.active = idle && this.menu.ownerCanSelect() && this.menu.stage() == 1;
+
+        if (this.animationState == AnimationState.APPEARING && this.animationTick > Mth.ceil((this.optionButtons.size() - 1) * appearDelayTicks + appearDurationTicks)) {
+            this.animationState = AnimationState.IDLE;
+            this.animationTick = 0;
+        } else if (this.animationState == AnimationState.DISCARDING_SELECT || this.animationState == AnimationState.DISCARDING_ALL) {
+            if (this.animationTick >= Mth.ceil(discardDurationTicks)) {
+                this.settleHoldTicks++;
+                if (this.settleHoldTicks >= 20) {
+                    sendPendingClick();
+                }
+            } else {
+                this.settleHoldTicks = 0;
+            }
+        }
+    }
+
+    private void drawCard(GuiGraphics guiGraphics, ResourceLocation texture, int x, int y, float scale) {
+        if (scale == 1.0F) {
+            guiGraphics.blit(texture, x, y, 0, 0, CARD_W, CARD_H, CARD_W, CARD_H);
+            return;
+        }
+        float scaledW = CARD_W * scale;
+        float scaledH = CARD_H * scale;
+        float offsetX = (scaledW - CARD_W) / 2.0F;
+        float offsetY = (scaledH - CARD_H) / 2.0F;
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(x - offsetX, y - offsetY, 0.0F);
+        guiGraphics.pose().scale(scale, scale, 1.0F);
+        guiGraphics.blit(texture, 0, 0, 0, 0, CARD_W, CARD_H, CARD_W, CARD_H);
+        guiGraphics.pose().popPose();
+    }
+
+    private enum AnimationState {
+        APPEARING,
+        IDLE,
+        DISCARDING_SELECT,
+        DISCARDING_ALL
     }
 }

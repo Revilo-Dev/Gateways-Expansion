@@ -125,6 +125,6 @@ public final class DungeonBoundItems {
     }
 
     public static void applyArmorBindingCurse(ItemStack stack) {
-        // TODO: Apply binding curse through NeoForge 1.21 enchantment holder API.
+        // Applied in server-authoritative loadout flow where registry access is available.
     }
 }

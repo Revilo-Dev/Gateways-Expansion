@@ -1,6 +1,8 @@
 package com.revilo.gatesofavarice.network;
 
 import com.revilo.gatesofavarice.registry.ModAttachments;
+import com.revilo.gatesofavarice.dungeon.DungeonUpgradeManager;
+import com.revilo.gatesofavarice.dungeon.loadout.LoadoutModels.UpgradeCategory;
 import com.revilo.gatesofavarice.dungeon.DungeonHudState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -45,6 +47,49 @@ public final class GatewayExpansionNetwork {
                     try {
                         Class<?> handler = Class.forName("com.revilo.gatesofavarice.client.DungeonCompleteClientHandler");
                         handler.getMethod("open", DungeonCompletePayload.class).invoke(null, payload);
+                    } catch (ReflectiveOperationException ignored) {
+                    }
+                }));
+        registrar.playToServer(SelectUpgradeCategoryPayload.TYPE, SelectUpgradeCategoryPayload.STREAM_CODEC, (payload, context) -> {
+            if (!(context.player() instanceof ServerPlayer player)) return;
+            UpgradeCategory[] values = UpgradeCategory.values();
+            if (payload.categoryOrdinal() < 0 || payload.categoryOrdinal() >= values.length) return;
+            DungeonUpgradeManager.selectCategory(player, payload.sessionId(), values[payload.categoryOrdinal()]);
+        });
+        registrar.playToServer(SelectUpgradeCardPayload.TYPE, SelectUpgradeCardPayload.STREAM_CODEC, (payload, context) -> {
+            if (!(context.player() instanceof ServerPlayer player)) return;
+            DungeonUpgradeManager.selectCard(player, payload.sessionId(), payload.cardId());
+        });
+        registrar.playToClient(OpenUpgradeCategoryPayload.TYPE, OpenUpgradeCategoryPayload.STREAM_CODEC, (payload, context) ->
+                context.enqueueWork(() -> {
+                    if (!FMLEnvironment.dist.isClient()) return;
+                    try {
+                        Class<?> state = Class.forName("com.revilo.gatesofavarice.client.DungeonUpgradeClientState");
+                        state.getField("sessionId").set(null, payload.sessionId());
+                        state.getField("loadoutName").set(null, payload.loadoutName());
+                        state.getField("theme").set(null, payload.theme());
+                        Class<?> mc = Class.forName("net.minecraft.client.Minecraft");
+                        Object instance = mc.getMethod("getInstance").invoke(null);
+                        Class<?> screenClass = Class.forName("com.revilo.gatesofavarice.client.screen.DungeonUpgradeCategoryScreen");
+                        Object screen = screenClass.getConstructor().newInstance();
+                        mc.getMethod("setScreen", Class.forName("net.minecraft.client.gui.screens.Screen")).invoke(instance, screen);
+                    } catch (ReflectiveOperationException ignored) {
+                    }
+                }));
+        registrar.playToClient(SyncUpgradeCardsPayload.TYPE, SyncUpgradeCardsPayload.STREAM_CODEC, (payload, context) ->
+                context.enqueueWork(() -> {
+                    if (!FMLEnvironment.dist.isClient()) return;
+                    try {
+                        Class<?> state = Class.forName("com.revilo.gatesofavarice.client.DungeonUpgradeClientState");
+                        state.getField("sessionId").set(null, payload.sessionId());
+                        state.getField("categoryName").set(null, payload.categoryName());
+                        state.getField("previewStack").set(null, payload.previewStack());
+                        state.getField("cards").set(null, payload.cards());
+                        Class<?> mc = Class.forName("net.minecraft.client.Minecraft");
+                        Object instance = mc.getMethod("getInstance").invoke(null);
+                        Class<?> screenClass = Class.forName("com.revilo.gatesofavarice.client.screen.DungeonUpgradeCardsScreen");
+                        Object screen = screenClass.getConstructor().newInstance();
+                        mc.getMethod("setScreen", Class.forName("net.minecraft.client.gui.screens.Screen")).invoke(instance, screen);
                     } catch (ReflectiveOperationException ignored) {
                     }
                 }));

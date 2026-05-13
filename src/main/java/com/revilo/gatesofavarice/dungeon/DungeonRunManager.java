@@ -1,6 +1,11 @@
 package com.revilo.gatesofavarice.dungeon;
 
 import com.revilo.gatesofavarice.currency.MythicCoinWallet;
+import com.revilo.gatesofavarice.dungeon.DungeonUpgradeManager;
+import com.revilo.gatesofavarice.dungeon.loadout.LoadoutModels;
+import com.revilo.gatesofavarice.dungeon.loadout.LoadoutModels.UpgradeCategory;
+import com.revilo.gatesofavarice.dungeon.loadout.LoadoutPresetRegistry;
+import com.revilo.gatesofavarice.dungeon.loadout.RunicLoadoutService;
 import com.revilo.gatesofavarice.entity.GatewayCrystalEntity;
 import com.revilo.gatesofavarice.gateway.pool.EnemyPoolRegistry;
 import com.revilo.gatesofavarice.gateway.pool.EnemyPoolRole;
@@ -14,6 +19,7 @@ import com.revilo.gatesofavarice.network.DungeonCompletePayload;
 import com.revilo.gatesofavarice.network.DungeonWaveHudPayload;
 import com.revilo.gatesofavarice.registry.ModEntities;
 import com.revilo.gatesofavarice.registry.ModItems;
+import com.revilo.gatesofavarice.registry.LoadoutArmorRegistry;
 import com.revilo.gatesofavarice.shop.ShopkeeperManager;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,6 +60,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.ArmorItem.Type;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -105,7 +112,7 @@ public final class DungeonRunManager {
             Component.literal("+1 Reward Roll"), Component.literal("+2 Reward Rolls"), Component.literal("+20 Mythic Coins"),
             Component.literal("+1 Unlock Archetype"), Component.literal("+1 Dungeon Loot Burst"));
     private static final List<WeightedItem> WEAPON_POOL = buildWeaponPool();
-    private static final List<LoadoutDefinition> LOADOUT_DEFINITIONS = buildLoadoutDefinitions();
+    private static final List<LoadoutModels.LoadoutDefinition> LOADOUT_DEFINITIONS = LoadoutPresetRegistry.all();
 
     private DungeonRunManager() {}
 
@@ -193,11 +200,26 @@ public final class DungeonRunManager {
             return true;
         }
         if (run.selectingLoadout) {
-            if (buttonId < 0 || buttonId >= run.loadoutOptions.size()) return false;
-            grantLoadout(serverPlayer, run.loadoutOptions.get(buttonId), serverPlayer.serverLevel().random);
+            int randomLoadoutButtonId = run.loadoutOptions.size();
+            if (buttonId == randomLoadoutButtonId) {
+                if (LOADOUT_DEFINITIONS.isEmpty()) return false;
+                LoadoutModels.LoadoutDefinition randomDefinition = LOADOUT_DEFINITIONS.get(serverPlayer.serverLevel().random.nextInt(LOADOUT_DEFINITIONS.size()));
+                grantLoadout(serverPlayer, buildLoadoutOptionFromDefinition(randomDefinition, averageParticipantLevel(run), serverPlayer.serverLevel().random), serverPlayer.serverLevel().random);
+            } else {
+                if (buttonId < 0 || buttonId >= run.loadoutOptions.size()) return false;
+                grantLoadout(serverPlayer, run.loadoutOptions.get(buttonId), serverPlayer.serverLevel().random);
+            }
         } else {
             if (buttonId < 0 || buttonId >= run.lootOptions.size()) return false;
-            grantLoot(serverPlayer, run, run.lootOptions.get(buttonId), serverPlayer.serverLevel().random);
+            UpgradeCategory category = switch (buttonId) {
+                case 0 -> UpgradeCategory.PRIMARY_WEAPON;
+                case 1 -> UpgradeCategory.SECONDARY_WEAPON;
+                case 2 -> UpgradeCategory.ARMOR;
+                default -> UpgradeCategory.ITEM;
+            };
+            DungeonUpgradeManager.openUpgradeScreen(serverPlayer, run.ownerId, category);
+            serverPlayer.closeContainer();
+            return true;
         }
         startWave(run);
         serverPlayer.closeContainer();
@@ -526,12 +548,11 @@ public final class DungeonRunManager {
 
     private static void rollLootOptions(RunState run, RandomSource random) {
         run.selectingLoadout = false;
-        int avgLevel = averageParticipantLevel(run);
         ArrayList<LootOption> rolled = new ArrayList<>();
-        rolled.add(LootOption.weapon(random, avgLevel));
-        rolled.add(LootOption.armor(random));
-        rolled.add(LootOption.magnet(random, avgLevel));
-        rolled.add(LootOption.coins(random, avgLevel));
+        rolled.add(LootOption.category("Primary Weapon Upgrade", "Upgrade your main weapon", ItemStack.EMPTY));
+        rolled.add(LootOption.category("Secondary Weapon Upgrade", "Upgrade your backup weapon", ItemStack.EMPTY));
+        rolled.add(LootOption.category("Armor Upgrade", "Upgrade your themed armor set", ItemStack.EMPTY));
+        rolled.add(LootOption.category("Item Upgrade", "Upgrade supplies (arrows, arcane apples, etc.)", ItemStack.EMPTY));
         run.lootOptions = List.copyOf(rolled);
         run.loadoutOptions = List.of();
     }
@@ -539,26 +560,34 @@ public final class DungeonRunManager {
     private static void rollLoadoutOptions(RunState run, RandomSource random) {
         run.selectingLoadout = true;
         ArrayList<LoadoutOption> rolled = new ArrayList<>();
-        ArrayList<LoadoutDefinition> eligible = new ArrayList<>(LOADOUT_DEFINITIONS);
+        ArrayList<LoadoutModels.LoadoutDefinition> eligible = new ArrayList<>(LOADOUT_DEFINITIONS);
         int avgLevel = averageParticipantLevel(run);
         for (int i = 0; i < 3 && !eligible.isEmpty(); i++) {
-            LoadoutDefinition definition = eligible.remove(random.nextInt(eligible.size()));
-            ItemStack primary = new ItemStack(pickLoadoutWeapon(random, avgLevel, definition.primaryKind()));
-            ItemStack secondary = new ItemStack(pickLoadoutWeapon(random, avgLevel, definition.secondaryKind()));
-            rolled.add(new LoadoutOption(
-                    Component.literal(definition.name() + " loadout"),
-                    Component.literal("Armor: " + definition.armorName() + "\n" + String.join("\n", definition.traits()) + "\nFood: " + definition.foodSummary()),
-                    new ItemStack(definition.head()),
-                    new ItemStack(definition.chest()),
-                    new ItemStack(definition.legs()),
-                    new ItemStack(definition.feet()),
-                    primary,
-                    secondary,
-                    pickLeveledMagnet(random, avgLevel),
-                    definition.food()));
+            LoadoutModels.LoadoutDefinition definition = eligible.remove(random.nextInt(eligible.size()));
+            rolled.add(buildLoadoutOptionFromDefinition(definition, avgLevel, random));
         }
         run.loadoutOptions = List.copyOf(rolled);
         run.lootOptions = List.of();
+    }
+
+    private static LoadoutOption buildLoadoutOptionFromDefinition(LoadoutModels.LoadoutDefinition definition, int avgLevel, RandomSource random) {
+        ItemStack primary = new ItemStack(pickLoadoutWeapon(random, avgLevel, definition.primaryWeaponKind()));
+        ItemStack secondary = new ItemStack(pickLoadoutWeapon(random, avgLevel, definition.secondaryWeaponKind()));
+        String setId = definition.armorSet().setId();
+        return new LoadoutOption(
+                definition.id(),
+                Component.literal(definition.displayName() + " loadout"),
+                Component.literal("Armor: " + definition.armorSet().displayName() + "\nTheme: " + definition.theme().name().toLowerCase(java.util.Locale.ROOT) + "\nRunic-enabled preset"),
+                new ItemStack(LoadoutArmorRegistry.get(setId, Type.HELMET)),
+                new ItemStack(LoadoutArmorRegistry.get(setId, Type.CHESTPLATE)),
+                new ItemStack(LoadoutArmorRegistry.get(setId, Type.LEGGINGS)),
+                new ItemStack(LoadoutArmorRegistry.get(setId, Type.BOOTS)),
+                primary,
+                secondary,
+                pickLeveledMagnet(random, avgLevel),
+                definition.supplies().stream()
+                        .map(spec -> new ItemStack(spec.item(), spec.minCount() + random.nextInt(Math.max(1, spec.maxCount() - spec.minCount() + 1))))
+                        .toList());
     }
 
     private static void applyTarot(RunState run, TarotOption option) {
@@ -572,25 +601,22 @@ public final class DungeonRunManager {
         if (option.unlockArchetype != null && !run.unlockedArchetypes.contains(option.unlockArchetype)) run.unlockedArchetypes.add(option.unlockArchetype);
     }
 
-    private static void grantLoot(ServerPlayer player, RunState run, LootOption option, RandomSource random) {
-        ItemStack stack = option.stack().copy();
-        if (stack.isEmpty()) return;
-        int playerLevel = getEffectivePlayerLevel(player);
-        long timeInDungeonTicks = Math.max(0L, player.serverLevel().getGameTime() - run.runStartGameTime);
-        DungeonGearRoller.rollAndBind(stack, random, playerLevel, timeInDungeonTicks, player.registryAccess());
-        if (stack.getItem() instanceof ArmorItem armorItem) {
-            player.setItemSlot(armorItem.getEquipmentSlot(), stack);
-        } else if (DungeonBoundItems.isWeapon(stack)) {
-            grantSecondaryWeapon(player, stack);
-        } else if (!player.getInventory().add(stack)) {
-            player.drop(stack, false);
+    private static void grantLoot(ServerPlayer player, RunState run, LootOption option, RandomSource random) {}
+
+    public static void completeWaveUpgradeSelection(ServerPlayer player, UUID ownerId) {
+        RunState run = RUNS_BY_OWNER.get(ownerId);
+        if (run == null || run.phase != RunPhase.SELECTING_LOOT || run.selectingLoadout) {
+            return;
         }
+        startWave(run);
+        player.closeContainer();
     }
 
     private static void grantLoadout(ServerPlayer player, LoadoutOption loadout, RandomSource random) {
         clearForDungeon(player);
         int playerLevel = getEffectivePlayerLevel(player);
         long timeTicks = 0L;
+        LoadoutModels.LoadoutDefinition definition = LoadoutPresetRegistry.byId(loadout.loadoutId()).orElse(null);
         ItemStack head = loadout.head().copy();
         ItemStack chest = loadout.chest().copy();
         ItemStack legs = loadout.legs().copy();
@@ -605,6 +631,16 @@ public final class DungeonRunManager {
         DungeonGearRoller.rollAndBind(primary, random, playerLevel, timeTicks, player.registryAccess());
         DungeonGearRoller.rollAndBind(secondary, random, playerLevel, timeTicks, player.registryAccess());
         DungeonGearRoller.rollAndBind(utility, random, playerLevel, timeTicks, player.registryAccess());
+        if (definition != null) {
+            rollArmorPiece(player, head, definition, EquipmentSlot.HEAD, random);
+            rollArmorPiece(player, chest, definition, EquipmentSlot.CHEST, random);
+            rollArmorPiece(player, legs, definition, EquipmentSlot.LEGS, random);
+            rollArmorPiece(player, feet, definition, EquipmentSlot.FEET, random);
+            RunicLoadoutService.applyLoadoutStats(player.serverLevel(), primary, definition.primaryRunicStatPool(), random);
+            RunicLoadoutService.applyLoadoutStats(player.serverLevel(), secondary, definition.secondaryRunicStatPool(), random);
+            RunicLoadoutService.applyLoadoutEffects(player.serverLevel(), primary, definition.allowedEffectPool(), random);
+            RunicLoadoutService.applyLoadoutEffects(player.serverLevel(), secondary, definition.allowedEffectPool(), random);
+        }
         DungeonBoundItems.markPrimaryWeapon(primary);
         DungeonBoundItems.markSecondaryWeapon(secondary);
         player.setItemSlot(EquipmentSlot.HEAD, head);
@@ -639,6 +675,21 @@ public final class DungeonRunManager {
         if (!DungeonBoundItems.replaceRoleWeapon(player, stack) && !player.getInventory().add(stack)) {
             player.drop(stack, false);
         }
+    }
+
+    private static void rollArmorPiece(ServerPlayer player, ItemStack stack, LoadoutModels.LoadoutDefinition definition, EquipmentSlot slot, RandomSource random) {
+        RunicLoadoutService.tagLoadoutIdentity(stack, definition.id(), definition.armorSet().displayName(), slot.getName());
+        RunicLoadoutService.applyLoadoutStats(player.serverLevel(), stack, definition.armorRunicStatPool(), random);
+        RunicLoadoutService.applyLoadoutEffects(player.serverLevel(), stack, definition.allowedEffectPool(), random);
+        if (com.revilo.gatesofavarice.config.GatewayExpansionConfig.FORCE_BINDING_ON_LOADOUT_ARMOR.get()) {
+            net.minecraft.core.Holder.Reference<net.minecraft.world.item.enchantment.Enchantment> binding =
+                    player.serverLevel().registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                            .get(net.minecraft.world.item.enchantment.Enchantments.BINDING_CURSE).orElse(null);
+            if (binding != null) {
+                net.minecraft.world.item.enchantment.EnchantmentHelper.updateEnchantments(stack, mutable -> mutable.set(binding, 1));
+            }
+        }
+        RunicLoadoutService.syncRunicSlots(stack);
     }
 
     private static List<LoadoutDefinition> buildLoadoutDefinitions() {
@@ -1119,7 +1170,19 @@ public final class DungeonRunManager {
         if (run.phase == RunPhase.SELECTING_TAROT) {
             views = run.tarotOptions.stream().map(option -> new DungeonWaveMenu.WaveOptionView(option.title, option.details, 100, 100, ItemStack.EMPTY, ItemStack.EMPTY)).toList();
         } else if (run.selectingLoadout) {
-            views = run.loadoutOptions.stream().map(option -> new DungeonWaveMenu.WaveOptionView(option.title, option.details, 100, 100, option.primary().copy(), option.secondary().copy())).toList();
+            ArrayList<DungeonWaveMenu.WaveOptionView> loadoutViews = new ArrayList<>();
+            for (LoadoutOption option : run.loadoutOptions) {
+                loadoutViews.add(new DungeonWaveMenu.WaveOptionView(option.title, option.details, 100, 100, option.primary().copy(), option.secondary().copy()));
+            }
+            loadoutViews.add(new DungeonWaveMenu.WaveOptionView(
+                    Component.literal("Random Loadout"),
+                    Component.literal("Randomly picks one of the shown loadouts"),
+                    100,
+                    100,
+                    ItemStack.EMPTY,
+                    ItemStack.EMPTY
+            ));
+            views = List.copyOf(loadoutViews);
         } else {
             views = run.lootOptions.stream().map(option -> new DungeonWaveMenu.WaveOptionView(option.title, option.details, 100, 100, option.stack().copy(), ItemStack.EMPTY)).toList();
         }
@@ -1494,6 +1557,10 @@ public final class DungeonRunManager {
 
         private ItemStack stack() { return this.stack; }
 
+        private static LootOption category(String title, String details, ItemStack preview) {
+            return new LootOption(Component.literal(title), Component.literal(details), preview);
+        }
+
         private static LootOption weapon(RandomSource random, int playerLevel) {
             ItemStack stack = new ItemStack(pickWeightedWeapon(random, playerLevel));
             String name = stack.getHoverName().getString();
@@ -1548,6 +1615,7 @@ public final class DungeonRunManager {
     }
 
     private record LoadoutOption(
+            String loadoutId,
             Component title,
             Component details,
             ItemStack head,

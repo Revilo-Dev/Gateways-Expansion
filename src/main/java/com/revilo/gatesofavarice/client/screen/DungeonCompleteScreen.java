@@ -4,6 +4,7 @@ import com.revilo.gatesofavarice.GatewayExpansion;
 import com.revilo.gatesofavarice.integration.LevelUpClientIntegration;
 import com.revilo.gatesofavarice.network.DungeonCompletePayload;
 import java.util.List;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -53,14 +54,13 @@ public class DungeonCompleteScreen extends Screen {
     }
 
     private void renderHeader(GuiGraphics guiGraphics) {
-        drawCentered(guiGraphics, "Survived", 60, 11, 0x2F2412);
-        drawCentered(guiGraphics, "Waves complete: " + this.payload.wavesComplete(), 60, 25, 0x2B5FA8);
+        guiGraphics.drawCenteredString(this.font, Component.literal("Survived").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), this.leftPos + 60, this.topPos + 11, 0xFFFFFF);
+        drawCentered(guiGraphics, "Waves complete: " + this.payload.wavesComplete(), 60, 25, 0xFFE36B);
     }
 
     private void renderStats(GuiGraphics guiGraphics) {
-        int x = this.leftPos + 8;
-        int y = this.topPos + 43;
-        int color = 0x3D3428;
+        int x = this.leftPos + 10;
+        int y = this.topPos + 42;
         String[] lines = {
                 "Time Spent: " + formatTime(this.payload.timeSpentTicks()),
                 "Level Points earnt: " + this.payload.levelPointsEarned(),
@@ -74,16 +74,29 @@ public class DungeonCompleteScreen extends Screen {
                 "Mob Health: " + this.payload.mobHealth() + "%",
                 "Mob Damage: " + this.payload.mobDamage() + "%"
         };
-        for (String line : lines) {
-            drawScaled(guiGraphics, line, x, y, 0.78F, color);
+        int[] colors = {
+                0xB7C5DD,
+                0x8FD1FF,
+                0xF6D37A,
+                0xE39A6B,
+                0xD28C8C,
+                0xC592C9,
+                0x98D8A8,
+                0xCAA7E8,
+                0xEFE09A,
+                0xE29B9B,
+                0xD98989
+        };
+        for (int i = 0; i < lines.length; i++) {
+            drawScaled(guiGraphics, lines[i], x, y, 0.62F, colors[Math.min(i, colors.length - 1)]);
             y += 8;
         }
     }
 
     private void renderRewards(GuiGraphics guiGraphics) {
         List<ItemStack> rewards = this.payload.rewards();
-        int startX = this.leftPos + 118;
-        int startY = this.topPos + 27;
+        int startX = this.leftPos + 120;
+        int startY = this.topPos + 24;
         for (int slot = 0; slot < REWARD_VISIBLE; slot++) {
             int col = slot % REWARD_COLS;
             int row = slot / REWARD_COLS;
@@ -106,8 +119,8 @@ public class DungeonCompleteScreen extends Screen {
         int targetHeight = 11;
         int barWidth = LevelUpClientIntegration.getLevelBarWidth();
         float scale = barWidth <= 0 ? 1.0F : targetWidth / (float) barWidth;
-        int x = (this.width - targetWidth) / 2;
-        int y = this.topPos + 146;
+        int x = (this.width - targetWidth) / 2 - 1;
+        int y = this.topPos + 148;
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(x, y, 0.0F);
         guiGraphics.pose().scale(scale, scale, 1.0F);
@@ -146,8 +159,8 @@ public class DungeonCompleteScreen extends Screen {
         if (!isInRewardArea(mouseX, mouseY)) {
             return -1;
         }
-        int localX = (int) mouseX - (this.leftPos + 118);
-        int localY = (int) mouseY - (this.topPos + 27);
+        int localX = (int) mouseX - (this.leftPos + 120);
+        int localY = (int) mouseY - (this.topPos + 24);
         int col = localX / 18;
         int row = localY / 18;
         if (col < 0 || col >= REWARD_COLS || row < 0 || row >= REWARD_VISIBLE_ROWS) {
@@ -157,8 +170,8 @@ public class DungeonCompleteScreen extends Screen {
     }
 
     private boolean isInRewardArea(double mouseX, double mouseY) {
-        return mouseX >= this.leftPos + 118 && mouseX < this.leftPos + 118 + REWARD_COLS * 18
-                && mouseY >= this.topPos + 27 && mouseY < this.topPos + 27 + REWARD_VISIBLE_ROWS * 18;
+        return mouseX >= this.leftPos + 120 && mouseX < this.leftPos + 120 + REWARD_COLS * 18
+                && mouseY >= this.topPos + 24 && mouseY < this.topPos + 24 + REWARD_VISIBLE_ROWS * 18;
     }
 
     private void drawCentered(GuiGraphics guiGraphics, String text, int centerX, int y, int color) {
